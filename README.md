@@ -14,7 +14,7 @@ Runs on Node.js 20+ (`npx`) or [Bun](https://bun.sh) (`bunx`).
 ### Dashboard (default)
 
 ```bash
-npx cursor-usage   # or: bunx cursor-usage
+npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 ```
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
@@ -22,13 +22,13 @@ Starts a local server and opens your browser. Drag & drop a CSV exported from Cu
 The default port is 4321; if it is already in use, a free port is picked automatically. When `--port` is specified explicitly, that port is used as-is.
 
 ```bash
-npx cursor-usage serve --port 8080 --no-open
+npx @jnst/cursor-usage serve --port 8080 --no-open
 ```
 
 ### Terminal stats
 
 ```bash
-npx cursor-usage stats team-usage-events.csv
+npx @jnst/cursor-usage stats team-usage-events.csv
 ```
 
 ```
@@ -59,7 +59,14 @@ Options:
 
 ```bash
 # Extract key numbers
-npx cursor-usage stats usage.csv --json | jq .summary.totalCost
+npx @jnst/cursor-usage stats usage.csv --json | jq .summary.totalCost
+```
+
+Or install globally to use the short `cursor-usage` command:
+
+```bash
+npm install -g @jnst/cursor-usage   # or: bun add -g @jnst/cursor-usage
+cursor-usage stats usage.csv
 ```
 
 ## Development
