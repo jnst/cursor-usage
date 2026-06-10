@@ -18,7 +18,7 @@
     "prepublishOnly": "bun run build"
   },
   "engines": {
-    "bun": ">=1.2.0"
+    "node": ">=20"
   },
   "keywords": [
     "cursor",

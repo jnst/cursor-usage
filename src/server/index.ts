@@ -1,5 +1,22 @@
-import { join, normalize } from "node:path";
-import { existsSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { createReadStream, existsSync } from "node:fs";
+import { stat } from "node:fs/promises";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { dirname, extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const DEFAULT_PORT = 4321;
+
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".map": "application/json",
+};
 
 /**
  * Locate the pre-bundled dashboard assets. In the published package the CLI
@@ -7,10 +24,8 @@ import { existsSync } from "node:fs";
  * the repo's dist/web (requires `bun run build`).
  */
 function findWebRoot(): string {
-  const candidates = [
-    join(import.meta.dir, "web"),
-    join(import.meta.dir, "../../dist/web"),
-  ];
+  const here = dirname(fileURLToPath(import.meta.url));
+  const candidates = [join(here, "web"), join(here, "../../dist/web")];
   for (const dir of candidates) {
     if (existsSync(join(dir, "index.html"))) return dir;
   }
@@ -20,20 +35,18 @@ function findWebRoot(): string {
 }
 
 function openBrowser(url: string): void {
-  const cmd =
+  const [cmd, ...args] =
     process.platform === "darwin"
       ? ["open", url]
       : process.platform === "win32"
         ? ["cmd", "/c", "start", "", url]
         : ["xdg-open", url];
   try {
-    Bun.spawn(cmd, { stdout: "ignore", stderr: "ignore" });
+    spawn(cmd!, args, { stdio: "ignore", detached: true }).unref();
   } catch {
     // Browser opening is best-effort; the URL is printed anyway.
   }
 }
-
-const DEFAULT_PORT = 4321;
 
 export interface ServeOptions {
   /** Fixed port. If omitted, tries DEFAULT_PORT then falls back to a free port. */
@@ -41,49 +54,58 @@ export interface ServeOptions {
   open: boolean;
 }
 
-function isAddrInUse(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "EADDRINUSE"
-  );
-}
-
 export function serve(options: ServeOptions): void {
   const webRoot = findWebRoot();
 
-  const fetchHandler = async (req: Request): Promise<Response> => {
-    const url = new URL(req.url);
-    const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
-    const filePath = normalize(join(webRoot, pathname));
+  const server: Server = createServer(async (req, res) => {
+    const pathname = decodeURIComponent(
+      new URL(req.url ?? "/", "http://localhost").pathname,
+    );
+    const filePath = normalize(
+      join(webRoot, pathname === "/" ? "/index.html" : pathname),
+    );
     if (!filePath.startsWith(webRoot)) {
-      return new Response("Forbidden", { status: 403 });
+      res.writeHead(403);
+      res.end("Forbidden");
+      return;
     }
-    const file = Bun.file(filePath);
-    if (await file.exists()) {
-      return new Response(file);
+    try {
+      const info = await stat(filePath);
+      if (!info.isFile()) throw new Error("not a file");
+      res.writeHead(200, {
+        "Content-Type":
+          MIME_TYPES[extname(filePath)] ?? "application/octet-stream",
+        "Content-Length": info.size,
+      });
+      createReadStream(filePath).pipe(res);
+    } catch {
+      res.writeHead(404);
+      res.end("Not Found");
     }
-    return new Response("Not Found", { status: 404 });
+  });
+
+  const onListening = () => {
+    const { port } = server.address() as AddressInfo;
+    const url = `http://localhost:${port}`;
+    console.log(`cursor-usage dashboard running at ${url}`);
+    console.log(
+      "Drop a Cursor usage-events CSV onto the page. Ctrl+C to stop.",
+    );
+    if (options.open) openBrowser(url);
   };
 
-  let server: ReturnType<typeof Bun.serve>;
   if (options.port !== undefined) {
-    server = Bun.serve({ port: options.port, fetch: fetchHandler });
-  } else {
-    try {
-      server = Bun.serve({ port: DEFAULT_PORT, fetch: fetchHandler });
-    } catch (error) {
-      if (!isAddrInUse(error)) throw error;
-      // Default port is occupied (another instance, Astro, etc.) — let the
-      // OS assign a free one instead of failing.
-      server = Bun.serve({ port: 0, fetch: fetchHandler });
-      console.log(`port ${DEFAULT_PORT} is in use, picked a free port instead`);
-    }
+    server.listen(options.port, onListening);
+    return;
   }
 
-  const url = `http://localhost:${server.port}`;
-  console.log(`cursor-usage dashboard running at ${url}`);
-  console.log("Drop a Cursor usage-events CSV onto the page. Ctrl+C to stop.");
-  if (options.open) openBrowser(url);
+  // Default port may be occupied (another instance, Astro, etc.) — let the
+  // OS assign a free one instead of failing.
+  server.once("error", (error: NodeJS.ErrnoException) => {
+    if (error.code !== "EADDRINUSE") throw error;
+    console.log(`port ${DEFAULT_PORT} is in use, picked a free port instead`);
+    server.listen(0);
+  });
+  server.once("listening", onListening);
+  server.listen(DEFAULT_PORT);
 }

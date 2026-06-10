@@ -17,7 +17,7 @@ const cli = await Bun.build({
   entrypoints: ["src/cli/index.ts"],
   outdir: "dist",
   naming: "cli.[ext]",
-  target: "bun",
+  target: "node",
   minify: true,
 });
 if (!cli.success) {

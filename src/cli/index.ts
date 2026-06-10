@@ -1,4 +1,5 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
+import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { billable } from "../core/aggregate.ts";
 import { parseUsageCsv } from "../core/parse.ts";
@@ -44,15 +45,19 @@ async function runStats(args: string[]): Promise<void> {
   const csvPath = positionals[0];
   if (!csvPath) fail("stats requires a path to a CSV file");
 
-  const file = Bun.file(csvPath);
-  if (!(await file.exists())) fail(`file not found: ${csvPath}`);
+  let text: string;
+  try {
+    text = await readFile(csvPath, "utf8");
+  } catch {
+    fail(`file not found: ${csvPath}`);
+  }
 
   const axis = values.by as StatsAxis | undefined;
   if (axis && !["day", "user", "model"].includes(axis)) {
     fail(`invalid --by value: ${axis} (expected day, user or model)`);
   }
 
-  let events = parseUsageCsv(await file.text());
+  let events = parseUsageCsv(text);
   if (!values["include-no-charge"]) events = billable(events);
 
   if (events.length === 0) {

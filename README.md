@@ -7,14 +7,14 @@ Visualize the usage events CSV exported from the Cursor dashboard.
 
 ![Dashboard](docs/dashboard.png)
 
-Requires [Bun](https://bun.sh) to run.
+Runs on Node.js 20+ (`npx`) or [Bun](https://bun.sh) (`bunx`).
 
 ## Usage
 
 ### Dashboard (default)
 
 ```bash
-bunx cursor-usage
+npx cursor-usage   # or: bunx cursor-usage
 ```
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
@@ -22,13 +22,13 @@ Starts a local server and opens your browser. Drag & drop a CSV exported from Cu
 The default port is 4321; if it is already in use, a free port is picked automatically. When `--port` is specified explicitly, that port is used as-is.
 
 ```bash
-bunx cursor-usage serve --port 8080 --no-open
+npx cursor-usage serve --port 8080 --no-open
 ```
 
 ### Terminal stats
 
 ```bash
-bunx cursor-usage stats team-usage-events.csv
+npx cursor-usage stats team-usage-events.csv
 ```
 
 ```
@@ -59,10 +59,12 @@ Options:
 
 ```bash
 # Extract key numbers
-bunx cursor-usage stats usage.csv --json | jq .summary.totalCost
+npx cursor-usage stats usage.csv --json | jq .summary.totalCost
 ```
 
 ## Development
+
+Development tooling uses [Bun](https://bun.sh) (runtime code itself is Node-compatible).
 
 ```bash
 bun install
