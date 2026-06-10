@@ -1,0 +1,111 @@
+#!/usr/bin/env bun
+import { parseArgs } from "node:util";
+import { billable } from "../core/aggregate.ts";
+import { parseUsageCsv } from "../core/parse.ts";
+import { serve } from "../server/index.ts";
+import { renderStats, statsJson, type StatsAxis } from "./render.ts";
+
+const HELP = `cursor-usage — visualize Cursor usage-events CSV
+
+Usage:
+  cursor-usage [serve] [--port <n>] [--no-open]   Start the drag & drop dashboard (default)
+  cursor-usage stats <csv> [options]              Show usage statistics in the terminal
+
+Stats options:
+  --by <day|user|model>   Show a single breakdown axis (default: all)
+  --json                  Output aggregated stats as JSON
+  --include-no-charge     Include "Errored, No Charge" events
+
+Serve options:
+  --port <n>              Fixed port to listen on
+                          (default: 4321, falls back to a free port if busy)
+  --no-open               Do not open the browser automatically
+
+  -h, --help              Show this help
+`;
+
+function fail(message: string): never {
+  console.error(`Error: ${message}\n`);
+  console.error(HELP);
+  process.exit(1);
+}
+
+async function runStats(args: string[]): Promise<void> {
+  const { values, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: {
+      by: { type: "string" },
+      json: { type: "boolean", default: false },
+      "include-no-charge": { type: "boolean", default: false },
+    },
+  });
+
+  const csvPath = positionals[0];
+  if (!csvPath) fail("stats requires a path to a CSV file");
+
+  const file = Bun.file(csvPath);
+  if (!(await file.exists())) fail(`file not found: ${csvPath}`);
+
+  const axis = values.by as StatsAxis | undefined;
+  if (axis && !["day", "user", "model"].includes(axis)) {
+    fail(`invalid --by value: ${axis} (expected day, user or model)`);
+  }
+
+  let events = parseUsageCsv(await file.text());
+  if (!values["include-no-charge"]) events = billable(events);
+
+  if (events.length === 0) {
+    console.error("No usage events found in the CSV.");
+    process.exit(1);
+  }
+
+  console.log(values.json ? statsJson(events) : renderStats(events, axis));
+}
+
+function runServe(args: string[]): void {
+  const { values } = parseArgs({
+    args,
+    allowPositionals: false,
+    options: {
+      port: { type: "string" },
+      "no-open": { type: "boolean", default: false },
+    },
+  });
+
+  let port: number | undefined;
+  if (values.port !== undefined) {
+    port = Number(values.port);
+    if (!Number.isInteger(port) || port < 0 || port > 65535) {
+      fail(`invalid --port value: ${values.port}`);
+    }
+  }
+
+  serve({ port, open: !values["no-open"] });
+}
+
+async function main(): Promise<void> {
+  const argv = process.argv.slice(2);
+
+  if (argv.includes("-h") || argv.includes("--help")) {
+    console.log(HELP);
+    return;
+  }
+
+  const [command, ...rest] = argv;
+  switch (command) {
+    case "stats":
+      await runStats(rest);
+      break;
+    case "serve":
+      runServe(rest);
+      break;
+    case undefined:
+      runServe([]);
+      break;
+    default:
+      fail(`unknown command: ${command}`);
+  }
+}
+
+await main();
