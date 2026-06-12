@@ -12,13 +12,6 @@ import { DropZone } from "./components/DropZone.tsx";
 import { Overview } from "./components/Overview.tsx";
 
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const COMMON_TIME_ZONES = [
-  "UTC",
-  "Asia/Tokyo",
-  "America/Los_Angeles",
-  "America/New_York",
-  "Europe/London",
-];
 
 function routeFromHash(defaultTimeZone: string): {
   day: string | null;
@@ -43,7 +36,6 @@ function useDayRoute(): {
   timeZone: string;
   setSelectedDay: (day: string | null) => void;
   setSelectedUser: (user: string | null) => void;
-  setTimeZone: (timeZone: string) => void;
 } {
   const defaultTimeZone = useMemo(() => defaultAnalysisTimeZone(), []);
   const [route, setRoute] = useState(() => routeFromHash(defaultTimeZone));
@@ -80,10 +72,6 @@ function useDayRoute(): {
     timeZone: route.timeZone,
     setSelectedDay: (day) => updateHash(day, route.user, route.timeZone),
     setSelectedUser: (user) => updateHash(route.day, user, route.timeZone),
-    setTimeZone: (timeZone) => {
-      if (!isValidTimeZone(timeZone)) return;
-      updateHash(route.day, route.user, timeZone);
-    },
   };
 }
 
@@ -96,7 +84,6 @@ function App() {
     timeZone,
     setSelectedDay,
     setSelectedUser,
-    setTimeZone,
   } = useDayRoute();
 
   const onCsvText = (text: string) => {
@@ -154,25 +141,6 @@ function App() {
                 User: {selectedUser} ×
               </button>
             )}
-            <label className="timezone-select">
-              <span>Time Zone</span>
-              <select
-                value={timeZone}
-                onChange={(e) => setTimeZone(e.target.value)}
-              >
-                {[
-                  ...new Set([
-                    timeZone,
-                    defaultAnalysisTimeZone(),
-                    ...COMMON_TIME_ZONES,
-                  ]),
-                ].map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz}
-                  </option>
-                ))}
-              </select>
-            </label>
             <button
               type="button"
               className="reload-button"
