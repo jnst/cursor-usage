@@ -65,10 +65,12 @@ function SummaryCards({
 
 function DailyChart({
   events,
+  scaleEvents,
   timeZone,
   onSelectDay,
 }: {
   events: UsageEvent[];
+  scaleEvents: UsageEvent[];
   timeZone: string;
   onSelectDay?: (day: string) => void;
 }) {
@@ -83,6 +85,13 @@ function DailyChart({
       return { day: d.day, label: d.day.slice(5), ...d.costByModel, cumulative };
     });
   }, [events, timeZone]);
+  const scale = useMemo(() => {
+    const days = byDayAndModel(scaleEvents, timeZone);
+    return {
+      maxDailyCost: Math.max(...days.map((d) => d.totalCost), 0),
+      totalCost: days.reduce((sum, d) => sum + d.totalCost, 0),
+    };
+  }, [scaleEvents, timeZone]);
 
   const handleClick = (payload: { day?: string } | undefined) => {
     if (payload?.day) onSelectDay?.(payload.day);
@@ -102,12 +111,14 @@ function DailyChart({
           <XAxis dataKey="label" stroke="#8b949e" fontSize={12} />
           <YAxis
             yAxisId="cost"
+            domain={[0, scale.maxDailyCost]}
             stroke="#8b949e"
             fontSize={12}
             tickFormatter={(v: number) => `$${v}`}
           />
           <YAxis
             yAxisId="cumulative"
+            domain={[0, scale.totalCost]}
             orientation="right"
             stroke="#8b949e"
             fontSize={12}
@@ -311,6 +322,7 @@ export function Overview({
       <div className="grid">
         <DailyChart
           events={events}
+          scaleEvents={userEvents}
           timeZone={timeZone}
           onSelectDay={onSelectDay}
         />

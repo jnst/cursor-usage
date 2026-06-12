@@ -78,9 +78,11 @@ function DaySummaryCards({
 
 function HourlyChart({
   dayEvents,
+  scaleDayEvents,
   timeZone,
 }: {
   dayEvents: UsageEvent[];
+  scaleDayEvents: UsageEvent[];
   timeZone: string;
 }) {
   const data = useMemo(() => {
@@ -97,6 +99,10 @@ function HourlyChart({
       };
     });
   }, [dayEvents, timeZone]);
+  const maxHourlyCost = useMemo(
+    () => Math.max(...byHour(scaleDayEvents, timeZone).map((b) => b.cost), 0),
+    [scaleDayEvents, timeZone],
+  );
 
   return (
     <div className="panel wide">
@@ -106,6 +112,7 @@ function HourlyChart({
           <CartesianGrid stroke="#21262d" vertical={false} />
           <XAxis dataKey="hour" stroke="#8b949e" fontSize={12} />
           <YAxis
+            domain={[0, maxHourlyCost]}
             stroke="#8b949e"
             fontSize={12}
             tickFormatter={(v: number) => `$${v}`}
@@ -385,7 +392,11 @@ export function DayView({
             dayCount={days.length}
           />
           <div className="grid">
-            <HourlyChart dayEvents={dayEvents} timeZone={timeZone} />
+            <HourlyChart
+              dayEvents={dayEvents}
+              scaleDayEvents={dayUserEvents}
+              timeZone={timeZone}
+            />
             <ModelPie dayEvents={dayEvents} />
             <UserChart
               dayEvents={dayUserEvents}
