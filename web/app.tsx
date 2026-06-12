@@ -76,6 +76,7 @@ function useDayRoute(): {
 
 function App() {
   const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(null);
+  const [includeNoCharge, setIncludeNoCharge] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { selectedDay, timeZone, setSelectedDay, setTimeZone } = useDayRoute();
 
@@ -87,17 +88,21 @@ function App() {
         return;
       }
       setError(null);
+      setIncludeNoCharge(false);
       setAllEvents(parsed);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
   };
 
-  const events = useMemo(
+  const billableEvents = useMemo(
     () => (allEvents ? billable(allEvents) : null),
     [allEvents],
   );
-  const excluded = allEvents && events ? allEvents.length - events.length : 0;
+  const events = includeNoCharge ? allEvents : billableEvents;
+  const noChargeCount =
+    allEvents && billableEvents ? allEvents.length - billableEvents.length : 0;
+  const eventLabel = includeNoCharge ? "イベント" : "課金イベント";
 
   return (
     <div className="app">
@@ -111,9 +116,20 @@ function App() {
         {events && (
           <>
             <span className="meta">
-              {events.length} 課金イベント
-              {excluded > 0 && ` (No Charge ${excluded}件を除外)`}
+              {events.length} {eventLabel}
+              {noChargeCount > 0 &&
+                (includeNoCharge
+                  ? ` (No Charge ${noChargeCount}件を含む)`
+                  : ` (No Charge ${noChargeCount}件を除外)`)}
             </span>
+            <label className="filter-toggle">
+              <input
+                type="checkbox"
+                checked={includeNoCharge}
+                onChange={(e) => setIncludeNoCharge(e.target.checked)}
+              />
+              No Chargeを含める
+            </label>
             <label className="timezone-select">
               <span>Time Zone</span>
               <select
@@ -138,6 +154,7 @@ function App() {
               className="reload-button"
               onClick={() => {
                 setSelectedDay(null);
+                setIncludeNoCharge(false);
                 setAllEvents(null);
                 setError(null);
               }}
@@ -153,6 +170,7 @@ function App() {
             events={events}
             day={selectedDay}
             timeZone={timeZone}
+            eventLabel={eventLabel}
             onBack={() => setSelectedDay(null)}
             onSelectDay={setSelectedDay}
           />
