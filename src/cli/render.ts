@@ -72,15 +72,20 @@ function formatTime(date: Date, timeZone: string): string {
   ].join(":");
 }
 
-function renderSummaryBlock(summary: Summary, timeZone: string): string[] {
+function renderSummaryBlock(
+  summary: Summary,
+  timeZone: string,
+  user: string | undefined,
+): string[] {
   const period =
     summary.firstDay && summary.lastDay
       ? `${summary.firstDay} – ${summary.lastDay}`
       : "no data";
+  const scope = user ? `${timeZone}, user ${user}` : timeZone;
   const label = (s: string) => dim(padEndDisplay(s, 14));
   const value = (s: string) => bold(padEndDisplay(s, 12));
   return [
-    `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dayCount} days, ${timeZone})`)}`,
+    `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dayCount} days, ${scope})`)}`,
     "",
     `  ${label("Total Cost")}${value(formatUsd(summary.totalCost))}  ${label("Total Tokens")}${value(formatTokens(summary.totalTokens))}`,
     `  ${label("Avg/Active")}${value(formatUsd(summary.avgCostPerActiveDay))}  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}`,
@@ -119,9 +124,10 @@ export function renderStats(
   events: UsageEvent[],
   axis: StatsAxis | undefined,
   timeZone: string,
+  user?: string,
 ): string {
   const summary = summarize(events, timeZone);
-  const sections: string[][] = [renderSummaryBlock(summary, timeZone)];
+  const sections: string[][] = [renderSummaryBlock(summary, timeZone, user)];
 
   const charts: Record<StatsAxis, () => string[]> = {
     day: () =>
@@ -148,10 +154,15 @@ export function renderStats(
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
-export function statsJson(events: UsageEvent[], timeZone: string): string {
+export function statsJson(
+  events: UsageEvent[],
+  timeZone: string,
+  user?: string,
+): string {
   return JSON.stringify(
     {
       timeZone,
+      filters: { user: user ?? null },
       summary: summarize(events, timeZone),
       byDay: byDay(events, timeZone),
       byModel: byModel(events),
@@ -224,6 +235,7 @@ export function renderDayView(
   events: UsageEvent[],
   day: string,
   timeZone: string,
+  user?: string,
 ): string {
   const days = byDay(events, timeZone);
   const dayEvents = onDay(events, day, timeZone);
@@ -243,6 +255,7 @@ export function renderDayView(
 
   const sections: string[][] = [
     renderDaySummaryBlock(day, dayEvents, timeZone, totalCost, rank, days.length),
+    ...(user ? [[dim(`Filtered to user: ${user}`)]] : []),
     renderHourlyChart(dayEvents, timeZone),
     renderBucketChart("By Model", byModel(dayEvents), {
       totalCost: summarize(dayEvents, timeZone).totalCost,
@@ -261,12 +274,14 @@ export function dayViewJson(
   events: UsageEvent[],
   day: string,
   timeZone: string,
+  user?: string,
 ): string {
   const dayEvents = onDay(events, day, timeZone);
   return JSON.stringify(
     {
       day,
       timeZone,
+      filters: { user: user ?? null },
       summary: summarize(dayEvents, timeZone),
       byHour: byHour(dayEvents, timeZone),
       byModel: byModel(dayEvents),

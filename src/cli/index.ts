@@ -25,6 +25,7 @@ Usage:
 Stats options:
   --by <day|user|model>   Show a single breakdown axis (default: all)
   --day <YYYY-MM-DD>      Drill into a single day (hourly, model, user, kind, top events)
+  --user <identifier>     Filter analysis to a single User
   --timezone <iana-tz>    Analysis time zone (default: current environment)
   --json                  Output aggregated stats as JSON
   --include-no-charge     Include "Errored, No Charge" events
@@ -50,6 +51,7 @@ async function runStats(args: string[]): Promise<void> {
     options: {
       by: { type: "string" },
       day: { type: "string" },
+      user: { type: "string" },
       timezone: { type: "string" },
       json: { type: "boolean", default: false },
       "include-no-charge": { type: "boolean", default: false },
@@ -83,23 +85,27 @@ async function runStats(args: string[]): Promise<void> {
 
   let events = parseUsageCsv(text);
   if (!values["include-no-charge"]) events = billable(events);
+  const user = values.user;
+  if (user) events = events.filter((e) => e.user === user);
 
   if (events.length === 0) {
-    console.error("No usage events found in the CSV.");
+    console.error("No usage events found for the requested filters.");
     process.exit(1);
   }
 
   if (day) {
     console.log(
       values.json
-        ? dayViewJson(events, day, timeZone)
-        : renderDayView(events, day, timeZone),
+        ? dayViewJson(events, day, timeZone, user)
+        : renderDayView(events, day, timeZone, user),
     );
     return;
   }
 
   console.log(
-    values.json ? statsJson(events, timeZone) : renderStats(events, axis, timeZone),
+    values.json
+      ? statsJson(events, timeZone, user)
+      : renderStats(events, axis, timeZone, user),
   );
 }
 

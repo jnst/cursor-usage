@@ -59,6 +59,7 @@ Options:
 | --- | --- |
 | `--by <day\|user\|model>` | Show a single breakdown axis |
 | `--day <YYYY-MM-DD>` | Drill into a single day (hourly, model, user, kind, top events) |
+| `--user <identifier>` | Filter analysis to a single User |
 | `--timezone <iana-tz>` | Group days and hours in a specific analysis time zone |
 | `--json` | Output aggregated stats as JSON (pipe to jq etc.) |
 | `--include-no-charge` | Include "Errored, No Charge" events |
@@ -69,6 +70,9 @@ npx @jnst/cursor-usage stats usage.csv --json | jq .summary.totalCost
 
 # Drill into the most expensive day
 npx @jnst/cursor-usage stats usage.csv --day 2026-06-02 --timezone Asia/Tokyo
+
+# Filter to a single user
+npx @jnst/cursor-usage stats usage.csv --user jnst@example.jp
 ```
 
 Or install globally to use the short `cursor-usage` command:
