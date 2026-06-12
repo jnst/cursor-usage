@@ -1,8 +1,12 @@
 import {
   byDay,
+  byHour,
+  byKind,
   byModel,
   byUser,
+  onDay,
   summarize,
+  topEvents,
 } from "../core/aggregate.ts";
 import type { BucketStat, Summary, UsageEvent } from "../core/types.ts";
 
@@ -124,6 +128,106 @@ export function statsJson(events: UsageEvent[]): string {
       byDay: byDay(events),
       byModel: byModel(events),
       byUser: byUser(events),
+    },
+    null,
+    2,
+  );
+}
+
+function renderDaySummaryBlock(
+  day: string,
+  dayEvents: UsageEvent[],
+  totalCost: number,
+  rank: number,
+  dayCount: number,
+): string[] {
+  const s = summarize(dayEvents);
+  const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
+  const label = (str: string) => dim(padEndDisplay(str, 14));
+  const value = (str: string) => bold(padEndDisplay(str, 12));
+  return [
+    `${bold(`Day ${day}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dayCount} by cost)`)}`,
+    "",
+    `  ${label("Cost")}${value(formatUsd(s.totalCost))}  ${label("of period")}${value(`${share}%`)}`,
+    `  ${label("Total Tokens")}${value(formatTokens(s.totalTokens))}  ${label("Max Mode")}${value(`${Math.round(s.maxModeRatio * 100)}%`)}`,
+    `  ${label("Users")}${value(String(s.userCount))}  ${label("Models")}${value(String(s.modelCount))}`,
+  ];
+}
+
+function renderHourlyChart(dayEvents: UsageEvent[]): string[] {
+  const byHourMap = new Map(byHour(dayEvents).map((b) => [b.key, b]));
+  const maxCost = Math.max(...[...byHourMap.values()].map((b) => b.cost), 0);
+  const lines = [bold("By Hour (UTC)")];
+  for (let h = 0; h < 24; h++) {
+    const key = String(h).padStart(2, "0");
+    const b = byHourMap.get(key);
+    const cost = b?.cost ?? 0;
+    const events = b?.eventCount ?? 0;
+    const meta = events > 0 ? dim(` ${events} ev`) : "";
+    lines.push(
+      `  ${key}  ${padEndDisplay(cost > 0 ? formatUsd(cost) : "", 8)} ${cyan(padEndDisplay(bar(cost, maxCost, 24), 24))}${meta}`,
+    );
+  }
+  return lines;
+}
+
+function renderDayEvents(dayEvents: UsageEvent[], limit: number): string[] {
+  const top = topEvents(dayEvents, limit);
+  const lines = [bold(`Top Events (${top.length} of ${dayEvents.length})`)];
+  const userWidth = Math.max(...top.map((e) => e.user.length), 4);
+  const modelWidth = Math.max(...top.map((e) => e.model.length), 5);
+  for (const e of top) {
+    const time = e.date.toISOString().slice(11, 19);
+    lines.push(
+      `  ${dim(time)}  ${padEndDisplay(e.user, userWidth)}  ${padEndDisplay(e.model, modelWidth)}  ${padEndDisplay(formatUsd(e.cost), 8)} ${dim(`${formatTokens(e.totalTokens)} tok`)}`,
+    );
+  }
+  return lines;
+}
+
+export function renderDayDetail(events: UsageEvent[], day: string): string {
+  const days = byDay(events);
+  const dayEvents = onDay(events, day);
+  if (dayEvents.length === 0) {
+    const known = days.map((d) => d.key);
+    const hint =
+      known.length > 0
+        ? `\nAvailable days: ${known[0]} – ${known[known.length - 1]}`
+        : "";
+    return `No billable events on ${day}.${hint}\n`;
+  }
+
+  const totalCost = events.reduce((sum, e) => sum + e.cost, 0);
+  const rank =
+    [...days].sort((a, b) => b.cost - a.cost).findIndex((d) => d.key === day) +
+    1;
+
+  const sections: string[][] = [
+    renderDaySummaryBlock(day, dayEvents, totalCost, rank, days.length),
+    renderHourlyChart(dayEvents),
+    renderBucketChart("By Model", byModel(dayEvents), {
+      totalCost: summarize(dayEvents).totalCost,
+    }),
+    renderBucketChart("By User", byUser(dayEvents), {
+      totalCost: summarize(dayEvents).totalCost,
+    }),
+    renderBucketChart("By Kind", byKind(dayEvents), { totalCost: 0 }),
+    renderDayEvents(dayEvents, 20),
+  ];
+
+  return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
+}
+
+export function dayDetailJson(events: UsageEvent[], day: string): string {
+  const dayEvents = onDay(events, day);
+  return JSON.stringify(
+    {
+      day,
+      summary: summarize(dayEvents),
+      byHour: byHour(dayEvents),
+      byModel: byModel(dayEvents),
+      byUser: byUser(dayEvents),
+      byKind: byKind(dayEvents),
     },
     null,
     2,

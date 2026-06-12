@@ -4,7 +4,13 @@ import { parseArgs } from "node:util";
 import { billable } from "../core/aggregate.ts";
 import { parseUsageCsv } from "../core/parse.ts";
 import { serve } from "../server/index.ts";
-import { renderStats, statsJson, type StatsAxis } from "./render.ts";
+import {
+  dayDetailJson,
+  renderDayDetail,
+  renderStats,
+  statsJson,
+  type StatsAxis,
+} from "./render.ts";
 
 const HELP = `cursor-usage — visualize Cursor usage-events CSV
 
@@ -14,6 +20,7 @@ Usage:
 
 Stats options:
   --by <day|user|model>   Show a single breakdown axis (default: all)
+  --day <YYYY-MM-DD>      Drill into a single day (hourly, model, user, kind, top events)
   --json                  Output aggregated stats as JSON
   --include-no-charge     Include "Errored, No Charge" events
 
@@ -37,6 +44,7 @@ async function runStats(args: string[]): Promise<void> {
     allowPositionals: true,
     options: {
       by: { type: "string" },
+      day: { type: "string" },
       json: { type: "boolean", default: false },
       "include-no-charge": { type: "boolean", default: false },
     },
@@ -57,12 +65,22 @@ async function runStats(args: string[]): Promise<void> {
     fail(`invalid --by value: ${axis} (expected day, user or model)`);
   }
 
+  const day = values.day;
+  if (day !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    fail(`invalid --day value: ${day} (expected YYYY-MM-DD)`);
+  }
+
   let events = parseUsageCsv(text);
   if (!values["include-no-charge"]) events = billable(events);
 
   if (events.length === 0) {
     console.error("No usage events found in the CSV.");
     process.exit(1);
+  }
+
+  if (day) {
+    console.log(values.json ? dayDetailJson(events, day) : renderDayDetail(events, day));
+    return;
   }
 
   console.log(values.json ? statsJson(events) : renderStats(events, axis));

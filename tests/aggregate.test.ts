@@ -3,8 +3,10 @@ import {
   billable,
   byDay,
   byDayAndModel,
+  byHour,
   byModel,
   byUser,
+  onDay,
   summarize,
   topEvents,
 } from "../src/core/aggregate.ts";
@@ -108,5 +110,20 @@ describe("buckets", () => {
   test("topEvents returns most expensive first", () => {
     const top = topEvents(b, 2);
     expect(top.map((e) => e.cost)).toEqual([0.4, 0.2]);
+  });
+
+  test("onDay filters to a single UTC day", () => {
+    const day = onDay(b, "2026-06-05");
+    expect(day).toHaveLength(2);
+    expect(day.every((e) => e.date.toISOString().startsWith("2026-06-05"))).toBe(
+      true,
+    );
+  });
+
+  test("byHour buckets by UTC hour, chronological", () => {
+    const hours = byHour(onDay(b, "2026-06-05"));
+    expect(hours.map((h) => h.key)).toEqual(["10", "23"]);
+    expect(hours[0]!.cost).toBeCloseTo(0.4);
+    expect(hours[1]!.cost).toBeCloseTo(0.2);
   });
 });

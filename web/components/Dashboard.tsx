@@ -21,47 +21,9 @@ import {
   topEvents,
 } from "../../src/core/aggregate.ts";
 import type { UsageEvent } from "../../src/core/types.ts";
+import { COLORS, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
 
-const COLORS = [
-  "#58a6ff", // blue
-  "#3fb950", // green
-  "#d29922", // amber
-  "#f778ba", // pink
-  "#a371f7", // purple
-  "#ff7b72", // coral
-  "#39c5cf", // cyan
-  "#e3b341", // gold
-  "#7ee787", // light green
-  "#ffa657", // orange
-  "#d2a8ff", // lavender
-  "#79c0ff", // light blue
-  "#f85149", // red
-  "#56d364", // emerald
-  "#ec8e2c", // pumpkin
-  "#bc8cff", // violet
-  "#54aeff", // azure
-  "#9e6a03", // bronze
-  "#ff9bce", // rose
-  "#6e7681", // gray
-];
-
-export function formatUsd(value: number): string {
-  return `$${value.toFixed(2)}`;
-}
-
-export function formatTokens(value: number): string {
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return String(value);
-}
-
-const tooltipStyle = {
-  backgroundColor: "#161b22",
-  border: "1px solid #21262d",
-  borderRadius: 8,
-  fontSize: 12,
-} as const;
+export { formatTokens, formatUsd };
 
 function SummaryCards({ events }: { events: UsageEvent[] }) {
   const s = useMemo(() => summarize(events), [events]);
@@ -85,7 +47,13 @@ function SummaryCards({ events }: { events: UsageEvent[] }) {
   );
 }
 
-function DailyChart({ events }: { events: UsageEvent[] }) {
+function DailyChart({
+  events,
+  onSelectDay,
+}: {
+  events: UsageEvent[];
+  onSelectDay?: (day: string) => void;
+}) {
   const models = useMemo(
     () => byModel(events).map((m) => m.key),
     [events],
@@ -94,17 +62,26 @@ function DailyChart({ events }: { events: UsageEvent[] }) {
     let cumulative = 0;
     return byDayAndModel(events).map((d) => {
       cumulative += d.totalCost;
-      return { day: d.day.slice(5), ...d.costByModel, cumulative };
+      return { day: d.day, label: d.day.slice(5), ...d.costByModel, cumulative };
     });
   }, [events]);
 
+  const handleClick = (payload: { day?: string } | undefined) => {
+    if (payload?.day) onSelectDay?.(payload.day);
+  };
+
   return (
     <div className="panel wide">
-      <h3>日別コスト推移(モデル別積み上げ + 累積)</h3>
+      <h3>
+        日別コスト推移(モデル別積み上げ + 累積)
+        {onSelectDay && (
+          <span className="hint">バーをクリックでその日の詳細へ</span>
+        )}
+      </h3>
       <ResponsiveContainer width="100%" height={320}>
         <ComposedChart data={data}>
           <CartesianGrid stroke="#21262d" vertical={false} />
-          <XAxis dataKey="day" stroke="#8b949e" fontSize={12} />
+          <XAxis dataKey="label" stroke="#8b949e" fontSize={12} />
           <YAxis
             yAxisId="cost"
             stroke="#8b949e"
@@ -130,6 +107,10 @@ function DailyChart({ events }: { events: UsageEvent[] }) {
               dataKey={model}
               stackId="cost"
               fill={COLORS[i % COLORS.length]}
+              cursor={onSelectDay ? "pointer" : undefined}
+              onClick={(payload) =>
+                handleClick(payload as { day?: string } | undefined)
+              }
             />
           ))}
           <Line
@@ -254,12 +235,18 @@ function TopEventsTable({ events }: { events: UsageEvent[] }) {
   );
 }
 
-export function Dashboard({ events }: { events: UsageEvent[] }) {
+export function Dashboard({
+  events,
+  onSelectDay,
+}: {
+  events: UsageEvent[];
+  onSelectDay?: (day: string) => void;
+}) {
   return (
     <>
       <SummaryCards events={events} />
       <div className="grid">
-        <DailyChart events={events} />
+        <DailyChart events={events} onSelectDay={onSelectDay} />
         <ModelPie events={events} />
         <UserChart events={events} />
         <TopEventsTable events={events} />

@@ -51,6 +51,14 @@ body {
   letter-spacing: 0.02em;
 }
 
+.header h1.clickable-title {
+  cursor: pointer;
+}
+
+.header h1.clickable-title:hover {
+  color: var(--accent);
+}
+
 .header .meta {
   color: var(--text-dim);
   font-size: 13px;
@@ -176,6 +184,72 @@ body {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
+}
+
+.panel h3 .hint {
+  margin-left: 8px;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Day detail */
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.day-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex: 1;
+  justify-content: center;
+}
+
+.day-title h2 {
+  margin: 0;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-stepper {
+  display: flex;
+  gap: 8px;
+}
+
+.reload-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.reload-button:disabled:hover {
+  border-color: var(--panel-border);
+}
+
+.cost-bar {
+  display: inline-block;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  vertical-align: middle;
+}
+
+.table-wrap.scroll {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.table-wrap.scroll thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 1;
 }
 
 /* Table */

@@ -11,6 +11,16 @@ export function dayOf(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+/** Two-digit UTC hour, e.g. "00".."23". */
+export function hourOf(date: Date): string {
+  return String(date.getUTCHours()).padStart(2, "0");
+}
+
+/** Events that fall on the given UTC day (YYYY-MM-DD). */
+export function onDay(events: UsageEvent[], day: string): UsageEvent[] {
+  return events.filter((e) => dayOf(e.date) === day);
+}
+
 export function billable(events: UsageEvent[]): UsageEvent[] {
   return events.filter((e) => e.kind !== NO_CHARGE_KIND);
 }
@@ -98,6 +108,13 @@ export function byModel(events: UsageEvent[]): BucketStat[] {
 export function byKind(events: UsageEvent[]): BucketStat[] {
   return bucketBy(events, (e) => e.kind).sort(
     (a, b) => b.eventCount - a.eventCount,
+  );
+}
+
+/** UTC hours that have activity, sorted chronologically ("00".."23"). */
+export function byHour(events: UsageEvent[]): BucketStat[] {
+  return bucketBy(events, (e) => hourOf(e.date)).sort((a, b) =>
+    a.key.localeCompare(b.key),
   );
 }
 
