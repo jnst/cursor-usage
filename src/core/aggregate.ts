@@ -149,11 +149,9 @@ export function byModel(events: UsageEvent[]): BucketStat[] {
   return bucketBy(events, (e) => e.model).sort((a, b) => b.cost - a.cost);
 }
 
-/** Sorted by event count descending. */
+/** Sorted by cost descending. */
 export function byKind(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.kind).sort(
-    (a, b) => b.eventCount - a.eventCount,
-  );
+  return bucketBy(events, (e) => e.kind).sort((a, b) => b.cost - a.cost);
 }
 
 /** Hours that have activity, sorted chronologically ("00".."23"). */

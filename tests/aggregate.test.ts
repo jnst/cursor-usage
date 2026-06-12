@@ -4,6 +4,7 @@ import {
   byDay,
   byDayAndModel,
   byHour,
+  byKind,
   byModel,
   byUser,
   dayOf,
@@ -98,6 +99,15 @@ describe("buckets", () => {
     const gpt = models.find((m) => m.key === "gpt-5.5-medium")!;
     expect(gpt.inputTokens).toBe(600);
     expect(gpt.outputTokens).toBe(100);
+  });
+
+  test("byKind is sorted by cost desc", () => {
+    const kinds = byKind([
+      event({ kind: "Low Cost", cost: 0.1 }),
+      event({ kind: "High Cost", cost: 0.4 }),
+      event({ kind: "Low Cost", cost: 0.1 }),
+    ]);
+    expect(kinds.map((k) => k.key)).toEqual(["High Cost", "Low Cost"]);
   });
 
   test("byDayAndModel builds stacked data", () => {
