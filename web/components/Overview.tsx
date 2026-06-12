@@ -178,18 +178,21 @@ function ModelPie({ events }: { events: UsageEvent[] }) {
 
 function UserChart({
   events,
+  selectedUser,
   onSelectUser,
 }: {
   events: UsageEvent[];
+  selectedUser: string | null;
   onSelectUser?: (user: string) => void;
 }) {
   const data = useMemo(() => byUser(events).slice(0, 10), [events]);
+  const isSelected = (user: string) => !selectedUser || selectedUser === user;
   return (
     <div className="panel">
       <h3>
         ユーザー別コスト (Top 10)
         {onSelectUser && (
-          <span className="hint">バーをクリックでユーザーに絞り込み</span>
+          <span className="hint">バーをクリックでユーザー選択/解除</span>
         )}
       </h3>
       <ResponsiveContainer width="100%" height={280}>
@@ -215,14 +218,21 @@ function UserChart({
           <Bar
             dataKey="cost"
             name="Cost"
-            fill="#58a6ff"
             radius={[0, 4, 4, 0]}
             cursor={onSelectUser ? "pointer" : undefined}
             onClick={(payload) => {
               const user = (payload as { key?: string } | undefined)?.key;
               if (user) onSelectUser?.(user);
             }}
-          />
+          >
+            {data.map((entry) => (
+              <Cell
+                key={entry.key}
+                fill="#58a6ff"
+                opacity={isSelected(entry.key) ? 1 : 0.25}
+              />
+            ))}
+          </Bar>
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -282,14 +292,18 @@ function TopEventsTable({
 
 export function Overview({
   events,
+  userEvents,
   timeZone,
   onSelectDay,
   onSelectUser,
+  selectedUser,
 }: {
   events: UsageEvent[];
+  userEvents: UsageEvent[];
   timeZone: string;
   onSelectDay?: (day: string) => void;
   onSelectUser?: (user: string) => void;
+  selectedUser: string | null;
 }) {
   return (
     <>
@@ -301,7 +315,11 @@ export function Overview({
           onSelectDay={onSelectDay}
         />
         <ModelPie events={events} />
-        <UserChart events={events} onSelectUser={onSelectUser} />
+        <UserChart
+          events={userEvents}
+          selectedUser={selectedUser}
+          onSelectUser={onSelectUser}
+        />
         <TopEventsTable events={events} timeZone={timeZone} />
       </div>
     </>

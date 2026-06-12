@@ -32,8 +32,10 @@ import {
 
 interface Props {
   events: UsageEvent[];
+  userEvents: UsageEvent[];
   day: string;
   timeZone: string;
+  selectedUser: string | null;
   onBack: () => void;
   onSelectDay: (day: string) => void;
   onSelectUser: (user: string) => void;
@@ -153,17 +155,20 @@ function ModelPie({ dayEvents }: { dayEvents: UsageEvent[] }) {
 
 function UserChart({
   dayEvents,
+  selectedUser,
   onSelectUser,
 }: {
   dayEvents: UsageEvent[];
+  selectedUser: string | null;
   onSelectUser: (user: string) => void;
 }) {
   const data = useMemo(() => byUser(dayEvents).slice(0, 10), [dayEvents]);
+  const isSelected = (user: string) => !selectedUser || selectedUser === user;
   return (
     <div className="panel">
       <h3>
         ユーザー別コスト (Top 10)
-        <span className="hint">バーをクリックでユーザーに絞り込み</span>
+        <span className="hint">バーをクリックでユーザー選択/解除</span>
       </h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data} layout="vertical">
@@ -188,14 +193,21 @@ function UserChart({
           <Bar
             dataKey="cost"
             name="Cost"
-            fill="#3fb950"
             radius={[0, 4, 4, 0]}
             cursor="pointer"
             onClick={(payload) => {
               const user = (payload as { key?: string } | undefined)?.key;
               if (user) onSelectUser(user);
             }}
-          />
+          >
+            {data.map((entry) => (
+              <Cell
+                key={entry.key}
+                fill="#3fb950"
+                opacity={isSelected(entry.key) ? 1 : 0.25}
+              />
+            ))}
+          </Bar>
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -296,8 +308,10 @@ function DayEventsTable({
 
 export function DayView({
   events,
+  userEvents,
   day,
   timeZone,
+  selectedUser,
   onBack,
   onSelectDay,
   onSelectUser,
@@ -309,6 +323,10 @@ export function DayView({
   const dayEvents = useMemo(
     () => onDay(events, day, timeZone),
     [events, day, timeZone],
+  );
+  const dayUserEvents = useMemo(
+    () => onDay(userEvents, day, timeZone),
+    [userEvents, day, timeZone],
   );
   const totalCost = useMemo(
     () => events.reduce((sum, e) => sum + e.cost, 0),
@@ -369,7 +387,11 @@ export function DayView({
           <div className="grid">
             <HourlyChart dayEvents={dayEvents} timeZone={timeZone} />
             <ModelPie dayEvents={dayEvents} />
-            <UserChart dayEvents={dayEvents} onSelectUser={onSelectUser} />
+            <UserChart
+              dayEvents={dayUserEvents}
+              selectedUser={selectedUser}
+              onSelectUser={onSelectUser}
+            />
             <KindBreakdown dayEvents={dayEvents} />
             <DayEventsTable dayEvents={dayEvents} timeZone={timeZone} />
           </div>

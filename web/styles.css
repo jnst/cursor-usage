@@ -64,20 +64,6 @@ body {
   font-size: 13px;
 }
 
-.filter-chip {
-  background: var(--accent-soft);
-  border: 1px solid rgba(88, 166, 255, 0.25);
-  color: var(--accent);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.filter-chip:hover {
-  border-color: var(--accent);
-}
-
 .reload-button {
   background: var(--panel);
   border: 1px solid var(--panel-border);

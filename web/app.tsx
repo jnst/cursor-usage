@@ -131,16 +131,6 @@ function App() {
               {noChargeCount > 0 &&
                 ` (No Charge ${noChargeCount}件を除外)`}
             </span>
-            {selectedUser && (
-              <button
-                type="button"
-                className="filter-chip"
-                onClick={() => setSelectedUser(null)}
-                title="ユーザーフィルタを解除"
-              >
-                User: {selectedUser} ×
-              </button>
-            )}
             <button
               type="button"
               className="reload-button"
@@ -164,14 +154,22 @@ function App() {
             timeZone={timeZone}
             onBack={() => setSelectedDay(null)}
             onSelectDay={setSelectedDay}
-            onSelectUser={setSelectedUser}
+            onSelectUser={(user) =>
+              setSelectedUser(user === selectedUser ? null : user)
+            }
+            selectedUser={selectedUser}
+            userEvents={baseEvents ?? events}
           />
         ) : (
           <Overview
             events={events}
+            userEvents={baseEvents ?? events}
             timeZone={timeZone}
             onSelectDay={setSelectedDay}
-            onSelectUser={setSelectedUser}
+            onSelectUser={(user) =>
+              setSelectedUser(user === selectedUser ? null : user)
+            }
+            selectedUser={selectedUser}
           />
         )
       ) : (
