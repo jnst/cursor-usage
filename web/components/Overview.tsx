@@ -259,7 +259,7 @@ function TopEventsTable({
   );
 }
 
-export function Dashboard({
+export function Overview({
   events,
   timeZone,
   onSelectDay,

@@ -7,9 +7,9 @@ import {
 } from "../src/core/aggregate.ts";
 import { parseUsageCsv } from "../src/core/parse.ts";
 import type { UsageEvent } from "../src/core/types.ts";
-import { Dashboard } from "./components/Dashboard.tsx";
 import { DayView } from "./components/DayView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
+import { Overview } from "./components/Overview.tsx";
 
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const COMMON_TIME_ZONES = [
@@ -157,7 +157,7 @@ function App() {
             onSelectDay={setSelectedDay}
           />
         ) : (
-          <Dashboard
+          <Overview
             events={events}
             timeZone={timeZone}
             onSelectDay={setSelectedDay}
