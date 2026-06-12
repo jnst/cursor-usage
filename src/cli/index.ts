@@ -9,8 +9,8 @@ import {
 import { parseUsageCsv } from "../core/parse.ts";
 import { serve } from "../server/index.ts";
 import {
-  dayDetailJson,
-  renderDayDetail,
+  dayViewJson,
+  renderDayView,
   renderStats,
   statsJson,
   type StatsAxis,
@@ -92,8 +92,8 @@ async function runStats(args: string[]): Promise<void> {
   if (day) {
     console.log(
       values.json
-        ? dayDetailJson(events, day, timeZone)
-        : renderDayDetail(events, day, timeZone),
+        ? dayViewJson(events, day, timeZone)
+        : renderDayView(events, day, timeZone),
     );
     return;
   }

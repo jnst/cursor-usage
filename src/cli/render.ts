@@ -220,7 +220,7 @@ function renderDayEvents(
   return lines;
 }
 
-export function renderDayDetail(
+export function renderDayView(
   events: UsageEvent[],
   day: string,
   timeZone: string,
@@ -257,7 +257,7 @@ export function renderDayDetail(
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
-export function dayDetailJson(
+export function dayViewJson(
   events: UsageEvent[],
   day: string,
   timeZone: string,

@@ -274,7 +274,7 @@ function DayEventsTable({
   );
 }
 
-export function DayDetail({
+export function DayView({
   events,
   day,
   timeZone,
@@ -303,7 +303,7 @@ export function DayDetail({
   const nextDay = idx >= 0 && idx < days.length - 1 ? days[idx + 1] : undefined;
 
   return (
-    <div className="day-detail">
+    <div className="day-view">
       <div className="day-nav">
         <button type="button" className="reload-button" onClick={onBack}>
           ← 全体に戻る

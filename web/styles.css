@@ -210,7 +210,7 @@ body {
   color: var(--text-dim);
 }
 
-/* Day detail */
+/* Day view */
 .day-nav {
   display: flex;
   align-items: center;
