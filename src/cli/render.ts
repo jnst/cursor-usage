@@ -83,7 +83,7 @@ function renderSummaryBlock(summary: Summary, timeZone: string): string[] {
     `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dayCount} days, ${timeZone})`)}`,
     "",
     `  ${label("Total Cost")}${value(formatUsd(summary.totalCost))}  ${label("Total Tokens")}${value(formatTokens(summary.totalTokens))}`,
-    `  ${label("Avg/Day")}${value(formatUsd(summary.avgCostPerDay))}  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}`,
+    `  ${label("Avg/Active")}${value(formatUsd(summary.avgCostPerActiveDay))}  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}`,
     `  ${label("Users")}${value(String(summary.userCount))}  ${label("Models")}${value(String(summary.modelCount))}`,
   ];
 }

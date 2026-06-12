@@ -25,7 +25,7 @@ export interface Summary {
   firstDay: string | null;
   lastDay: string | null;
   dayCount: number;
-  avgCostPerDay: number;
+  avgCostPerActiveDay: number;
   maxModeRatio: number;
   userCount: number;
   modelCount: number;

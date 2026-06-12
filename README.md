@@ -37,7 +37,7 @@ npx @jnst/cursor-usage stats team-usage-events.csv
 Cursor Usage  2026-06-01 – 2026-06-10  (610 events, 10 days)
 
   Total Cost    $1446.69      Total Tokens  1.1B
-  Avg/Day       $144.67       Max Mode      96%
+  Avg/Active    $144.67       Max Mode      96%
   Users         4             Models        8
 
 Daily Cost

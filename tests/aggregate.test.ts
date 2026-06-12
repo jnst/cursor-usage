@@ -62,7 +62,7 @@ describe("summarize", () => {
     expect(s.firstDay).toBe("2026-06-04");
     expect(s.lastDay).toBe("2026-06-05");
     expect(s.dayCount).toBe(2);
-    expect(s.avgCostPerDay).toBeCloseTo(0.35);
+    expect(s.avgCostPerActiveDay).toBeCloseTo(0.35);
     expect(s.maxModeRatio).toBeCloseTo(1 / 3);
     expect(s.userCount).toBe(2);
     expect(s.modelCount).toBe(2);
@@ -72,7 +72,7 @@ describe("summarize", () => {
     const s = summarize([]);
     expect(s.totalCost).toBe(0);
     expect(s.firstDay).toBeNull();
-    expect(s.avgCostPerDay).toBe(0);
+    expect(s.avgCostPerActiveDay).toBe(0);
   });
 });
 

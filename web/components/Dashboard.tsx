@@ -41,7 +41,11 @@ function SummaryCards({
   const s = useMemo(() => summarize(events, timeZone), [events, timeZone]);
   const cards = [
     { label: "Total Cost", value: formatUsd(s.totalCost), sub: `${s.firstDay} – ${s.lastDay}` },
-    { label: "Avg Cost / Day", value: formatUsd(s.avgCostPerDay), sub: `${s.dayCount} days` },
+    {
+      label: "Avg Cost / Active Day",
+      value: formatUsd(s.avgCostPerActiveDay),
+      sub: `${s.dayCount} active days`,
+    },
     { label: "Total Tokens", value: formatTokens(s.totalTokens), sub: `${s.eventCount} events` },
     { label: "Max Mode", value: `${Math.round(s.maxModeRatio * 100)}%`, sub: "of events" },
     { label: "Users / Models", value: `${s.userCount} / ${s.modelCount}`, sub: "in this export" },

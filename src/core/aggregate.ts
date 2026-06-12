@@ -92,7 +92,7 @@ export function summarize(
     firstDay: sortedDays[0] ?? null,
     lastDay: sortedDays[sortedDays.length - 1] ?? null,
     dayCount: days.size,
-    avgCostPerDay: days.size > 0 ? totalCost / days.size : 0,
+    avgCostPerActiveDay: days.size > 0 ? totalCost / days.size : 0,
     maxModeRatio: events.length > 0 ? maxModeCount / events.length : 0,
     userCount: users.size,
     modelCount: models.size,
