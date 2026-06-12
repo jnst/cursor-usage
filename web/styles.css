@@ -72,19 +72,6 @@ body {
   font-size: 12px;
 }
 
-.filter-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-dim);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.filter-toggle input {
-  accent-color: var(--accent);
-}
-
 .filter-chip {
   background: var(--accent-soft);
   border: 1px solid rgba(88, 166, 255, 0.25);

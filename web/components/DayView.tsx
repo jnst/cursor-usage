@@ -34,7 +34,6 @@ interface Props {
   events: UsageEvent[];
   day: string;
   timeZone: string;
-  eventLabel: string;
   onBack: () => void;
   onSelectDay: (day: string) => void;
   onSelectUser: (user: string) => void;
@@ -299,7 +298,6 @@ export function DayView({
   events,
   day,
   timeZone,
-  eventLabel,
   onBack,
   onSelectDay,
   onSelectUser,
@@ -333,9 +331,7 @@ export function DayView({
         </button>
         <div className="day-title">
           <h2>{day}</h2>
-          <span className="meta">
-            {dayEvents.length} {eventLabel}
-          </span>
+          <span className="meta">{dayEvents.length} 課金イベント</span>
         </div>
         <div className="day-stepper">
           <button
@@ -359,7 +355,7 @@ export function DayView({
 
       {dayEvents.length === 0 ? (
         <div className="panel wide">
-          <p className="meta">この日の{eventLabel}はありません。</p>
+          <p className="meta">この日の課金イベントはありません。</p>
         </div>
       ) : (
         <>
