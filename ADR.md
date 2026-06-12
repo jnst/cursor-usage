@@ -29,3 +29,9 @@ The dashboard may encode the selected view in the URL, such as a selected Day an
 When a URL includes a Day, that Day is interpreted in the selected Analysis Time Zone, not as a UTC day. This keeps shared Day Views aligned with the same calendar boundaries users see in the dashboard.
 
 Day View URLs should include both the selected Day and the selected Analysis Time Zone. Omitting the Analysis Time Zone makes the same URL resolve to different event ranges for users in different environments.
+
+## ADR-005: Ground Analysis Features in the CLI
+
+Every analysis capability should be available from the CLI before or alongside the web UI. The web dashboard may provide richer interactions and charts, but those interactions should correspond to CLI options so the same analysis can be reproduced in scripts, terminals, CI logs, and support conversations.
+
+Purely browser-specific affordances, such as drag-and-drop file loading or chart layout, do not require CLI equivalents. Analysis choices such as Day, User, Analysis Time Zone, and whether No Charge Events are included do require CLI support.
