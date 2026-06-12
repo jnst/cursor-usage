@@ -32,6 +32,45 @@ export function formatTokens(value: number): string {
   return String(value);
 }
 
+function dateTimePart(
+  date: Date,
+  timeZone: string,
+  part: "year" | "month" | "day" | "hour" | "minute" | "second",
+): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  return parts.find((p) => p.type === part)?.value ?? "";
+}
+
+export function formatDateTime(date: Date, timeZone: string): string {
+  const day = [
+    dateTimePart(date, timeZone, "year"),
+    dateTimePart(date, timeZone, "month"),
+    dateTimePart(date, timeZone, "day"),
+  ].join("-");
+  const time = [
+    dateTimePart(date, timeZone, "hour"),
+    dateTimePart(date, timeZone, "minute"),
+  ].join(":");
+  return `${day} ${time}`;
+}
+
+export function formatTime(date: Date, timeZone: string): string {
+  return [
+    dateTimePart(date, timeZone, "hour"),
+    dateTimePart(date, timeZone, "minute"),
+    dateTimePart(date, timeZone, "second"),
+  ].join(":");
+}
+
 export const tooltipStyle = {
   backgroundColor: "#161b22",
   border: "1px solid #21262d",

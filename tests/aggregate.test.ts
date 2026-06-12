@@ -6,6 +6,8 @@ import {
   byHour,
   byModel,
   byUser,
+  dayOf,
+  hourOf,
   onDay,
   summarize,
   topEvents,
@@ -125,5 +127,20 @@ describe("buckets", () => {
     expect(hours.map((h) => h.key)).toEqual(["10", "23"]);
     expect(hours[0]!.cost).toBeCloseTo(0.4);
     expect(hours[1]!.cost).toBeCloseTo(0.2);
+  });
+
+  test("day and hour can be grouped in an analysis time zone", () => {
+    const lateUtc = event({ date: new Date("2026-06-05T23:59:59Z") });
+
+    expect(dayOf(lateUtc.date)).toBe("2026-06-05");
+    expect(hourOf(lateUtc.date)).toBe("23");
+    expect(dayOf(lateUtc.date, "Asia/Tokyo")).toBe("2026-06-06");
+    expect(hourOf(lateUtc.date, "Asia/Tokyo")).toBe("08");
+  });
+
+  test("onDay uses the selected analysis time zone", () => {
+    const tokyoDay = onDay(b, "2026-06-06", "Asia/Tokyo");
+    expect(tokyoDay).toHaveLength(1);
+    expect(tokyoDay[0]!.date.toISOString()).toBe("2026-06-05T23:59:59.000Z");
   });
 });

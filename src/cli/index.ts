@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import { billable } from "../core/aggregate.ts";
+import {
+  billable,
+  defaultAnalysisTimeZone,
+  isValidTimeZone,
+} from "../core/aggregate.ts";
 import { parseUsageCsv } from "../core/parse.ts";
 import { serve } from "../server/index.ts";
 import {
@@ -21,6 +25,7 @@ Usage:
 Stats options:
   --by <day|user|model>   Show a single breakdown axis (default: all)
   --day <YYYY-MM-DD>      Drill into a single day (hourly, model, user, kind, top events)
+  --timezone <iana-tz>    Analysis time zone (default: current environment)
   --json                  Output aggregated stats as JSON
   --include-no-charge     Include "Errored, No Charge" events
 
@@ -45,6 +50,7 @@ async function runStats(args: string[]): Promise<void> {
     options: {
       by: { type: "string" },
       day: { type: "string" },
+      timezone: { type: "string" },
       json: { type: "boolean", default: false },
       "include-no-charge": { type: "boolean", default: false },
     },
@@ -70,6 +76,11 @@ async function runStats(args: string[]): Promise<void> {
     fail(`invalid --day value: ${day} (expected YYYY-MM-DD)`);
   }
 
+  const timeZone = values.timezone ?? defaultAnalysisTimeZone();
+  if (!isValidTimeZone(timeZone)) {
+    fail(`invalid --timezone value: ${timeZone}`);
+  }
+
   let events = parseUsageCsv(text);
   if (!values["include-no-charge"]) events = billable(events);
 
@@ -79,11 +90,17 @@ async function runStats(args: string[]): Promise<void> {
   }
 
   if (day) {
-    console.log(values.json ? dayDetailJson(events, day) : renderDayDetail(events, day));
+    console.log(
+      values.json
+        ? dayDetailJson(events, day, timeZone)
+        : renderDayDetail(events, day, timeZone),
+    );
     return;
   }
 
-  console.log(values.json ? statsJson(events) : renderStats(events, axis));
+  console.log(
+    values.json ? statsJson(events, timeZone) : renderStats(events, axis, timeZone),
+  );
 }
 
 function runServe(args: string[]): void {

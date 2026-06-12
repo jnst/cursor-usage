@@ -1,31 +1,58 @@
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { billable } from "../src/core/aggregate.ts";
+import {
+  billable,
+  defaultAnalysisTimeZone,
+  isValidTimeZone,
+} from "../src/core/aggregate.ts";
 import { parseUsageCsv } from "../src/core/parse.ts";
 import type { UsageEvent } from "../src/core/types.ts";
 import { Dashboard } from "./components/Dashboard.tsx";
 import { DayDetail } from "./components/DayDetail.tsx";
 import { DropZone } from "./components/DropZone.tsx";
 
-const DAY_HASH = /^#day=(\d{4}-\d{2}-\d{2})$/;
+const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const COMMON_TIME_ZONES = [
+  "UTC",
+  "Asia/Tokyo",
+  "America/Los_Angeles",
+  "America/New_York",
+  "Europe/London",
+];
 
-function dayFromHash(): string | null {
-  return DAY_HASH.exec(window.location.hash)?.[1] ?? null;
+function routeFromHash(defaultTimeZone: string): {
+  day: string | null;
+  timeZone: string;
+} {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const day = params.get("day");
+  const timeZone = params.get("timezone");
+  return {
+    day: day && DAY_PATTERN.test(day) ? day : null,
+    timeZone: timeZone && isValidTimeZone(timeZone) ? timeZone : defaultTimeZone,
+  };
 }
 
-/** Selected day, kept in sync with the URL hash so the browser back button works. */
-function useDayRoute(): [string | null, (day: string | null) => void] {
-  const [day, setDay] = useState<string | null>(() => dayFromHash());
+/** Selected Day and Analysis Time Zone, kept in sync with the URL hash. */
+function useDayRoute(): {
+  selectedDay: string | null;
+  timeZone: string;
+  setSelectedDay: (day: string | null) => void;
+  setTimeZone: (timeZone: string) => void;
+} {
+  const defaultTimeZone = useMemo(() => defaultAnalysisTimeZone(), []);
+  const [route, setRoute] = useState(() => routeFromHash(defaultTimeZone));
 
   useEffect(() => {
-    const onHashChange = () => setDay(dayFromHash());
+    const onHashChange = () => setRoute(routeFromHash(defaultTimeZone));
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
+  }, [defaultTimeZone]);
 
-  const navigate = (next: string | null) => {
-    if (next) {
-      window.location.hash = `day=${next}`;
+  const updateHash = (day: string | null, timeZone: string) => {
+    if (day) {
+      const params = new URLSearchParams({ day, timezone: timeZone });
+      window.location.hash = params.toString();
     } else if (window.location.hash) {
       window.history.pushState(
         null,
@@ -33,16 +60,24 @@ function useDayRoute(): [string | null, (day: string | null) => void] {
         window.location.pathname + window.location.search,
       );
     }
-    setDay(next);
+    setRoute({ day, timeZone });
   };
 
-  return [day, navigate];
+  return {
+    selectedDay: route.day,
+    timeZone: route.timeZone,
+    setSelectedDay: (day) => updateHash(day, route.timeZone),
+    setTimeZone: (timeZone) => {
+      if (!isValidTimeZone(timeZone)) return;
+      updateHash(route.day, timeZone);
+    },
+  };
 }
 
 function App() {
   const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useDayRoute();
+  const { selectedDay, timeZone, setSelectedDay, setTimeZone } = useDayRoute();
 
   const onCsvText = (text: string) => {
     try {
@@ -79,6 +114,25 @@ function App() {
               {events.length} 課金イベント
               {excluded > 0 && ` (No Charge ${excluded}件を除外)`}
             </span>
+            <label className="timezone-select">
+              <span>Time Zone</span>
+              <select
+                value={timeZone}
+                onChange={(e) => setTimeZone(e.target.value)}
+              >
+                {[
+                  ...new Set([
+                    timeZone,
+                    defaultAnalysisTimeZone(),
+                    ...COMMON_TIME_ZONES,
+                  ]),
+                ].map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               className="reload-button"
@@ -98,11 +152,16 @@ function App() {
           <DayDetail
             events={events}
             day={selectedDay}
+            timeZone={timeZone}
             onBack={() => setSelectedDay(null)}
             onSelectDay={setSelectedDay}
           />
         ) : (
-          <Dashboard events={events} onSelectDay={setSelectedDay} />
+          <Dashboard
+            events={events}
+            timeZone={timeZone}
+            onSelectDay={setSelectedDay}
+          />
         )
       ) : (
         <DropZone onCsvText={onCsvText} error={error} />

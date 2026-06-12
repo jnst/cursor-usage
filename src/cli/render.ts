@@ -46,7 +46,33 @@ function padEndDisplay(s: string, width: number): string {
   return s.length >= width ? s : s + " ".repeat(width - s.length);
 }
 
-function renderSummaryBlock(summary: Summary): string[] {
+function dateTimePart(
+  date: Date,
+  timeZone: string,
+  part: "year" | "month" | "day" | "hour" | "minute" | "second",
+): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  return parts.find((p) => p.type === part)?.value ?? "";
+}
+
+function formatTime(date: Date, timeZone: string): string {
+  return [
+    dateTimePart(date, timeZone, "hour"),
+    dateTimePart(date, timeZone, "minute"),
+    dateTimePart(date, timeZone, "second"),
+  ].join(":");
+}
+
+function renderSummaryBlock(summary: Summary, timeZone: string): string[] {
   const period =
     summary.firstDay && summary.lastDay
       ? `${summary.firstDay} – ${summary.lastDay}`
@@ -54,7 +80,7 @@ function renderSummaryBlock(summary: Summary): string[] {
   const label = (s: string) => dim(padEndDisplay(s, 14));
   const value = (s: string) => bold(padEndDisplay(s, 12));
   return [
-    `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dayCount} days)`)}`,
+    `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dayCount} days, ${timeZone})`)}`,
     "",
     `  ${label("Total Cost")}${value(formatUsd(summary.totalCost))}  ${label("Total Tokens")}${value(formatTokens(summary.totalTokens))}`,
     `  ${label("Avg/Day")}${value(formatUsd(summary.avgCostPerDay))}  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}`,
@@ -92,13 +118,14 @@ export type StatsAxis = "day" | "user" | "model";
 export function renderStats(
   events: UsageEvent[],
   axis: StatsAxis | undefined,
+  timeZone: string,
 ): string {
-  const summary = summarize(events);
-  const sections: string[][] = [renderSummaryBlock(summary)];
+  const summary = summarize(events, timeZone);
+  const sections: string[][] = [renderSummaryBlock(summary, timeZone)];
 
   const charts: Record<StatsAxis, () => string[]> = {
     day: () =>
-      renderBucketChart("Daily Cost", byDay(events), {
+      renderBucketChart("Daily Cost", byDay(events, timeZone), {
         totalCost: summary.totalCost,
         maxRows: 31,
       }),
@@ -121,11 +148,12 @@ export function renderStats(
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
-export function statsJson(events: UsageEvent[]): string {
+export function statsJson(events: UsageEvent[], timeZone: string): string {
   return JSON.stringify(
     {
-      summary: summarize(events),
-      byDay: byDay(events),
+      timeZone,
+      summary: summarize(events, timeZone),
+      byDay: byDay(events, timeZone),
       byModel: byModel(events),
       byUser: byUser(events),
     },
@@ -137,16 +165,17 @@ export function statsJson(events: UsageEvent[]): string {
 function renderDaySummaryBlock(
   day: string,
   dayEvents: UsageEvent[],
+  timeZone: string,
   totalCost: number,
   rank: number,
   dayCount: number,
 ): string[] {
-  const s = summarize(dayEvents);
+  const s = summarize(dayEvents, timeZone);
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const label = (str: string) => dim(padEndDisplay(str, 14));
   const value = (str: string) => bold(padEndDisplay(str, 12));
   return [
-    `${bold(`Day ${day}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dayCount} by cost)`)}`,
+    `${bold(`Day ${day}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dayCount} by cost, ${timeZone})`)}`,
     "",
     `  ${label("Cost")}${value(formatUsd(s.totalCost))}  ${label("of period")}${value(`${share}%`)}`,
     `  ${label("Total Tokens")}${value(formatTokens(s.totalTokens))}  ${label("Max Mode")}${value(`${Math.round(s.maxModeRatio * 100)}%`)}`,
@@ -154,10 +183,12 @@ function renderDaySummaryBlock(
   ];
 }
 
-function renderHourlyChart(dayEvents: UsageEvent[]): string[] {
-  const byHourMap = new Map(byHour(dayEvents).map((b) => [b.key, b]));
+function renderHourlyChart(dayEvents: UsageEvent[], timeZone: string): string[] {
+  const byHourMap = new Map(
+    byHour(dayEvents, timeZone).map((b) => [b.key, b]),
+  );
   const maxCost = Math.max(...[...byHourMap.values()].map((b) => b.cost), 0);
-  const lines = [bold("By Hour (UTC)")];
+  const lines = [bold(`By Hour (${timeZone})`)];
   for (let h = 0; h < 24; h++) {
     const key = String(h).padStart(2, "0");
     const b = byHourMap.get(key);
@@ -171,13 +202,17 @@ function renderHourlyChart(dayEvents: UsageEvent[]): string[] {
   return lines;
 }
 
-function renderDayEvents(dayEvents: UsageEvent[], limit: number): string[] {
+function renderDayEvents(
+  dayEvents: UsageEvent[],
+  limit: number,
+  timeZone: string,
+): string[] {
   const top = topEvents(dayEvents, limit);
   const lines = [bold(`Top Events (${top.length} of ${dayEvents.length})`)];
   const userWidth = Math.max(...top.map((e) => e.user.length), 4);
   const modelWidth = Math.max(...top.map((e) => e.model.length), 5);
   for (const e of top) {
-    const time = e.date.toISOString().slice(11, 19);
+    const time = formatTime(e.date, timeZone);
     lines.push(
       `  ${dim(time)}  ${padEndDisplay(e.user, userWidth)}  ${padEndDisplay(e.model, modelWidth)}  ${padEndDisplay(formatUsd(e.cost), 8)} ${dim(`${formatTokens(e.totalTokens)} tok`)}`,
     );
@@ -185,9 +220,13 @@ function renderDayEvents(dayEvents: UsageEvent[], limit: number): string[] {
   return lines;
 }
 
-export function renderDayDetail(events: UsageEvent[], day: string): string {
-  const days = byDay(events);
-  const dayEvents = onDay(events, day);
+export function renderDayDetail(
+  events: UsageEvent[],
+  day: string,
+  timeZone: string,
+): string {
+  const days = byDay(events, timeZone);
+  const dayEvents = onDay(events, day, timeZone);
   if (dayEvents.length === 0) {
     const known = days.map((d) => d.key);
     const hint =
@@ -203,28 +242,33 @@ export function renderDayDetail(events: UsageEvent[], day: string): string {
     1;
 
   const sections: string[][] = [
-    renderDaySummaryBlock(day, dayEvents, totalCost, rank, days.length),
-    renderHourlyChart(dayEvents),
+    renderDaySummaryBlock(day, dayEvents, timeZone, totalCost, rank, days.length),
+    renderHourlyChart(dayEvents, timeZone),
     renderBucketChart("By Model", byModel(dayEvents), {
-      totalCost: summarize(dayEvents).totalCost,
+      totalCost: summarize(dayEvents, timeZone).totalCost,
     }),
     renderBucketChart("By User", byUser(dayEvents), {
-      totalCost: summarize(dayEvents).totalCost,
+      totalCost: summarize(dayEvents, timeZone).totalCost,
     }),
     renderBucketChart("By Kind", byKind(dayEvents), { totalCost: 0 }),
-    renderDayEvents(dayEvents, 20),
+    renderDayEvents(dayEvents, 20, timeZone),
   ];
 
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
-export function dayDetailJson(events: UsageEvent[], day: string): string {
-  const dayEvents = onDay(events, day);
+export function dayDetailJson(
+  events: UsageEvent[],
+  day: string,
+  timeZone: string,
+): string {
+  const dayEvents = onDay(events, day, timeZone);
   return JSON.stringify(
     {
       day,
-      summary: summarize(dayEvents),
-      byHour: byHour(dayEvents),
+      timeZone,
+      summary: summarize(dayEvents, timeZone),
+      byHour: byHour(dayEvents, timeZone),
       byModel: byModel(dayEvents),
       byUser: byUser(dayEvents),
       byKind: byKind(dayEvents),

@@ -6,26 +6,68 @@ import {
   type UsageEvent,
 } from "./types.ts";
 
-/** YYYY-MM-DD in UTC, matching the export timestamps. */
-export function dayOf(date: Date): string {
-  return date.toISOString().slice(0, 10);
+export const UTC_TIME_ZONE = "UTC";
+
+export function defaultAnalysisTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || UTC_TIME_ZONE;
 }
 
-/** Two-digit UTC hour, e.g. "00".."23". */
-export function hourOf(date: Date): string {
-  return String(date.getUTCHours()).padStart(2, "0");
+export function isValidTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-/** Events that fall on the given UTC day (YYYY-MM-DD). */
-export function onDay(events: UsageEvent[], day: string): UsageEvent[] {
-  return events.filter((e) => dayOf(e.date) === day);
+function timePart(
+  date: Date,
+  timeZone: string,
+  part: "year" | "month" | "day" | "hour",
+): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  return parts.find((p) => p.type === part)?.value ?? "";
+}
+
+/** YYYY-MM-DD in the selected analysis time zone. */
+export function dayOf(date: Date, timeZone = UTC_TIME_ZONE): string {
+  return [
+    timePart(date, timeZone, "year"),
+    timePart(date, timeZone, "month"),
+    timePart(date, timeZone, "day"),
+  ].join("-");
+}
+
+/** Two-digit hour, e.g. "00".."23", in the selected analysis time zone. */
+export function hourOf(date: Date, timeZone = UTC_TIME_ZONE): string {
+  return timePart(date, timeZone, "hour");
+}
+
+/** Events that fall on the given analysis-time-zone day (YYYY-MM-DD). */
+export function onDay(
+  events: UsageEvent[],
+  day: string,
+  timeZone = UTC_TIME_ZONE,
+): UsageEvent[] {
+  return events.filter((e) => dayOf(e.date, timeZone) === day);
 }
 
 export function billable(events: UsageEvent[]): UsageEvent[] {
   return events.filter((e) => e.kind !== NO_CHARGE_KIND);
 }
 
-export function summarize(events: UsageEvent[]): Summary {
+export function summarize(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+): Summary {
   let totalCost = 0;
   let totalTokens = 0;
   let maxModeCount = 0;
@@ -37,7 +79,7 @@ export function summarize(events: UsageEvent[]): Summary {
     totalCost += e.cost;
     totalTokens += e.totalTokens;
     if (e.maxMode) maxModeCount++;
-    days.add(dayOf(e.date));
+    days.add(dayOf(e.date, timeZone));
     users.add(e.user);
     models.add(e.model);
   }
@@ -88,8 +130,11 @@ function bucketBy(
 }
 
 /** Sorted chronologically. */
-export function byDay(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => dayOf(e.date)).sort((a, b) =>
+export function byDay(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+): BucketStat[] {
+  return bucketBy(events, (e) => dayOf(e.date, timeZone)).sort((a, b) =>
     a.key.localeCompare(b.key),
   );
 }
@@ -111,18 +156,24 @@ export function byKind(events: UsageEvent[]): BucketStat[] {
   );
 }
 
-/** UTC hours that have activity, sorted chronologically ("00".."23"). */
-export function byHour(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => hourOf(e.date)).sort((a, b) =>
+/** Hours that have activity, sorted chronologically ("00".."23"). */
+export function byHour(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+): BucketStat[] {
+  return bucketBy(events, (e) => hourOf(e.date, timeZone)).sort((a, b) =>
     a.key.localeCompare(b.key),
   );
 }
 
 /** Cross-tab for stacked charts, sorted chronologically. */
-export function byDayAndModel(events: UsageEvent[]): DayModelStat[] {
+export function byDayAndModel(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+): DayModelStat[] {
   const days = new Map<string, DayModelStat>();
   for (const e of events) {
-    const day = dayOf(e.date);
+    const day = dayOf(e.date, timeZone);
     let d = days.get(day);
     if (!d) {
       d = { day, costByModel: {}, totalCost: 0 };

@@ -22,27 +22,36 @@ import {
   summarize,
 } from "../../src/core/aggregate.ts";
 import type { UsageEvent } from "../../src/core/types.ts";
-import { COLORS, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
+import {
+  COLORS,
+  formatTime,
+  formatTokens,
+  formatUsd,
+  tooltipStyle,
+} from "./shared.ts";
 
 interface Props {
   events: UsageEvent[];
   day: string;
+  timeZone: string;
   onBack: () => void;
   onSelectDay: (day: string) => void;
 }
 
 function DaySummaryCards({
   dayEvents,
+  timeZone,
   totalCost,
   rank,
   dayCount,
 }: {
   dayEvents: UsageEvent[];
+  timeZone: string;
   totalCost: number;
   rank: number;
   dayCount: number;
 }) {
-  const s = useMemo(() => summarize(dayEvents), [dayEvents]);
+  const s = useMemo(() => summarize(dayEvents, timeZone), [dayEvents, timeZone]);
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const cards = [
     { label: "Cost", value: formatUsd(s.totalCost), sub: `期間全体の ${share}%` },
@@ -64,9 +73,17 @@ function DaySummaryCards({
   );
 }
 
-function HourlyChart({ dayEvents }: { dayEvents: UsageEvent[] }) {
+function HourlyChart({
+  dayEvents,
+  timeZone,
+}: {
+  dayEvents: UsageEvent[];
+  timeZone: string;
+}) {
   const data = useMemo(() => {
-    const byHourMap = new Map(byHour(dayEvents).map((b) => [b.key, b]));
+    const byHourMap = new Map(
+      byHour(dayEvents, timeZone).map((b) => [b.key, b]),
+    );
     return Array.from({ length: 24 }, (_, h) => {
       const key = String(h).padStart(2, "0");
       const b = byHourMap.get(key);
@@ -76,11 +93,11 @@ function HourlyChart({ dayEvents }: { dayEvents: UsageEvent[] }) {
         eventCount: b?.eventCount ?? 0,
       };
     });
-  }, [dayEvents]);
+  }, [dayEvents, timeZone]);
 
   return (
     <div className="panel wide">
-      <h3>時間帯別コスト (UTC)</h3>
+      <h3>時間帯別コスト ({timeZone})</h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
           <CartesianGrid stroke="#21262d" vertical={false} />
@@ -93,7 +110,7 @@ function HourlyChart({ dayEvents }: { dayEvents: UsageEvent[] }) {
           <Tooltip
             contentStyle={tooltipStyle}
             formatter={(value) => [formatUsd(Number(value)), "Cost"]}
-            labelFormatter={(h) => `${h}:00 UTC`}
+            labelFormatter={(h) => `${h}:00 ${timeZone}`}
           />
           <Bar dataKey="cost" name="Cost" fill="#58a6ff" radius={[4, 4, 0, 0]} />
         </ComposedChart>
@@ -203,7 +220,13 @@ function KindBreakdown({ dayEvents }: { dayEvents: UsageEvent[] }) {
   );
 }
 
-function DayEventsTable({ dayEvents }: { dayEvents: UsageEvent[] }) {
+function DayEventsTable({
+  dayEvents,
+  timeZone,
+}: {
+  dayEvents: UsageEvent[];
+  timeZone: string;
+}) {
   const rows = useMemo(
     () => [...dayEvents].sort((a, b) => b.cost - a.cost),
     [dayEvents],
@@ -215,7 +238,7 @@ function DayEventsTable({ dayEvents }: { dayEvents: UsageEvent[] }) {
         <table>
           <thead>
             <tr>
-              <th>時刻 (UTC)</th>
+              <th>時刻 ({timeZone})</th>
               <th>ユーザー</th>
               <th>モデル</th>
               <th>種別</th>
@@ -229,7 +252,7 @@ function DayEventsTable({ dayEvents }: { dayEvents: UsageEvent[] }) {
           <tbody>
             {rows.map((e, i) => (
               <tr key={i}>
-                <td>{e.date.toISOString().slice(11, 19)}</td>
+                <td>{formatTime(e.date, timeZone)}</td>
                 <td>{e.user}</td>
                 <td>
                   <span className="badge">{e.model}</span>
@@ -251,17 +274,29 @@ function DayEventsTable({ dayEvents }: { dayEvents: UsageEvent[] }) {
   );
 }
 
-export function DayDetail({ events, day, onBack, onSelectDay }: Props) {
-  const days = useMemo(() => byDay(events).map((d) => d.key), [events]);
-  const dayEvents = useMemo(() => onDay(events, day), [events, day]);
+export function DayDetail({
+  events,
+  day,
+  timeZone,
+  onBack,
+  onSelectDay,
+}: Props) {
+  const days = useMemo(
+    () => byDay(events, timeZone).map((d) => d.key),
+    [events, timeZone],
+  );
+  const dayEvents = useMemo(
+    () => onDay(events, day, timeZone),
+    [events, day, timeZone],
+  );
   const totalCost = useMemo(
     () => events.reduce((sum, e) => sum + e.cost, 0),
     [events],
   );
   const costRank = useMemo(() => {
-    const sorted = byDay(events).sort((a, b) => b.cost - a.cost);
+    const sorted = byDay(events, timeZone).sort((a, b) => b.cost - a.cost);
     return sorted.findIndex((d) => d.key === day) + 1;
-  }, [events, day]);
+  }, [events, day, timeZone]);
 
   const idx = days.indexOf(day);
   const prevDay = idx > 0 ? days[idx - 1] : undefined;
@@ -305,16 +340,17 @@ export function DayDetail({ events, day, onBack, onSelectDay }: Props) {
         <>
           <DaySummaryCards
             dayEvents={dayEvents}
+            timeZone={timeZone}
             totalCost={totalCost}
             rank={costRank}
             dayCount={days.length}
           />
           <div className="grid">
-            <HourlyChart dayEvents={dayEvents} />
+            <HourlyChart dayEvents={dayEvents} timeZone={timeZone} />
             <ModelPie dayEvents={dayEvents} />
             <UserChart dayEvents={dayEvents} />
             <KindBreakdown dayEvents={dayEvents} />
-            <DayEventsTable dayEvents={dayEvents} />
+            <DayEventsTable dayEvents={dayEvents} timeZone={timeZone} />
           </div>
         </>
       )}

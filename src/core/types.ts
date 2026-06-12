@@ -21,7 +21,7 @@ export interface Summary {
   totalCost: number;
   totalTokens: number;
   eventCount: number;
-  /** YYYY-MM-DD (UTC) */
+  /** YYYY-MM-DD in the selected analysis time zone */
   firstDay: string | null;
   lastDay: string | null;
   dayCount: number;

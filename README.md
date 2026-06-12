@@ -19,7 +19,7 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
 
-Click any bar in the daily cost chart to drill into that day (hourly breakdown, per-model / per-user / per-kind costs, and every event of the day). The selected day is reflected in the URL hash (`#day=YYYY-MM-DD`), so the browser back button and shareable links work; use "← 全体に戻る" or the prev/next-day buttons to move around.
+Click any bar in the daily cost chart to drill into that day (hourly breakdown, per-model / per-user / per-kind costs, and every event of the day). The selected day and analysis time zone are reflected in the URL hash (`#day=YYYY-MM-DD&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV; use "← 全体に戻る" or the prev/next-day buttons to move around.
 
 The default port is 4321; if it is already in use, a free port is picked automatically. When `--port` is specified explicitly, that port is used as-is.
 
@@ -57,6 +57,7 @@ Options:
 | --- | --- |
 | `--by <day\|user\|model>` | Show a single breakdown axis |
 | `--day <YYYY-MM-DD>` | Drill into a single day (hourly, model, user, kind, top events) |
+| `--timezone <iana-tz>` | Group days and hours in a specific analysis time zone |
 | `--json` | Output aggregated stats as JSON (pipe to jq etc.) |
 | `--include-no-charge` | Include "Errored, No Charge" events |
 
@@ -65,7 +66,7 @@ Options:
 npx @jnst/cursor-usage stats usage.csv --json | jq .summary.totalCost
 
 # Drill into the most expensive day
-npx @jnst/cursor-usage stats usage.csv --day 2026-06-02
+npx @jnst/cursor-usage stats usage.csv --day 2026-06-02 --timezone Asia/Tokyo
 ```
 
 Or install globally to use the short `cursor-usage` command:

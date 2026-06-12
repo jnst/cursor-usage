@@ -21,12 +21,24 @@ import {
   topEvents,
 } from "../../src/core/aggregate.ts";
 import type { UsageEvent } from "../../src/core/types.ts";
-import { COLORS, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
+import {
+  COLORS,
+  formatDateTime,
+  formatTokens,
+  formatUsd,
+  tooltipStyle,
+} from "./shared.ts";
 
 export { formatTokens, formatUsd };
 
-function SummaryCards({ events }: { events: UsageEvent[] }) {
-  const s = useMemo(() => summarize(events), [events]);
+function SummaryCards({
+  events,
+  timeZone,
+}: {
+  events: UsageEvent[];
+  timeZone: string;
+}) {
+  const s = useMemo(() => summarize(events, timeZone), [events, timeZone]);
   const cards = [
     { label: "Total Cost", value: formatUsd(s.totalCost), sub: `${s.firstDay} – ${s.lastDay}` },
     { label: "Avg Cost / Day", value: formatUsd(s.avgCostPerDay), sub: `${s.dayCount} days` },
@@ -49,9 +61,11 @@ function SummaryCards({ events }: { events: UsageEvent[] }) {
 
 function DailyChart({
   events,
+  timeZone,
   onSelectDay,
 }: {
   events: UsageEvent[];
+  timeZone: string;
   onSelectDay?: (day: string) => void;
 }) {
   const models = useMemo(
@@ -60,11 +74,11 @@ function DailyChart({
   );
   const data = useMemo(() => {
     let cumulative = 0;
-    return byDayAndModel(events).map((d) => {
+    return byDayAndModel(events, timeZone).map((d) => {
       cumulative += d.totalCost;
       return { day: d.day, label: d.day.slice(5), ...d.costByModel, cumulative };
     });
-  }, [events]);
+  }, [events, timeZone]);
 
   const handleClick = (payload: { day?: string } | undefined) => {
     if (payload?.day) onSelectDay?.(payload.day);
@@ -190,7 +204,13 @@ function UserChart({ events }: { events: UsageEvent[] }) {
   );
 }
 
-function TopEventsTable({ events }: { events: UsageEvent[] }) {
+function TopEventsTable({
+  events,
+  timeZone,
+}: {
+  events: UsageEvent[];
+  timeZone: string;
+}) {
   const top = useMemo(() => topEvents(events, 20), [events]);
   return (
     <div className="panel wide">
@@ -199,7 +219,7 @@ function TopEventsTable({ events }: { events: UsageEvent[] }) {
         <table>
           <thead>
             <tr>
-              <th>日時 (UTC)</th>
+              <th>日時 ({timeZone})</th>
               <th>ユーザー</th>
               <th>モデル</th>
               <th>種別</th>
@@ -213,7 +233,7 @@ function TopEventsTable({ events }: { events: UsageEvent[] }) {
           <tbody>
             {top.map((e, i) => (
               <tr key={i}>
-                <td>{e.date.toISOString().replace("T", " ").slice(0, 16)}</td>
+                <td>{formatDateTime(e.date, timeZone)}</td>
                 <td>{e.user}</td>
                 <td>
                   <span className="badge">{e.model}</span>
@@ -237,19 +257,25 @@ function TopEventsTable({ events }: { events: UsageEvent[] }) {
 
 export function Dashboard({
   events,
+  timeZone,
   onSelectDay,
 }: {
   events: UsageEvent[];
+  timeZone: string;
   onSelectDay?: (day: string) => void;
 }) {
   return (
     <>
-      <SummaryCards events={events} />
+      <SummaryCards events={events} timeZone={timeZone} />
       <div className="grid">
-        <DailyChart events={events} onSelectDay={onSelectDay} />
+        <DailyChart
+          events={events}
+          timeZone={timeZone}
+          onSelectDay={onSelectDay}
+        />
         <ModelPie events={events} />
         <UserChart events={events} />
-        <TopEventsTable events={events} />
+        <TopEventsTable events={events} timeZone={timeZone} />
       </div>
     </>
   );
