@@ -24,7 +24,7 @@ This keeps the product boundary focused: the tool helps users notice expensive d
 
 ## ADR-004: Treat URLs as View State, Not Data Sharing
 
-The dashboard may encode the selected view in the URL, such as a selected Day and Analysis Time Zone, but it must not encode or upload the Usage Export itself. A shared URL can reopen the same view state only after the recipient loads the same Usage Export locally.
+The dashboard may encode the selected view in the URL, such as a selected Day, User, and Analysis Time Zone, but it must not encode or upload the Usage Export itself. A shared URL can reopen the same view state only after the recipient loads the same Usage Export locally.
 
 When a URL includes a Day, that Day is interpreted in the selected Analysis Time Zone, not as a UTC day. This keeps shared Day Views aligned with the same calendar boundaries users see in the dashboard.
 

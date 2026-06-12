@@ -22,13 +22,16 @@ const COMMON_TIME_ZONES = [
 
 function routeFromHash(defaultTimeZone: string): {
   day: string | null;
+  user: string | null;
   timeZone: string;
 } {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const day = params.get("day");
+  const user = params.get("user");
   const timeZone = params.get("timezone");
   return {
     day: day && DAY_PATTERN.test(day) ? day : null,
+    user: user || null,
     timeZone: timeZone && isValidTimeZone(timeZone) ? timeZone : defaultTimeZone,
   };
 }
@@ -36,8 +39,10 @@ function routeFromHash(defaultTimeZone: string): {
 /** Selected Day and Analysis Time Zone, kept in sync with the URL hash. */
 function useDayRoute(): {
   selectedDay: string | null;
+  selectedUser: string | null;
   timeZone: string;
   setSelectedDay: (day: string | null) => void;
+  setSelectedUser: (user: string | null) => void;
   setTimeZone: (timeZone: string) => void;
 } {
   const defaultTimeZone = useMemo(() => defaultAnalysisTimeZone(), []);
@@ -49,9 +54,15 @@ function useDayRoute(): {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [defaultTimeZone]);
 
-  const updateHash = (day: string | null, timeZone: string) => {
-    if (day) {
-      const params = new URLSearchParams({ day, timezone: timeZone });
+  const updateHash = (
+    day: string | null,
+    user: string | null,
+    timeZone: string,
+  ) => {
+    if (day || user) {
+      const params = new URLSearchParams({ timezone: timeZone });
+      if (day) params.set("day", day);
+      if (user) params.set("user", user);
       window.location.hash = params.toString();
     } else if (window.location.hash) {
       window.history.pushState(
@@ -60,16 +71,18 @@ function useDayRoute(): {
         window.location.pathname + window.location.search,
       );
     }
-    setRoute({ day, timeZone });
+    setRoute({ day, user, timeZone });
   };
 
   return {
     selectedDay: route.day,
+    selectedUser: route.user,
     timeZone: route.timeZone,
-    setSelectedDay: (day) => updateHash(day, route.timeZone),
+    setSelectedDay: (day) => updateHash(day, route.user, route.timeZone),
+    setSelectedUser: (user) => updateHash(route.day, user, route.timeZone),
     setTimeZone: (timeZone) => {
       if (!isValidTimeZone(timeZone)) return;
-      updateHash(route.day, timeZone);
+      updateHash(route.day, route.user, timeZone);
     },
   };
 }
@@ -78,7 +91,14 @@ function App() {
   const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(null);
   const [includeNoCharge, setIncludeNoCharge] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { selectedDay, timeZone, setSelectedDay, setTimeZone } = useDayRoute();
+  const {
+    selectedDay,
+    selectedUser,
+    timeZone,
+    setSelectedDay,
+    setSelectedUser,
+    setTimeZone,
+  } = useDayRoute();
 
   const onCsvText = (text: string) => {
     try {
@@ -99,7 +119,14 @@ function App() {
     () => (allEvents ? billable(allEvents) : null),
     [allEvents],
   );
-  const events = includeNoCharge ? allEvents : billableEvents;
+  const baseEvents = includeNoCharge ? allEvents : billableEvents;
+  const events = useMemo(
+    () =>
+      baseEvents && selectedUser
+        ? baseEvents.filter((e) => e.user === selectedUser)
+        : baseEvents,
+    [baseEvents, selectedUser],
+  );
   const noChargeCount =
     allEvents && billableEvents ? allEvents.length - billableEvents.length : 0;
   const eventLabel = includeNoCharge ? "イベント" : "課金イベント";
@@ -130,6 +157,16 @@ function App() {
               />
               No Chargeを含める
             </label>
+            {selectedUser && (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setSelectedUser(null)}
+                title="ユーザーフィルタを解除"
+              >
+                User: {selectedUser} ×
+              </button>
+            )}
             <label className="timezone-select">
               <span>Time Zone</span>
               <select
@@ -154,6 +191,7 @@ function App() {
               className="reload-button"
               onClick={() => {
                 setSelectedDay(null);
+                setSelectedUser(null);
                 setIncludeNoCharge(false);
                 setAllEvents(null);
                 setError(null);
@@ -173,12 +211,14 @@ function App() {
             eventLabel={eventLabel}
             onBack={() => setSelectedDay(null)}
             onSelectDay={setSelectedDay}
+            onSelectUser={setSelectedUser}
           />
         ) : (
           <Overview
             events={events}
             timeZone={timeZone}
             onSelectDay={setSelectedDay}
+            onSelectUser={setSelectedUser}
           />
         )
       ) : (

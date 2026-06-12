@@ -37,6 +37,7 @@ interface Props {
   eventLabel: string;
   onBack: () => void;
   onSelectDay: (day: string) => void;
+  onSelectUser: (user: string) => void;
 }
 
 function DaySummaryCards({
@@ -151,11 +152,20 @@ function ModelPie({ dayEvents }: { dayEvents: UsageEvent[] }) {
   );
 }
 
-function UserChart({ dayEvents }: { dayEvents: UsageEvent[] }) {
+function UserChart({
+  dayEvents,
+  onSelectUser,
+}: {
+  dayEvents: UsageEvent[];
+  onSelectUser: (user: string) => void;
+}) {
   const data = useMemo(() => byUser(dayEvents).slice(0, 10), [dayEvents]);
   return (
     <div className="panel">
-      <h3>ユーザー別コスト (Top 10)</h3>
+      <h3>
+        ユーザー別コスト (Top 10)
+        <span className="hint">バーをクリックでユーザーに絞り込み</span>
+      </h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data} layout="vertical">
           <CartesianGrid stroke="#21262d" horizontal={false} />
@@ -176,7 +186,17 @@ function UserChart({ dayEvents }: { dayEvents: UsageEvent[] }) {
             contentStyle={tooltipStyle}
             formatter={(value) => formatUsd(Number(value))}
           />
-          <Bar dataKey="cost" name="Cost" fill="#3fb950" radius={[0, 4, 4, 0]} />
+          <Bar
+            dataKey="cost"
+            name="Cost"
+            fill="#3fb950"
+            radius={[0, 4, 4, 0]}
+            cursor="pointer"
+            onClick={(payload) => {
+              const user = (payload as { key?: string } | undefined)?.key;
+              if (user) onSelectUser(user);
+            }}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -282,6 +302,7 @@ export function DayView({
   eventLabel,
   onBack,
   onSelectDay,
+  onSelectUser,
 }: Props) {
   const days = useMemo(
     () => byDay(events, timeZone).map((d) => d.key),
@@ -352,7 +373,7 @@ export function DayView({
           <div className="grid">
             <HourlyChart dayEvents={dayEvents} timeZone={timeZone} />
             <ModelPie dayEvents={dayEvents} />
-            <UserChart dayEvents={dayEvents} />
+            <UserChart dayEvents={dayEvents} onSelectUser={onSelectUser} />
             <KindBreakdown dayEvents={dayEvents} />
             <DayEventsTable dayEvents={dayEvents} timeZone={timeZone} />
           </div>

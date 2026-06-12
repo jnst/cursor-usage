@@ -21,7 +21,7 @@ Starts a local server and opens your browser. Drag & drop a CSV exported from Cu
 
 No Charge events are excluded by default. Use the "No Chargeを含める" toggle when you explicitly want to include them in the analysis.
 
-Click any bar in the daily cost chart to drill into that day (hourly breakdown, per-model / per-user / per-kind costs, and every event of the day). The selected day and analysis time zone are reflected in the URL hash (`#day=YYYY-MM-DD&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV; use "← 全体に戻る" or the prev/next-day buttons to move around.
+Click any bar in the daily cost chart to drill into that day (hourly breakdown, per-model / per-user / per-kind costs, and every event of the day). Click a user bar to filter the current analysis to that User. The selected day, user, and analysis time zone are reflected in the URL hash (`#day=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV; use "← 全体に戻る", the prev/next-day buttons, or the User chip to move around.
 
 The default port is 4321; if it is already in use, a free port is picked automatically. When `--port` is specified explicitly, that port is used as-is.
 

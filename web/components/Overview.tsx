@@ -176,11 +176,22 @@ function ModelPie({ events }: { events: UsageEvent[] }) {
   );
 }
 
-function UserChart({ events }: { events: UsageEvent[] }) {
+function UserChart({
+  events,
+  onSelectUser,
+}: {
+  events: UsageEvent[];
+  onSelectUser?: (user: string) => void;
+}) {
   const data = useMemo(() => byUser(events).slice(0, 10), [events]);
   return (
     <div className="panel">
-      <h3>ユーザー別コスト (Top 10)</h3>
+      <h3>
+        ユーザー別コスト (Top 10)
+        {onSelectUser && (
+          <span className="hint">バーをクリックでユーザーに絞り込み</span>
+        )}
+      </h3>
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart data={data} layout="vertical">
           <CartesianGrid stroke="#21262d" horizontal={false} />
@@ -201,7 +212,17 @@ function UserChart({ events }: { events: UsageEvent[] }) {
             contentStyle={tooltipStyle}
             formatter={(value) => formatUsd(Number(value))}
           />
-          <Bar dataKey="cost" name="Cost" fill="#58a6ff" radius={[0, 4, 4, 0]} />
+          <Bar
+            dataKey="cost"
+            name="Cost"
+            fill="#58a6ff"
+            radius={[0, 4, 4, 0]}
+            cursor={onSelectUser ? "pointer" : undefined}
+            onClick={(payload) => {
+              const user = (payload as { key?: string } | undefined)?.key;
+              if (user) onSelectUser?.(user);
+            }}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -263,10 +284,12 @@ export function Overview({
   events,
   timeZone,
   onSelectDay,
+  onSelectUser,
 }: {
   events: UsageEvent[];
   timeZone: string;
   onSelectDay?: (day: string) => void;
+  onSelectUser?: (user: string) => void;
 }) {
   return (
     <>
@@ -278,7 +301,7 @@ export function Overview({
           onSelectDay={onSelectDay}
         />
         <ModelPie events={events} />
-        <UserChart events={events} />
+        <UserChart events={events} onSelectUser={onSelectUser} />
         <TopEventsTable events={events} timeZone={timeZone} />
       </div>
     </>
