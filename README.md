@@ -53,14 +53,14 @@ By Model
 
 Options:
 
-| Option | Description |
-| --- | --- |
-| `--by <day\|user\|model>` | Show a single breakdown axis |
-| `--day <YYYY-MM-DD>` | Drill into a single day (hourly, model, user, kind, top events) |
-| `--user <identifier>` | Filter analysis to a single User |
-| `--timezone <iana-tz>` | Group days and hours in a specific analysis time zone |
-| `--json` | Output aggregated stats as JSON (pipe to jq etc.) |
-| `--include-no-charge` | Include "Errored, No Charge" events |
+| Option                    | Description                                                     |
+| ------------------------- | --------------------------------------------------------------- |
+| `--by <day\|user\|model>` | Show a single breakdown axis                                    |
+| `--day <YYYY-MM-DD>`      | Drill into a single day (hourly, model, user, kind, top events) |
+| `--user <identifier>`     | Filter analysis to a single User                                |
+| `--timezone <iana-tz>`    | Group days and hours in a specific analysis time zone           |
+| `--json`                  | Output aggregated stats as JSON (pipe to jq etc.)               |
+| `--include-no-charge`     | Include "Errored, No Charge" events                             |
 
 ```bash
 # Extract key numbers

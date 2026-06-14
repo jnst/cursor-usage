@@ -1,8 +1,9 @@
+import type { AddressInfo } from "node:net";
+
 import { spawn } from "node:child_process";
 import { createReadStream, existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -64,12 +65,8 @@ export function serve(options: ServeOptions): void {
   const webRoot = findWebRoot();
 
   const server: Server = createServer(async (req, res) => {
-    const pathname = decodeURIComponent(
-      new URL(req.url ?? "/", "http://localhost").pathname,
-    );
-    const filePath = normalize(
-      join(webRoot, pathname === "/" ? "/index.html" : pathname),
-    );
+    const pathname = decodeURIComponent(new URL(req.url ?? "/", "http://localhost").pathname);
+    const filePath = normalize(join(webRoot, pathname === "/" ? "/index.html" : pathname));
     if (!filePath.startsWith(webRoot)) {
       res.writeHead(403);
       res.end("Forbidden");
@@ -79,8 +76,7 @@ export function serve(options: ServeOptions): void {
       const info = await stat(filePath);
       if (!info.isFile()) throw new Error("not a file");
       res.writeHead(200, {
-        "Content-Type":
-          MIME_TYPES[extname(filePath)] ?? "application/octet-stream",
+        "Content-Type": MIME_TYPES[extname(filePath)] ?? "application/octet-stream",
         "Content-Length": info.size,
       });
       createReadStream(filePath).pipe(res);
@@ -94,9 +90,7 @@ export function serve(options: ServeOptions): void {
     const { port } = server.address() as AddressInfo;
     const url = `http://localhost:${port}`;
     console.log(`cursor-usage dashboard running at ${url}`);
-    console.log(
-      "Drop a Cursor usage-events CSV onto the page. Ctrl+C to stop.",
-    );
+    console.log("Drop a Cursor usage-events CSV onto the page. Ctrl+C to stop.");
     if (options.open) openBrowser(url);
   };
 

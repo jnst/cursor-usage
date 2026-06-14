@@ -1,4 +1,7 @@
+import type { UsageEvent } from "../src/core/types.ts";
+
 import { describe, expect, test } from "bun:test";
+
 import {
   billable,
   byDay,
@@ -13,7 +16,6 @@ import {
   summarize,
   topEvents,
 } from "../src/core/aggregate.ts";
-import type { UsageEvent } from "../src/core/types.ts";
 
 function event(overrides: Partial<UsageEvent>): UsageEvent {
   return {
@@ -127,9 +129,7 @@ describe("buckets", () => {
   test("onDay filters to a single UTC day", () => {
     const day = onDay(b, "2026-06-05");
     expect(day).toHaveLength(2);
-    expect(day.every((e) => e.date.toISOString().startsWith("2026-06-05"))).toBe(
-      true,
-    );
+    expect(day.every((e) => e.date.toISOString().startsWith("2026-06-05"))).toBe(true);
   });
 
   test("byHour buckets by UTC hour, chronological", () => {

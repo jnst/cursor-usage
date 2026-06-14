@@ -1,3 +1,5 @@
+import type { UsageEvent } from "../../src/core/types.ts";
+
 import { useMemo } from "react";
 import {
   Bar,
@@ -13,31 +15,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  byDayAndModel,
-  byModel,
-  byUser,
-  summarize,
-  topEvents,
-} from "../../src/core/aggregate.ts";
-import type { UsageEvent } from "../../src/core/types.ts";
-import {
-  COLORS,
-  formatDateTime,
-  formatTokens,
-  formatUsd,
-  tooltipStyle,
-} from "./shared.ts";
+
+import { byDayAndModel, byModel, byUser, summarize, topEvents } from "../../src/core/aggregate.ts";
+import { COLORS, formatDateTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
 
 export { formatTokens, formatUsd };
 
-function SummaryCards({
-  events,
-  timeZone,
-}: {
-  events: UsageEvent[];
-  timeZone: string;
-}) {
+function SummaryCards({ events, timeZone }: { events: UsageEvent[]; timeZone: string }) {
   const s = useMemo(() => summarize(events, timeZone), [events, timeZone]);
   const cards = [
     { label: "Total Cost", value: formatUsd(s.totalCost), sub: `${s.firstDay} – ${s.lastDay}` },
@@ -74,10 +58,7 @@ function DailyChart({
   timeZone: string;
   onSelectDay?: (day: string) => void;
 }) {
-  const models = useMemo(
-    () => byModel(events).map((m) => m.key),
-    [events],
-  );
+  const models = useMemo(() => byModel(events).map((m) => m.key), [events]);
   const data = useMemo(() => {
     let cumulative = 0;
     return byDayAndModel(events, timeZone).map((d) => {
@@ -101,9 +82,7 @@ function DailyChart({
     <div className="panel wide">
       <h3>
         日別コスト推移(モデル別積み上げ + 累積)
-        {onSelectDay && (
-          <span className="hint">バーをクリックでその日の詳細へ</span>
-        )}
+        {onSelectDay && <span className="hint">バーをクリックでその日の詳細へ</span>}
       </h3>
       <ResponsiveContainer width="100%" height={320}>
         <ComposedChart data={data}>
@@ -114,9 +93,7 @@ function DailyChart({
             domain={[0, scale.maxDailyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) =>
-              formatUsd(Number(value), { trimZeroCents: true })
-            }
+            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
           />
           <YAxis
             yAxisId="cumulative"
@@ -124,14 +101,9 @@ function DailyChart({
             orientation="right"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) =>
-              formatUsd(Number(value), { trimZeroCents: true })
-            }
+            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
           />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            formatter={(value) => formatUsd(Number(value))}
-          />
+          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {models.map((model, i) => (
             <Bar
@@ -141,9 +113,7 @@ function DailyChart({
               stackId="cost"
               fill={COLORS[i % COLORS.length]}
               cursor={onSelectDay ? "pointer" : undefined}
-              onClick={(payload) =>
-                handleClick(payload as { day?: string } | undefined)
-              }
+              onClick={(payload) => handleClick(payload as { day?: string } | undefined)}
             />
           ))}
           <Line
@@ -180,10 +150,7 @@ function ModelPie({ events }: { events: UsageEvent[] }) {
               <Cell key={entry.key} fill={COLORS[i % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={tooltipStyle}
-            formatter={(value) => formatUsd(Number(value))}
-          />
+          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
         </PieChart>
       </ResponsiveContainer>
@@ -206,9 +173,7 @@ function UserChart({
     <div className="panel">
       <h3>
         ユーザー別コスト (Top 10)
-        {onSelectUser && (
-          <span className="hint">バーをクリックでユーザー選択/解除</span>
-        )}
+        {onSelectUser && <span className="hint">バーをクリックでユーザー選択/解除</span>}
       </h3>
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart data={data} layout="vertical">
@@ -217,21 +182,10 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) =>
-              formatUsd(Number(value), { trimZeroCents: true })
-            }
+            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
           />
-          <YAxis
-            type="category"
-            dataKey="key"
-            stroke="#8b949e"
-            fontSize={12}
-            width={160}
-          />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            formatter={(value) => formatUsd(Number(value))}
-          />
+          <YAxis type="category" dataKey="key" stroke="#8b949e" fontSize={12} width={160} />
+          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
           <Bar
             dataKey="cost"
             name="Cost"
@@ -243,11 +197,7 @@ function UserChart({
             }}
           >
             {data.map((entry) => (
-              <Cell
-                key={entry.key}
-                fill="#58a6ff"
-                opacity={isSelected(entry.key) ? 1 : 0.25}
-              />
+              <Cell key={entry.key} fill="#58a6ff" opacity={isSelected(entry.key) ? 1 : 0.25} />
             ))}
           </Bar>
         </ComposedChart>
@@ -256,13 +206,7 @@ function UserChart({
   );
 }
 
-function TopEventsTable({
-  events,
-  timeZone,
-}: {
-  events: UsageEvent[];
-  timeZone: string;
-}) {
+function TopEventsTable({ events, timeZone }: { events: UsageEvent[]; timeZone: string }) {
   const top = useMemo(() => topEvents(events, 20), [events]);
   return (
     <div className="panel wide">
@@ -340,11 +284,7 @@ export function Overview({
           onSelectDay={onSelectDay}
         />
         <ModelPie events={events} />
-        <UserChart
-          events={userEvents}
-          selectedUser={selectedUser}
-          onSelectUser={onSelectUser}
-        />
+        <UserChart events={userEvents} selectedUser={selectedUser} onSelectUser={onSelectUser} />
         <TopEventsTable events={events} timeZone={timeZone} />
       </div>
     </>

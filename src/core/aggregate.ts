@@ -1,7 +1,7 @@
 import {
-  NO_CHARGE_KIND,
   type BucketStat,
   type DayModelStat,
+  NO_CHARGE_KIND,
   type Summary,
   type UsageEvent,
 } from "./types.ts";
@@ -33,11 +33,7 @@ export function isValidTimeZone(timeZone: string): boolean {
   }
 }
 
-function timePart(
-  date: Date,
-  timeZone: string,
-  part: "year" | "month" | "day" | "hour",
-): string {
+function timePart(date: Date, timeZone: string, part: "year" | "month" | "day" | "hour"): string {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone,
     year: "numeric",
@@ -79,11 +75,7 @@ export function hourOf(date: Date, timeZone = UTC_TIME_ZONE): string {
  * The `day` argument is interpreted in that time zone. It is not a UTC date
  * unless the selected time zone is UTC.
  */
-export function onDay(
-  events: UsageEvent[],
-  day: string,
-  timeZone = UTC_TIME_ZONE,
-): UsageEvent[] {
+export function onDay(events: UsageEvent[], day: string, timeZone = UTC_TIME_ZONE): UsageEvent[] {
   return events.filter((e) => dayOf(e.date, timeZone) === day);
 }
 
@@ -103,10 +95,7 @@ export function billable(events: UsageEvent[]): UsageEvent[] {
  * Date Range and Active Day count are derived from Billable Events already
  * selected by the caller, grouped in the selected Analysis Time Zone.
  */
-export function summarize(
-  events: UsageEvent[],
-  timeZone = UTC_TIME_ZONE,
-): Summary {
+export function summarize(events: UsageEvent[], timeZone = UTC_TIME_ZONE): Summary {
   let totalCost = 0;
   let totalTokens = 0;
   let maxModeCount = 0;
@@ -138,10 +127,7 @@ export function summarize(
   };
 }
 
-function bucketBy(
-  events: UsageEvent[],
-  keyFn: (e: UsageEvent) => string,
-): BucketStat[] {
+function bucketBy(events: UsageEvent[], keyFn: (e: UsageEvent) => string): BucketStat[] {
   const buckets = new Map<string, BucketStat>();
   for (const e of events) {
     const key = keyFn(e);
@@ -174,10 +160,7 @@ function bucketBy(
  * Returned buckets are chronological so they can be used directly for time
  * series charts and terminal output.
  */
-export function byDay(
-  events: UsageEvent[],
-  timeZone = UTC_TIME_ZONE,
-): BucketStat[] {
+export function byDay(events: UsageEvent[], timeZone = UTC_TIME_ZONE): BucketStat[] {
   return bucketBy(events, (e) => dayOf(e.date, timeZone)).sort((a, b) =>
     a.key.localeCompare(b.key),
   );
@@ -219,10 +202,7 @@ export function byKind(events: UsageEvent[]): BucketStat[] {
  * Only hours that contain activity are returned. Callers that need a complete
  * 24-hour chart should fill missing hours explicitly.
  */
-export function byHour(
-  events: UsageEvent[],
-  timeZone = UTC_TIME_ZONE,
-): BucketStat[] {
+export function byHour(events: UsageEvent[], timeZone = UTC_TIME_ZONE): BucketStat[] {
   return bucketBy(events, (e) => hourOf(e.date, timeZone)).sort((a, b) =>
     a.key.localeCompare(b.key),
   );
@@ -234,10 +214,7 @@ export function byHour(
  * Days are derived in the selected Analysis Time Zone, and model costs are kept
  * separate so charts can show both daily totals and model composition.
  */
-export function byDayAndModel(
-  events: UsageEvent[],
-  timeZone = UTC_TIME_ZONE,
-): DayModelStat[] {
+export function byDayAndModel(events: UsageEvent[], timeZone = UTC_TIME_ZONE): DayModelStat[] {
   const days = new Map<string, DayModelStat>();
   for (const e of events) {
     const day = dayOf(e.date, timeZone);

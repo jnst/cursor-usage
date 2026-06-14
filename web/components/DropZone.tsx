@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent } from "react";
+import { type DragEvent, useRef, useState } from "react";
 
 interface Props {
   onCsvText: (text: string) => void;

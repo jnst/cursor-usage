@@ -49,11 +49,7 @@ function parseArgs(argv: string[]): Options {
   };
 }
 
-function run(
-  command: string,
-  args: string[],
-  options: { mutate?: boolean } = {},
-) {
+function run(command: string, args: string[], options: { mutate?: boolean } = {}) {
   const display = [command, ...args].join(" ");
   console.log(`\n$ ${display}`);
 
@@ -82,9 +78,7 @@ function status(command: string, args: string[]): number {
 function ensureCleanWorkingTree() {
   const status = output("git", ["status", "--porcelain"]);
   if (status) {
-    console.error(
-      "Working tree is not clean. Commit or stash changes before releasing.",
-    );
+    console.error("Working tree is not clean. Commit or stash changes before releasing.");
     console.error(status);
     process.exit(1);
   }
@@ -158,6 +152,4 @@ if (githubReleaseExists(tag)) {
   run("gh", args, { mutate: true });
 }
 
-console.log(
-  `\nrelease ${tag} complete${release.draft ? " (GitHub Release is a draft)" : ""}`,
-);
+console.log(`\nrelease ${tag} complete${release.draft ? " (GitHub Release is a draft)" : ""}`);

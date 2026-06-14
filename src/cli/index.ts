@@ -1,20 +1,11 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import {
-  billable,
-  defaultAnalysisTimeZone,
-  isValidTimeZone,
-} from "../core/aggregate.ts";
+
+import { billable, defaultAnalysisTimeZone, isValidTimeZone } from "../core/aggregate.ts";
 import { parseUsageCsv } from "../core/parse.ts";
 import { serve } from "../server/index.ts";
-import {
-  dayViewJson,
-  renderDayView,
-  renderStats,
-  statsJson,
-  type StatsAxis,
-} from "./render.ts";
+import { dayViewJson, renderDayView, renderStats, type StatsAxis, statsJson } from "./render.ts";
 
 const HELP = `cursor-usage — visualize Cursor usage-events CSV
 
@@ -103,9 +94,7 @@ async function runStats(args: string[]): Promise<void> {
   }
 
   console.log(
-    values.json
-      ? statsJson(events, timeZone, user)
-      : renderStats(events, axis, timeZone, user),
+    values.json ? statsJson(events, timeZone, user) : renderStats(events, axis, timeZone, user),
   );
 }
 

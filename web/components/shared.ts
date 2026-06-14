@@ -28,10 +28,7 @@ export const COLORS = [
  * `trimZeroCents` so labels like `$180.00` become `$180` while non-zero cents
  * remain visible.
  */
-export function formatUsd(
-  value: number,
-  options: { trimZeroCents?: boolean } = {},
-): string {
+export function formatUsd(value: number, options: { trimZeroCents?: boolean } = {}): string {
   const fixed = value.toFixed(2);
   if (options.trimZeroCents && fixed.endsWith(".00")) {
     return `$${fixed.slice(0, -3)}`;
@@ -82,10 +79,9 @@ export function formatDateTime(date: Date, timeZone: string): string {
     dateTimePart(date, timeZone, "month"),
     dateTimePart(date, timeZone, "day"),
   ].join("-");
-  const time = [
-    dateTimePart(date, timeZone, "hour"),
-    dateTimePart(date, timeZone, "minute"),
-  ].join(":");
+  const time = [dateTimePart(date, timeZone, "hour"), dateTimePart(date, timeZone, "minute")].join(
+    ":",
+  );
   return `${day} ${time}`;
 }
 

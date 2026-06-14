@@ -1,3 +1,5 @@
+import type { UsageEvent } from "../../src/core/types.ts";
+
 import { useMemo } from "react";
 import {
   Bar,
@@ -12,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
 import {
   byDay,
   byHour,
@@ -21,14 +24,7 @@ import {
   onDay,
   summarize,
 } from "../../src/core/aggregate.ts";
-import type { UsageEvent } from "../../src/core/types.ts";
-import {
-  COLORS,
-  formatTime,
-  formatTokens,
-  formatUsd,
-  tooltipStyle,
-} from "./shared.ts";
+import { COLORS, formatTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
 
 interface Props {
   events: UsageEvent[];
@@ -58,7 +54,11 @@ function DaySummaryCards({
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const cards = [
     { label: "Cost", value: formatUsd(s.totalCost), sub: `期間全体の ${share}%` },
-    { label: "Events", value: String(s.eventCount), sub: `Max Mode ${Math.round(s.maxModeRatio * 100)}%` },
+    {
+      label: "Events",
+      value: String(s.eventCount),
+      sub: `Max Mode ${Math.round(s.maxModeRatio * 100)}%`,
+    },
     { label: "Tokens", value: formatTokens(s.totalTokens), sub: "this day" },
     { label: "Users / Models", value: `${s.userCount} / ${s.modelCount}`, sub: "active this day" },
     { label: "コスト順位", value: `${rank} / ${dayCount}`, sub: "日別ランキング" },
@@ -86,9 +86,7 @@ function HourlyChart({
   timeZone: string;
 }) {
   const data = useMemo(() => {
-    const byHourMap = new Map(
-      byHour(dayEvents, timeZone).map((b) => [b.key, b]),
-    );
+    const byHourMap = new Map(byHour(dayEvents, timeZone).map((b) => [b.key, b]));
     return Array.from({ length: 24 }, (_, h) => {
       const key = String(h).padStart(2, "0");
       const b = byHourMap.get(key);
@@ -115,9 +113,7 @@ function HourlyChart({
             domain={[0, maxHourlyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) =>
-              formatUsd(Number(value), { trimZeroCents: true })
-            }
+            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -151,10 +147,7 @@ function ModelPie({ dayEvents }: { dayEvents: UsageEvent[] }) {
               <Cell key={entry.key} fill={COLORS[i % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={tooltipStyle}
-            formatter={(value) => formatUsd(Number(value))}
-          />
+          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
         </PieChart>
       </ResponsiveContainer>
@@ -186,21 +179,10 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) =>
-              formatUsd(Number(value), { trimZeroCents: true })
-            }
+            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
           />
-          <YAxis
-            type="category"
-            dataKey="key"
-            stroke="#8b949e"
-            fontSize={12}
-            width={160}
-          />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            formatter={(value) => formatUsd(Number(value))}
-          />
+          <YAxis type="category" dataKey="key" stroke="#8b949e" fontSize={12} width={160} />
+          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
           <Bar
             dataKey="cost"
             name="Cost"
@@ -212,11 +194,7 @@ function UserChart({
             }}
           >
             {data.map((entry) => (
-              <Cell
-                key={entry.key}
-                fill="#3fb950"
-                opacity={isSelected(entry.key) ? 1 : 0.25}
-              />
+              <Cell key={entry.key} fill="#3fb950" opacity={isSelected(entry.key) ? 1 : 0.25} />
             ))}
           </Bar>
         </ComposedChart>
@@ -263,17 +241,8 @@ function KindBreakdown({ dayEvents }: { dayEvents: UsageEvent[] }) {
   );
 }
 
-function DayEventsTable({
-  dayEvents,
-  timeZone,
-}: {
-  dayEvents: UsageEvent[];
-  timeZone: string;
-}) {
-  const rows = useMemo(
-    () => [...dayEvents].sort((a, b) => b.cost - a.cost),
-    [dayEvents],
-  );
+function DayEventsTable({ dayEvents, timeZone }: { dayEvents: UsageEvent[]; timeZone: string }) {
+  const rows = useMemo(() => [...dayEvents].sort((a, b) => b.cost - a.cost), [dayEvents]);
   return (
     <div className="panel wide">
       <h3>この日のイベント ({rows.length}件・コスト降順)</h3>
@@ -334,22 +303,13 @@ export function DayView({
   onSelectDay,
   onSelectUser,
 }: Props) {
-  const days = useMemo(
-    () => byDay(events, timeZone).map((d) => d.key),
-    [events, timeZone],
-  );
-  const dayEvents = useMemo(
-    () => onDay(events, day, timeZone),
-    [events, day, timeZone],
-  );
+  const days = useMemo(() => byDay(events, timeZone).map((d) => d.key), [events, timeZone]);
+  const dayEvents = useMemo(() => onDay(events, day, timeZone), [events, day, timeZone]);
   const dayUserEvents = useMemo(
     () => onDay(userEvents, day, timeZone),
     [userEvents, day, timeZone],
   );
-  const totalCost = useMemo(
-    () => events.reduce((sum, e) => sum + e.cost, 0),
-    [events],
-  );
+  const totalCost = useMemo(() => events.reduce((sum, e) => sum + e.cost, 0), [events]);
   const costRank = useMemo(() => {
     const sorted = byDay(events, timeZone).sort((a, b) => b.cost - a.cost);
     return sorted.findIndex((d) => d.key === day) + 1;
@@ -403,11 +363,7 @@ export function DayView({
             dayCount={days.length}
           />
           <div className="grid">
-            <HourlyChart
-              dayEvents={dayEvents}
-              scaleDayEvents={dayUserEvents}
-              timeZone={timeZone}
-            />
+            <HourlyChart dayEvents={dayEvents} scaleDayEvents={dayUserEvents} timeZone={timeZone} />
             <ModelPie dayEvents={dayEvents} />
             <UserChart
               dayEvents={dayUserEvents}

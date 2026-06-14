@@ -1,3 +1,5 @@
+import type { BucketStat, Summary, UsageEvent } from "../core/types.ts";
+
 import {
   byDay,
   byHour,
@@ -8,12 +10,10 @@ import {
   summarize,
   topEvents,
 } from "../core/aggregate.ts";
-import type { BucketStat, Summary, UsageEvent } from "../core/types.ts";
 
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
 
-const ansi = (code: string) => (s: string) =>
-  useColor ? `\x1b[${code}m${s}\x1b[0m` : s;
+const ansi = (code: string) => (s: string) => (useColor ? `\x1b[${code}m${s}\x1b[0m` : s);
 
 export const bold = ansi("1");
 export const dim = ansi("2");
@@ -95,9 +95,7 @@ function renderSummaryBlock(
   user: string | undefined,
 ): string[] {
   const period =
-    summary.firstDay && summary.lastDay
-      ? `${summary.firstDay} – ${summary.lastDay}`
-      : "no data";
+    summary.firstDay && summary.lastDay ? `${summary.firstDay} – ${summary.lastDay}` : "no data";
   const scope = user ? `${timeZone}, user ${user}` : timeZone;
   const label = (s: string) => dim(padEndDisplay(s, 14));
   const value = (s: string) => bold(padEndDisplay(s, 12));
@@ -183,11 +181,7 @@ export function renderStats(
  * Unlike terminal rendering, this keeps numeric values as numbers and includes
  * the active view filters so downstream tools can interpret the result.
  */
-export function statsJson(
-  events: UsageEvent[],
-  timeZone: string,
-  user?: string,
-): string {
+export function statsJson(events: UsageEvent[], timeZone: string, user?: string): string {
   return JSON.stringify(
     {
       timeZone,
@@ -224,9 +218,7 @@ function renderDaySummaryBlock(
 }
 
 function renderHourlyChart(dayEvents: UsageEvent[], timeZone: string): string[] {
-  const byHourMap = new Map(
-    byHour(dayEvents, timeZone).map((b) => [b.key, b]),
-  );
+  const byHourMap = new Map(byHour(dayEvents, timeZone).map((b) => [b.key, b]));
   const maxCost = Math.max(...[...byHourMap.values()].map((b) => b.cost), 0);
   const lines = [bold(`By Hour (${timeZone})`)];
   for (let h = 0; h < 24; h++) {
@@ -242,11 +234,7 @@ function renderHourlyChart(dayEvents: UsageEvent[], timeZone: string): string[] 
   return lines;
 }
 
-function renderDayEvents(
-  dayEvents: UsageEvent[],
-  limit: number,
-  timeZone: string,
-): string[] {
+function renderDayEvents(dayEvents: UsageEvent[], limit: number, timeZone: string): string[] {
   const top = topEvents(dayEvents, limit);
   const lines = [bold(`Top Events (${top.length} of ${dayEvents.length})`)];
   const userWidth = Math.max(...top.map((e) => e.user.length), 4);
@@ -277,16 +265,12 @@ export function renderDayView(
   if (dayEvents.length === 0) {
     const known = days.map((d) => d.key);
     const hint =
-      known.length > 0
-        ? `\nAvailable days: ${known[0]} – ${known[known.length - 1]}`
-        : "";
+      known.length > 0 ? `\nAvailable days: ${known[0]} – ${known[known.length - 1]}` : "";
     return `No billable events on ${day}.${hint}\n`;
   }
 
   const totalCost = events.reduce((sum, e) => sum + e.cost, 0);
-  const rank =
-    [...days].sort((a, b) => b.cost - a.cost).findIndex((d) => d.key === day) +
-    1;
+  const rank = [...days].sort((a, b) => b.cost - a.cost).findIndex((d) => d.key === day) + 1;
 
   const sections: string[][] = [
     renderDaySummaryBlock(day, dayEvents, timeZone, totalCost, rank, days.length),

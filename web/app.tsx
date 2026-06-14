@@ -1,12 +1,10 @@
+import type { UsageEvent } from "../src/core/types.ts";
+
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import {
-  billable,
-  defaultAnalysisTimeZone,
-  isValidTimeZone,
-} from "../src/core/aggregate.ts";
+
+import { billable, defaultAnalysisTimeZone, isValidTimeZone } from "../src/core/aggregate.ts";
 import { parseUsageCsv } from "../src/core/parse.ts";
-import type { UsageEvent } from "../src/core/types.ts";
 import { DayView } from "./components/DayView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
 import { Overview } from "./components/Overview.tsx";
@@ -46,22 +44,14 @@ function useDayRoute(): {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [defaultTimeZone]);
 
-  const updateHash = (
-    day: string | null,
-    user: string | null,
-    timeZone: string,
-  ) => {
+  const updateHash = (day: string | null, user: string | null, timeZone: string) => {
     if (day || user) {
       const params = new URLSearchParams({ timezone: timeZone });
       if (day) params.set("day", day);
       if (user) params.set("user", user);
       window.location.hash = params.toString();
     } else if (window.location.hash) {
-      window.history.pushState(
-        null,
-        "",
-        window.location.pathname + window.location.search,
-      );
+      window.history.pushState(null, "", window.location.pathname + window.location.search);
     }
     setRoute({ day, user, timeZone });
   };
@@ -78,13 +68,7 @@ function useDayRoute(): {
 function App() {
   const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const {
-    selectedDay,
-    selectedUser,
-    timeZone,
-    setSelectedDay,
-    setSelectedUser,
-  } = useDayRoute();
+  const { selectedDay, selectedUser, timeZone, setSelectedDay, setSelectedUser } = useDayRoute();
 
   const onCsvText = (text: string) => {
     try {
@@ -100,20 +84,14 @@ function App() {
     }
   };
 
-  const billableEvents = useMemo(
-    () => (allEvents ? billable(allEvents) : null),
-    [allEvents],
-  );
+  const billableEvents = useMemo(() => (allEvents ? billable(allEvents) : null), [allEvents]);
   const baseEvents = billableEvents;
   const events = useMemo(
     () =>
-      baseEvents && selectedUser
-        ? baseEvents.filter((e) => e.user === selectedUser)
-        : baseEvents,
+      baseEvents && selectedUser ? baseEvents.filter((e) => e.user === selectedUser) : baseEvents,
     [baseEvents, selectedUser],
   );
-  const noChargeCount =
-    allEvents && billableEvents ? allEvents.length - billableEvents.length : 0;
+  const noChargeCount = allEvents && billableEvents ? allEvents.length - billableEvents.length : 0;
 
   return (
     <div className="app">
@@ -128,8 +106,7 @@ function App() {
           <>
             <span className="meta">
               {events.length} 課金イベント
-              {noChargeCount > 0 &&
-                ` (No Charge ${noChargeCount}件を除外)`}
+              {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
             </span>
             <button
               type="button"
@@ -154,9 +131,7 @@ function App() {
             timeZone={timeZone}
             onBack={() => setSelectedDay(null)}
             onSelectDay={setSelectedDay}
-            onSelectUser={(user) =>
-              setSelectedUser(user === selectedUser ? null : user)
-            }
+            onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
             selectedUser={selectedUser}
             userEvents={baseEvents ?? events}
           />
@@ -166,9 +141,7 @@ function App() {
             userEvents={baseEvents ?? events}
             timeZone={timeZone}
             onSelectDay={setSelectedDay}
-            onSelectUser={(user) =>
-              setSelectedUser(user === selectedUser ? null : user)
-            }
+            onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
             selectedUser={selectedUser}
           />
         )
