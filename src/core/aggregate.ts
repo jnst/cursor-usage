@@ -33,16 +33,34 @@ export function isValidTimeZone(timeZone: string): boolean {
   }
 }
 
-function timePart(date: Date, timeZone: string, part: "year" | "month" | "day" | "hour"): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
+  const cached = dateTimeFormatters.get(timeZone);
+  if (cached) return cached;
+  const formatter = new Intl.DateTimeFormat("en-GB", {
     timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     hourCycle: "h23",
-  }).formatToParts(date);
-  return parts.find((p) => p.type === part)?.value ?? "";
+  });
+  dateTimeFormatters.set(timeZone, formatter);
+  return formatter;
+}
+
+function dateTimeParts(date: Date, timeZone: string): Map<Intl.DateTimeFormatPartTypes, string> {
+  return new Map(
+    dateTimeFormatter(timeZone)
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  );
+}
+
+function timePart(date: Date, timeZone: string, part: "year" | "month" | "day" | "hour"): string {
+  const parts = dateTimeParts(date, timeZone);
+  return parts.get(part) ?? "";
 }
 
 /**
@@ -58,12 +76,12 @@ function assertStartHour(startHour: number): void {
   }
 }
 
-function localDateKey(date: Date, timeZone: string): string {
-  return [
-    timePart(date, timeZone, "year"),
-    timePart(date, timeZone, "month"),
-    timePart(date, timeZone, "day"),
-  ].join("-");
+function localDateKeyAndHour(date: Date, timeZone: string): { dateKey: string; hour: number } {
+  const parts = dateTimeParts(date, timeZone);
+  return {
+    dateKey: [parts.get("year"), parts.get("month"), parts.get("day")].join("-"),
+    hour: Number(parts.get("hour") ?? 0),
+  };
 }
 
 function dateParts(dateKey: string): { year: number; month: number; date: number } {
@@ -91,8 +109,8 @@ function addDays(dateKey: string, days: number): string {
  */
 export function dailyWindowKeyOf(date: Date, timeZone = UTC_TIME_ZONE, startHour = 0): string {
   assertStartHour(startHour);
-  const dateKey = localDateKey(date, timeZone);
-  return Number(timePart(date, timeZone, "hour")) < startHour ? addDays(dateKey, -1) : dateKey;
+  const { dateKey, hour } = localDateKeyAndHour(date, timeZone);
+  return hour < startHour ? addDays(dateKey, -1) : dateKey;
 }
 
 /**

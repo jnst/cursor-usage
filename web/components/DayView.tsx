@@ -146,7 +146,7 @@ function ModelPie({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] }) {
   const data = useMemo(() => byModel(dailyWindowEvents), [dailyWindowEvents]);
   return (
     <div className="panel">
-      <h3>モデル別コスト構成</h3>
+      <h3>モデル別コスト</h3>
       <ResponsiveContainer width="100%" height={260}>
         <PieChart>
           <Pie

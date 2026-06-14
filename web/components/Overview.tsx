@@ -113,7 +113,7 @@ function DailyChart({
   return (
     <div className="panel wide">
       <h3>
-        Daily Window コスト推移(モデル別積み上げ + 累積)
+        日別コスト推移(モデル別積み上げ + 累積)
         {onSelectDailyWindow && <span className="hint">バーをクリックで詳細へ</span>}
       </h3>
       <ResponsiveContainer width="100%" height={320}>
@@ -170,7 +170,7 @@ function ModelPie({ events }: { events: UsageEvent[] }) {
   const data = useMemo(() => byModel(events), [events]);
   return (
     <div className="panel">
-      <h3>モデル別コスト構成</h3>
+      <h3>モデル別コスト</h3>
       <ResponsiveContainer width="100%" height={280}>
         <PieChart>
           <Pie
