@@ -28,7 +28,6 @@ export function formatUsd(value: number): string {
 export function formatAxisUsd(value: number | string): string {
   const n = Number(value);
   if (!Number.isFinite(n)) return "";
-  if (Math.abs(n) >= 10) return `$${Math.round(n)}`;
   return formatUsd(Number(n.toFixed(2)));
 }
 
