@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/fix-after-edit.sh",
+        "timeout": 30,
+        "failClosed": false
+      }
+    ]
+  }
+}

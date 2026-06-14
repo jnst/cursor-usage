@@ -115,9 +115,9 @@ ensureCleanWorkingTree();
 
 run("npm", ["whoami"]);
 run("gh", ["auth", "status"]);
-run("bun", ["run", "typecheck"]);
-run("bun", ["test"]);
-run("bun", ["run", "build"]);
+run("bun", ["run", "fix"]);
+ensureCleanWorkingTree();
+run("bun", ["run", "prepush"]);
 
 let tag = headVersionTag();
 
