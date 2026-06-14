@@ -147,7 +147,7 @@ bun scripts/generate-dummy-csv.ts > dummy-usage.csv
 ### Release
 
 Release commands verify, version, publish, push commits/tags, and create a
-draft GitHub Release with generated notes:
+GitHub Release with generated notes:
 
 ```bash
 bun run release:patch
@@ -155,13 +155,10 @@ bun run release:minor
 bun run release:major
 ```
 
-GitHub Releases are drafts by default so notes can be reviewed before publish.
-Use `--publish-release` to publish the GitHub Release immediately, or
-`--dry-run` to print mutating steps without running them:
+Use `--dry-run` to print mutating steps without running them:
 
 ```bash
 bun run release:patch --dry-run
-bun run release:patch --publish-release
 ```
 
 Release commands are safe to rerun after a partial failure. The script checks

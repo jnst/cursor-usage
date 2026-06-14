@@ -6,7 +6,6 @@ const VERSION_BUMPS = new Set(["patch", "minor", "major"]);
 interface Options {
   bump: string;
   dryRun: boolean;
-  draft: boolean;
 }
 
 function usage(): never {
@@ -14,7 +13,6 @@ function usage(): never {
 
 Options:
   --dry-run              Print commands without running mutating steps
-  --publish-release      Publish the GitHub Release immediately (default: draft)
 `);
   process.exit(1);
 }
@@ -24,16 +22,11 @@ function parseArgs(argv: string[]): Options {
   if (!bump) usage();
 
   let dryRun = false;
-  let draft = true;
 
   for (let i = 0; i < flags.length; i++) {
     const flag = flags[i];
     if (flag === "--dry-run") {
       dryRun = true;
-      continue;
-    }
-    if (flag === "--publish-release") {
-      draft = false;
       continue;
     }
     usage();
@@ -45,7 +38,6 @@ function parseArgs(argv: string[]): Options {
   return {
     bump,
     dryRun,
-    draft,
   };
 }
 
@@ -148,8 +140,7 @@ if (githubReleaseExists(tag)) {
   console.log(`\nGitHub Release ${tag} already exists; skipping release create.`);
 } else {
   const args = ["release", "create", tag, "--title", tag, "--generate-notes"];
-  if (release.draft) args.push("--draft");
   run("gh", args, { mutate: true });
 }
 
-console.log(`\nrelease ${tag} complete${release.draft ? " (GitHub Release is a draft)" : ""}`);
+console.log(`\nrelease ${tag} complete`);
