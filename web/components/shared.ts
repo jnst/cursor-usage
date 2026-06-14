@@ -71,10 +71,10 @@ function dateTimePart(
  * Formats an event timestamp in the selected Analysis Time Zone.
  *
  * The input Date is an absolute timestamp; the time zone controls the calendar
- * day and clock time shown to the user.
+ * local date and clock time shown to the user.
  */
 export function formatDateTime(date: Date, timeZone: string): string {
-  const day = [
+  const localDate = [
     dateTimePart(date, timeZone, "year"),
     dateTimePart(date, timeZone, "month"),
     dateTimePart(date, timeZone, "day"),
@@ -82,14 +82,14 @@ export function formatDateTime(date: Date, timeZone: string): string {
   const time = [dateTimePart(date, timeZone, "hour"), dateTimePart(date, timeZone, "minute")].join(
     ":",
   );
-  return `${day} ${time}`;
+  return `${localDate} ${time}`;
 }
 
 /**
  * Formats only the clock time portion of an event timestamp.
  *
- * Use this inside a Day View where the Day is already visible and the relevant
- * context is the time within that Day's Analysis Time Zone.
+ * Use this inside a Daily Window detail view where the window key is already
+ * visible and the relevant context is the local clock time.
  */
 export function formatTime(date: Date, timeZone: string): string {
   return [

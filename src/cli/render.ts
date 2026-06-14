@@ -1,12 +1,13 @@
 import type { BucketStat, Summary, UsageEvent } from "../core/types.ts";
 
 import {
-  byDay,
+  byDailyWindow,
   byHour,
   byKind,
   byModel,
   byUser,
-  onDay,
+  eventsInDailyWindow,
+  orderedHours,
   summarize,
   topEvents,
 } from "../core/aggregate.ts";
@@ -93,17 +94,22 @@ function renderSummaryBlock(
   summary: Summary,
   timeZone: string,
   user: string | undefined,
+  startHour: number,
 ): string[] {
   const period =
-    summary.firstDay && summary.lastDay ? `${summary.firstDay} – ${summary.lastDay}` : "no data";
-  const scope = user ? `${timeZone}, user ${user}` : timeZone;
+    summary.firstDailyWindow && summary.lastDailyWindow
+      ? `${summary.firstDailyWindow} – ${summary.lastDailyWindow}`
+      : "no data";
+  const scope = user
+    ? `${timeZone}, start ${startHour}:00, user ${user}`
+    : `${timeZone}, start ${startHour}:00`;
   const label = (s: string) => dim(padEndDisplay(s, 14));
   const value = (s: string) => bold(padEndDisplay(s, 12));
   return [
-    `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dayCount} days, ${scope})`)}`,
+    `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dailyWindowCount} daily windows, ${scope})`)}`,
     "",
     `  ${label("Total Cost")}${value(formatUsd(summary.totalCost))}  ${label("Total Tokens")}${value(formatTokens(summary.totalTokens))}`,
-    `  ${label("Avg/Active")}${value(formatUsd(summary.avgCostPerActiveDay))}  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}`,
+    `  ${label("Avg/Active")}${value(formatUsd(summary.avgCostPerActiveDailyWindow))}  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}`,
     `  ${label("Users")}${value(String(summary.userCount))}  ${label("Models")}${value(String(summary.modelCount))}`,
   ];
 }
@@ -133,7 +139,7 @@ function renderBucketChart(
   return lines;
 }
 
-export type StatsAxis = "day" | "user" | "model";
+export type StatsAxis = "daily-window" | "user" | "model";
 
 /**
  * Renders the overview analysis for terminal display.
@@ -146,13 +152,14 @@ export function renderStats(
   axis: StatsAxis | undefined,
   timeZone: string,
   user?: string,
+  startHour = 0,
 ): string {
-  const summary = summarize(events, timeZone);
-  const sections: string[][] = [renderSummaryBlock(summary, timeZone, user)];
+  const summary = summarize(events, timeZone, startHour);
+  const sections: string[][] = [renderSummaryBlock(summary, timeZone, user, startHour)];
 
   const charts: Record<StatsAxis, () => string[]> = {
-    day: () =>
-      renderBucketChart("Daily Cost", byDay(events, timeZone), {
+    "daily-window": () =>
+      renderBucketChart("Daily Window Cost", byDailyWindow(events, timeZone, startHour), {
         totalCost: summary.totalCost,
         maxRows: 31,
       }),
@@ -169,7 +176,7 @@ export function renderStats(
   if (axis) {
     sections.push(charts[axis]());
   } else {
-    sections.push(charts.day(), charts.model(), charts.user());
+    sections.push(charts["daily-window"](), charts.model(), charts.user());
   }
 
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
@@ -181,13 +188,19 @@ export function renderStats(
  * Unlike terminal rendering, this keeps numeric values as numbers and includes
  * the active view filters so downstream tools can interpret the result.
  */
-export function statsJson(events: UsageEvent[], timeZone: string, user?: string): string {
+export function statsJson(
+  events: UsageEvent[],
+  timeZone: string,
+  user?: string,
+  startHour = 0,
+): string {
   return JSON.stringify(
     {
       timeZone,
+      startHour,
       filters: { user: user ?? null },
-      summary: summarize(events, timeZone),
-      byDay: byDay(events, timeZone),
+      summary: summarize(events, timeZone, startHour),
+      byDailyWindow: byDailyWindow(events, timeZone, startHour),
       byModel: byModel(events),
       byUser: byUser(events),
     },
@@ -196,20 +209,21 @@ export function statsJson(events: UsageEvent[], timeZone: string, user?: string)
   );
 }
 
-function renderDaySummaryBlock(
-  day: string,
-  dayEvents: UsageEvent[],
+function renderDailyWindowSummaryBlock(
+  dailyWindow: string,
+  dailyWindowEvents: UsageEvent[],
   timeZone: string,
+  startHour: number,
   totalCost: number,
   rank: number,
-  dayCount: number,
+  dailyWindowCount: number,
 ): string[] {
-  const s = summarize(dayEvents, timeZone);
+  const s = summarize(dailyWindowEvents, timeZone, startHour);
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const label = (str: string) => dim(padEndDisplay(str, 14));
   const value = (str: string) => bold(padEndDisplay(str, 12));
   return [
-    `${bold(`Day ${day}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dayCount} by cost, ${timeZone})`)}`,
+    `${bold(`Daily Window ${dailyWindow}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dailyWindowCount} by cost, ${timeZone}, start ${startHour}:00)`)}`,
     "",
     `  ${label("Cost")}${value(formatUsd(s.totalCost))}  ${label("of period")}${value(`${share}%`)}`,
     `  ${label("Total Tokens")}${value(formatTokens(s.totalTokens))}  ${label("Max Mode")}${value(`${Math.round(s.maxModeRatio * 100)}%`)}`,
@@ -217,12 +231,15 @@ function renderDaySummaryBlock(
   ];
 }
 
-function renderHourlyChart(dayEvents: UsageEvent[], timeZone: string): string[] {
-  const byHourMap = new Map(byHour(dayEvents, timeZone).map((b) => [b.key, b]));
+function renderHourlyChart(
+  dailyWindowEvents: UsageEvent[],
+  timeZone: string,
+  startHour: number,
+): string[] {
+  const byHourMap = new Map(byHour(dailyWindowEvents, timeZone).map((b) => [b.key, b]));
   const maxCost = Math.max(...[...byHourMap.values()].map((b) => b.cost), 0);
   const lines = [bold(`By Hour (${timeZone})`)];
-  for (let h = 0; h < 24; h++) {
-    const key = String(h).padStart(2, "0");
+  for (const key of orderedHours(startHour)) {
     const b = byHourMap.get(key);
     const cost = b?.cost ?? 0;
     const events = b?.eventCount ?? 0;
@@ -234,9 +251,13 @@ function renderHourlyChart(dayEvents: UsageEvent[], timeZone: string): string[] 
   return lines;
 }
 
-function renderDayEvents(dayEvents: UsageEvent[], limit: number, timeZone: string): string[] {
-  const top = topEvents(dayEvents, limit);
-  const lines = [bold(`Top Events (${top.length} of ${dayEvents.length})`)];
+function renderDailyWindowEvents(
+  dailyWindowEvents: UsageEvent[],
+  limit: number,
+  timeZone: string,
+): string[] {
+  const top = topEvents(dailyWindowEvents, limit);
+  const lines = [bold(`Top Events (${top.length} of ${dailyWindowEvents.length})`)];
   const userWidth = Math.max(...top.map((e) => e.user.length), 4);
   const modelWidth = Math.max(...top.map((e) => e.model.length), 5);
   for (const e of top) {
@@ -249,69 +270,82 @@ function renderDayEvents(dayEvents: UsageEvent[], limit: number, timeZone: strin
 }
 
 /**
- * Renders one Day View for terminal display.
+ * Renders one Daily Window detail view for terminal display.
  *
- * The Day is interpreted in the provided Analysis Time Zone, and the input
- * events should already include any User or No Charge filtering.
+ * The Daily Window Key is interpreted in the provided Analysis Time Zone and
+ * start hour. The input events should already include any User or No Charge filtering.
  */
-export function renderDayView(
+export function renderDailyWindowView(
   events: UsageEvent[],
-  day: string,
+  dailyWindow: string,
   timeZone: string,
   user?: string,
+  startHour = 0,
 ): string {
-  const days = byDay(events, timeZone);
-  const dayEvents = onDay(events, day, timeZone);
-  if (dayEvents.length === 0) {
-    const known = days.map((d) => d.key);
+  const dailyWindows = byDailyWindow(events, timeZone, startHour);
+  const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, timeZone, startHour);
+  if (dailyWindowEvents.length === 0) {
+    const known = dailyWindows.map((d) => d.key);
     const hint =
-      known.length > 0 ? `\nAvailable days: ${known[0]} – ${known[known.length - 1]}` : "";
-    return `No billable events on ${day}.${hint}\n`;
+      known.length > 0 ? `\nAvailable Daily Windows: ${known[0]} – ${known[known.length - 1]}` : "";
+    return `No billable events in Daily Window ${dailyWindow}.${hint}\n`;
   }
 
   const totalCost = events.reduce((sum, e) => sum + e.cost, 0);
-  const rank = [...days].sort((a, b) => b.cost - a.cost).findIndex((d) => d.key === day) + 1;
+  const rank =
+    [...dailyWindows].sort((a, b) => b.cost - a.cost).findIndex((d) => d.key === dailyWindow) + 1;
+  const dailyWindowTotal = summarize(dailyWindowEvents, timeZone, startHour).totalCost;
 
   const sections: string[][] = [
-    renderDaySummaryBlock(day, dayEvents, timeZone, totalCost, rank, days.length),
+    renderDailyWindowSummaryBlock(
+      dailyWindow,
+      dailyWindowEvents,
+      timeZone,
+      startHour,
+      totalCost,
+      rank,
+      dailyWindows.length,
+    ),
     ...(user ? [[dim(`Filtered to user: ${user}`)]] : []),
-    renderHourlyChart(dayEvents, timeZone),
-    renderBucketChart("By Model", byModel(dayEvents), {
-      totalCost: summarize(dayEvents, timeZone).totalCost,
+    renderHourlyChart(dailyWindowEvents, timeZone, startHour),
+    renderBucketChart("By Model", byModel(dailyWindowEvents), {
+      totalCost: dailyWindowTotal,
     }),
-    renderBucketChart("By User", byUser(dayEvents), {
-      totalCost: summarize(dayEvents, timeZone).totalCost,
+    renderBucketChart("By User", byUser(dailyWindowEvents), {
+      totalCost: dailyWindowTotal,
     }),
-    renderBucketChart("By Kind", byKind(dayEvents), { totalCost: 0 }),
-    renderDayEvents(dayEvents, 20, timeZone),
+    renderBucketChart("By Kind", byKind(dailyWindowEvents), { totalCost: dailyWindowTotal }),
+    renderDailyWindowEvents(dailyWindowEvents, 20, timeZone),
   ];
 
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
 /**
- * Serializes one Day View as JSON for scripting.
+ * Serializes one Daily Window detail view as JSON for scripting.
  *
- * The returned object includes the selected Day, Analysis Time Zone, filters,
- * and the same breakdowns shown in terminal Day View output.
+ * The returned object includes the selected Daily Window, Analysis Time Zone,
+ * start hour, filters, and the same breakdowns shown in terminal output.
  */
-export function dayViewJson(
+export function dailyWindowViewJson(
   events: UsageEvent[],
-  day: string,
+  dailyWindow: string,
   timeZone: string,
   user?: string,
+  startHour = 0,
 ): string {
-  const dayEvents = onDay(events, day, timeZone);
+  const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, timeZone, startHour);
   return JSON.stringify(
     {
-      day,
+      dailyWindow,
       timeZone,
+      startHour,
       filters: { user: user ?? null },
-      summary: summarize(dayEvents, timeZone),
-      byHour: byHour(dayEvents, timeZone),
-      byModel: byModel(dayEvents),
-      byUser: byUser(dayEvents),
-      byKind: byKind(dayEvents),
+      summary: summarize(dailyWindowEvents, timeZone, startHour),
+      byHour: byHour(dailyWindowEvents, timeZone),
+      byModel: byModel(dailyWindowEvents),
+      byUser: byUser(dailyWindowEvents),
+      byKind: byKind(dailyWindowEvents),
     },
     null,
     2,

@@ -16,19 +16,37 @@ import {
   YAxis,
 } from "recharts";
 
-import { byDayAndModel, byModel, byUser, summarize, topEvents } from "../../src/core/aggregate.ts";
+import {
+  byDailyWindowAndModel,
+  byModel,
+  byUser,
+  summarize,
+  topEvents,
+} from "../../src/core/aggregate.ts";
 import { COLORS, formatDateTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
 
 export { formatTokens, formatUsd };
 
-function SummaryCards({ events, timeZone }: { events: UsageEvent[]; timeZone: string }) {
-  const s = useMemo(() => summarize(events, timeZone), [events, timeZone]);
+function SummaryCards({
+  events,
+  timeZone,
+  startHour,
+}: {
+  events: UsageEvent[];
+  timeZone: string;
+  startHour: number;
+}) {
+  const s = useMemo(() => summarize(events, timeZone, startHour), [events, timeZone, startHour]);
   const cards = [
-    { label: "Total Cost", value: formatUsd(s.totalCost), sub: `${s.firstDay} – ${s.lastDay}` },
     {
-      label: "Avg Cost / Active Day",
-      value: formatUsd(s.avgCostPerActiveDay),
-      sub: `${s.dayCount} active days`,
+      label: "Total Cost",
+      value: formatUsd(s.totalCost),
+      sub: `${s.firstDailyWindow} – ${s.lastDailyWindow}`,
+    },
+    {
+      label: "Avg Cost / Active Daily Window",
+      value: formatUsd(s.avgCostPerActiveDailyWindow),
+      sub: `${s.dailyWindowCount} active windows`,
     },
     { label: "Total Tokens", value: formatTokens(s.totalTokens), sub: `${s.eventCount} events` },
     { label: "Max Mode", value: `${Math.round(s.maxModeRatio * 100)}%`, sub: "of events" },
@@ -51,38 +69,45 @@ function DailyChart({
   events,
   scaleEvents,
   timeZone,
-  onSelectDay,
+  startHour,
+  onSelectDailyWindow,
 }: {
   events: UsageEvent[];
   scaleEvents: UsageEvent[];
   timeZone: string;
-  onSelectDay?: (day: string) => void;
+  startHour: number;
+  onSelectDailyWindow?: (dailyWindow: string) => void;
 }) {
   const models = useMemo(() => byModel(events).map((m) => m.key), [events]);
   const data = useMemo(() => {
     let cumulative = 0;
-    return byDayAndModel(events, timeZone).map((d) => {
+    return byDailyWindowAndModel(events, timeZone, startHour).map((d) => {
       cumulative += d.totalCost;
-      return { day: d.day, label: d.day.slice(5), ...d.costByModel, cumulative };
+      return {
+        dailyWindow: d.dailyWindow,
+        label: d.dailyWindow.slice(5),
+        ...d.costByModel,
+        cumulative,
+      };
     });
-  }, [events, timeZone]);
+  }, [events, timeZone, startHour]);
   const scale = useMemo(() => {
-    const days = byDayAndModel(scaleEvents, timeZone);
+    const dailyWindows = byDailyWindowAndModel(scaleEvents, timeZone, startHour);
     return {
-      maxDailyCost: Math.max(...days.map((d) => d.totalCost), 0),
-      totalCost: days.reduce((sum, d) => sum + d.totalCost, 0),
+      maxDailyCost: Math.max(...dailyWindows.map((d) => d.totalCost), 0),
+      totalCost: dailyWindows.reduce((sum, d) => sum + d.totalCost, 0),
     };
-  }, [scaleEvents, timeZone]);
+  }, [scaleEvents, timeZone, startHour]);
 
-  const handleClick = (payload: { day?: string } | undefined) => {
-    if (payload?.day) onSelectDay?.(payload.day);
+  const handleClick = (payload: { dailyWindow?: string } | undefined) => {
+    if (payload?.dailyWindow) onSelectDailyWindow?.(payload.dailyWindow);
   };
 
   return (
     <div className="panel wide">
       <h3>
-        日別コスト推移(モデル別積み上げ + 累積)
-        {onSelectDay && <span className="hint">バーをクリックでその日の詳細へ</span>}
+        Daily Window コスト推移(モデル別積み上げ + 累積)
+        {onSelectDailyWindow && <span className="hint">バーをクリックで詳細へ</span>}
       </h3>
       <ResponsiveContainer width="100%" height={320}>
         <ComposedChart data={data}>
@@ -112,8 +137,9 @@ function DailyChart({
               dataKey={model}
               stackId="cost"
               fill={COLORS[i % COLORS.length]}
-              cursor={onSelectDay ? "pointer" : undefined}
-              onClick={(payload) => handleClick(payload as { day?: string } | undefined)}
+              cursor={onSelectDailyWindow ? "pointer" : undefined}
+              onClick={(payload) => handleClick(payload as { dailyWindow?: string } | undefined)}
+              isAnimationActive={false}
             />
           ))}
           <Line
@@ -123,6 +149,7 @@ function DailyChart({
             stroke="#e6edf3"
             strokeWidth={2}
             dot={false}
+            isAnimationActive={false}
           />
         </ComposedChart>
       </ResponsiveContainer>
@@ -145,6 +172,7 @@ function ModelPie({ events }: { events: UsageEvent[] }) {
             outerRadius={95}
             paddingAngle={2}
             stroke="none"
+            isAnimationActive={false}
           >
             {data.map((entry, i) => (
               <Cell key={entry.key} fill={COLORS[i % COLORS.length]} />
@@ -195,6 +223,7 @@ function UserChart({
               const user = (payload as { key?: string } | undefined)?.key;
               if (user) onSelectUser?.(user);
             }}
+            isAnimationActive={false}
           >
             {data.map((entry) => (
               <Cell key={entry.key} fill="#58a6ff" opacity={isSelected(entry.key) ? 1 : 0.25} />
@@ -227,8 +256,12 @@ function TopEventsTable({ events, timeZone }: { events: UsageEvent[]; timeZone: 
             </tr>
           </thead>
           <tbody>
-            {top.map((e, i) => (
-              <tr key={i}>
+            {top.map((e) => (
+              <tr
+                key={[e.date.toISOString(), e.user, e.model, e.kind, e.totalTokens, e.cost].join(
+                  "|",
+                )}
+              >
                 <td>{formatDateTime(e.date, timeZone)}</td>
                 <td>{e.user}</td>
                 <td>
@@ -262,26 +295,29 @@ export function Overview({
   events,
   userEvents,
   timeZone,
-  onSelectDay,
+  startHour,
+  onSelectDailyWindow,
   onSelectUser,
   selectedUser,
 }: {
   events: UsageEvent[];
   userEvents: UsageEvent[];
   timeZone: string;
-  onSelectDay?: (day: string) => void;
+  startHour: number;
+  onSelectDailyWindow?: (dailyWindow: string) => void;
   onSelectUser?: (user: string) => void;
   selectedUser: string | null;
 }) {
   return (
     <>
-      <SummaryCards events={events} timeZone={timeZone} />
+      <SummaryCards events={events} timeZone={timeZone} startHour={startHour} />
       <div className="grid">
         <DailyChart
           events={events}
           scaleEvents={userEvents}
           timeZone={timeZone}
-          onSelectDay={onSelectDay}
+          startHour={startHour}
+          onSelectDailyWindow={onSelectDailyWindow}
         />
         <ModelPie events={events} />
         <UserChart events={userEvents} selectedUser={selectedUser} onSelectUser={onSelectUser} />

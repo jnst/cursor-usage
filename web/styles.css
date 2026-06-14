@@ -193,8 +193,8 @@ body {
   color: var(--text-dim);
 }
 
-/* Day view */
-.day-nav {
+/* Daily Window detail view */
+.daily-window-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -203,7 +203,7 @@ body {
   flex-wrap: wrap;
 }
 
-.day-title {
+.daily-window-title {
   display: flex;
   align-items: baseline;
   gap: 12px;
@@ -211,13 +211,13 @@ body {
   justify-content: center;
 }
 
-.day-title h2 {
+.daily-window-title h2 {
   margin: 0;
   font-size: 18px;
   font-variant-numeric: tabular-nums;
 }
 
-.day-stepper {
+.daily-window-stepper {
   display: flex;
   gap: 8px;
 }

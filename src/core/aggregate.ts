@@ -1,6 +1,6 @@
 import {
   type BucketStat,
-  type DayModelStat,
+  type DailyWindowModelStat,
   NO_CHARGE_KIND,
   type Summary,
   type UsageEvent,
@@ -22,7 +22,7 @@ export function defaultAnalysisTimeZone(): string {
  * Checks whether a string is accepted by `Intl.DateTimeFormat` as an IANA time zone.
  *
  * Use this before accepting CLI or URL state; invalid zones should not silently
- * change how Days and Hours are grouped.
+ * change how Daily Windows and Hours are grouped.
  */
 export function isValidTimeZone(timeZone: string): boolean {
   try {
@@ -46,17 +46,53 @@ function timePart(date: Date, timeZone: string, part: "year" | "month" | "day" |
 }
 
 /**
- * Returns the Day for an absolute timestamp in the selected Analysis Time Zone.
- *
- * Day is a domain concept, not a raw UTC date. Passing the same timestamp with
- * a different time zone may intentionally produce a different `YYYY-MM-DD`.
+ * Checks whether a Daily Window start hour is representable on a 24-hour clock.
  */
-export function dayOf(date: Date, timeZone = UTC_TIME_ZONE): string {
+export function isValidStartHour(startHour: number): boolean {
+  return Number.isInteger(startHour) && startHour >= 0 && startHour <= 23;
+}
+
+function assertStartHour(startHour: number): void {
+  if (!isValidStartHour(startHour)) {
+    throw new Error(`Invalid Daily Window start hour: ${startHour}`);
+  }
+}
+
+function localDateKey(date: Date, timeZone: string): string {
   return [
     timePart(date, timeZone, "year"),
     timePart(date, timeZone, "month"),
     timePart(date, timeZone, "day"),
   ].join("-");
+}
+
+function dateParts(dateKey: string): { year: number; month: number; date: number } {
+  const [year, month, date] = dateKey.split("-").map(Number);
+  if (year === undefined || month === undefined || date === undefined) {
+    throw new Error(`Invalid Daily Window Key: ${dateKey}`);
+  }
+  return { year, month, date };
+}
+
+function formatUtcDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(dateKey: string, days: number): string {
+  const { year, month, date } = dateParts(dateKey);
+  return formatUtcDate(new Date(Date.UTC(year, month - 1, date) + days * 86_400_000));
+}
+
+/**
+ * Returns the Daily Window Key for an absolute timestamp.
+ *
+ * The key is based on the local date at the start of the Daily Window. A
+ * midnight start hour preserves the usual calendar-aligned grouping.
+ */
+export function dailyWindowKeyOf(date: Date, timeZone = UTC_TIME_ZONE, startHour = 0): string {
+  assertStartHour(startHour);
+  const dateKey = localDateKey(date, timeZone);
+  return Number(timePart(date, timeZone, "hour")) < startHour ? addDays(dateKey, -1) : dateKey;
 }
 
 /**
@@ -70,13 +106,38 @@ export function hourOf(date: Date, timeZone = UTC_TIME_ZONE): string {
 }
 
 /**
- * Filters Usage Events to a single Day in the selected Analysis Time Zone.
+ * Returns clock hours ordered from a Daily Window start hour.
  *
- * The `day` argument is interpreted in that time zone. It is not a UTC date
- * unless the selected time zone is UTC.
+ * Use this for charts that should read in Daily Window order rather than
+ * midnight-first clock order.
  */
-export function onDay(events: UsageEvent[], day: string, timeZone = UTC_TIME_ZONE): UsageEvent[] {
-  return events.filter((e) => dayOf(e.date, timeZone) === day);
+export function orderedHours(startHour = 0): string[] {
+  assertStartHour(startHour);
+  return Array.from({ length: 24 }, (_, i) => String((startHour + i) % 24).padStart(2, "0"));
+}
+
+/**
+ * Filters Usage Events to a single Daily Window.
+ */
+export function eventsInDailyWindow(
+  events: UsageEvent[],
+  dailyWindow: string,
+  timeZone = UTC_TIME_ZONE,
+  startHour = 0,
+): UsageEvent[] {
+  return events.filter((e) => dailyWindowKeyOf(e.date, timeZone, startHour) === dailyWindow);
+}
+
+/**
+ * Returns the Daily Window Key containing the latest event in the analysis set.
+ */
+export function latestDailyWindowKey(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+  startHour = 0,
+): string | null {
+  const latest = [...events].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+  return latest ? dailyWindowKeyOf(latest.date, timeZone, startHour) : null;
 }
 
 /**
@@ -92,14 +153,14 @@ export function billable(events: UsageEvent[]): UsageEvent[] {
 /**
  * Computes top-level Metrics for the current analysis set.
  *
- * Date Range and Active Day count are derived from Billable Events already
- * selected by the caller, grouped in the selected Analysis Time Zone.
+ * Daily Window Range and Active Daily Window count are derived from Billable
+ * Events already selected by the caller, grouped in the selected Analysis Time Zone.
  */
-export function summarize(events: UsageEvent[], timeZone = UTC_TIME_ZONE): Summary {
+export function summarize(events: UsageEvent[], timeZone = UTC_TIME_ZONE, startHour = 0): Summary {
   let totalCost = 0;
   let totalTokens = 0;
   let maxModeCount = 0;
-  const days = new Set<string>();
+  const dailyWindows = new Set<string>();
   const users = new Set<string>();
   const models = new Set<string>();
 
@@ -107,20 +168,20 @@ export function summarize(events: UsageEvent[], timeZone = UTC_TIME_ZONE): Summa
     totalCost += e.cost;
     totalTokens += e.totalTokens;
     if (e.maxMode) maxModeCount++;
-    days.add(dayOf(e.date, timeZone));
+    dailyWindows.add(dailyWindowKeyOf(e.date, timeZone, startHour));
     users.add(e.user);
     models.add(e.model);
   }
 
-  const sortedDays = [...days].sort();
+  const sortedDailyWindows = [...dailyWindows].sort();
   return {
     totalCost,
     totalTokens,
     eventCount: events.length,
-    firstDay: sortedDays[0] ?? null,
-    lastDay: sortedDays[sortedDays.length - 1] ?? null,
-    dayCount: days.size,
-    avgCostPerActiveDay: days.size > 0 ? totalCost / days.size : 0,
+    firstDailyWindow: sortedDailyWindows[0] ?? null,
+    lastDailyWindow: sortedDailyWindows[sortedDailyWindows.length - 1] ?? null,
+    dailyWindowCount: dailyWindows.size,
+    avgCostPerActiveDailyWindow: dailyWindows.size > 0 ? totalCost / dailyWindows.size : 0,
     maxModeRatio: events.length > 0 ? maxModeCount / events.length : 0,
     userCount: users.size,
     modelCount: models.size,
@@ -155,13 +216,17 @@ function bucketBy(events: UsageEvent[], keyFn: (e: UsageEvent) => string): Bucke
 }
 
 /**
- * Groups events by Day in the selected Analysis Time Zone.
+ * Groups events by Daily Window in the selected Analysis Time Zone.
  *
  * Returned buckets are chronological so they can be used directly for time
  * series charts and terminal output.
  */
-export function byDay(events: UsageEvent[], timeZone = UTC_TIME_ZONE): BucketStat[] {
-  return bucketBy(events, (e) => dayOf(e.date, timeZone)).sort((a, b) =>
+export function byDailyWindow(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+  startHour = 0,
+): BucketStat[] {
+  return bucketBy(events, (e) => dailyWindowKeyOf(e.date, timeZone, startHour)).sort((a, b) =>
     a.key.localeCompare(b.key),
   );
 }
@@ -209,24 +274,28 @@ export function byHour(events: UsageEvent[], timeZone = UTC_TIME_ZONE): BucketSt
 }
 
 /**
- * Builds Day-by-Model cost buckets for stacked day charts.
+ * Builds Daily-Window-by-Model cost buckets for stacked Daily Window charts.
  *
- * Days are derived in the selected Analysis Time Zone, and model costs are kept
- * separate so charts can show both daily totals and model composition.
+ * Daily Windows are derived in the selected Analysis Time Zone, and model costs
+ * are kept separate so charts can show both totals and model composition.
  */
-export function byDayAndModel(events: UsageEvent[], timeZone = UTC_TIME_ZONE): DayModelStat[] {
-  const days = new Map<string, DayModelStat>();
+export function byDailyWindowAndModel(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+  startHour = 0,
+): DailyWindowModelStat[] {
+  const dailyWindows = new Map<string, DailyWindowModelStat>();
   for (const e of events) {
-    const day = dayOf(e.date, timeZone);
-    let d = days.get(day);
+    const dailyWindow = dailyWindowKeyOf(e.date, timeZone, startHour);
+    let d = dailyWindows.get(dailyWindow);
     if (!d) {
-      d = { day, costByModel: {}, totalCost: 0 };
-      days.set(day, d);
+      d = { dailyWindow, costByModel: {}, totalCost: 0 };
+      dailyWindows.set(dailyWindow, d);
     }
     d.costByModel[e.model] = (d.costByModel[e.model] ?? 0) + e.cost;
     d.totalCost += e.cost;
   }
-  return [...days.values()].sort((a, b) => a.day.localeCompare(b.day));
+  return [...dailyWindows.values()].sort((a, b) => a.dailyWindow.localeCompare(b.dailyWindow));
 }
 
 /**

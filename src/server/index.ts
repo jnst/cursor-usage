@@ -24,7 +24,7 @@ const MIME_TYPES: Record<string, string> = {
  * lives at dist/cli.js next to dist/web/; during development we fall back to
  * the repo's dist/web (requires `bun run build`).
  */
-function findWebRoot(): string {
+export function findWebRoot(): string {
   const here = dirname(fileURLToPath(import.meta.url));
   const candidates = [join(here, "web"), join(here, "../../dist/web")];
   for (const dir of candidates) {
@@ -55,16 +55,13 @@ export interface ServeOptions {
   open: boolean;
 }
 
-/**
- * Serves the bundled dashboard assets from the local machine.
- *
- * The server only serves static files; Usage Export data is loaded and analyzed
- * in the browser so sensitive usage data is not uploaded anywhere.
- */
-export function serve(options: ServeOptions): void {
-  const webRoot = findWebRoot();
+export interface RunningServer {
+  server: Server;
+  url: string;
+}
 
-  const server: Server = createServer(async (req, res) => {
+function createDashboardServer(webRoot: string): Server {
+  return createServer(async (req, res) => {
     const pathname = decodeURIComponent(new URL(req.url ?? "/", "http://localhost").pathname);
     const filePath = normalize(join(webRoot, pathname === "/" ? "/index.html" : pathname));
     if (!filePath.startsWith(webRoot)) {
@@ -85,27 +82,57 @@ export function serve(options: ServeOptions): void {
       res.end("Not Found");
     }
   });
+}
 
-  const onListening = () => {
-    const { port } = server.address() as AddressInfo;
-    const url = `http://localhost:${port}`;
-    console.log(`cursor-usage dashboard running at ${url}`);
-    console.log("Drop a Cursor usage-events CSV onto the page. Ctrl+C to stop.");
-    if (options.open) openBrowser(url);
-  };
+/**
+ * Starts a local static server for the bundled dashboard assets.
+ *
+ * Screenshot export uses this to render the same dashboard over HTTP rather
+ * than opening bundled modules through `file://`, which browsers block.
+ */
+export function startServer(options: Pick<ServeOptions, "port"> = {}): Promise<RunningServer> {
+  const webRoot = findWebRoot();
+  const server = createDashboardServer(webRoot);
 
-  if (options.port !== undefined) {
-    server.listen(options.port, onListening);
-    return;
-  }
+  return new Promise((resolve, reject) => {
+    const onListening = () => {
+      const { port } = server.address() as AddressInfo;
+      resolve({ server, url: `http://localhost:${port}` });
+    };
 
-  // Default port may be occupied (another instance, Astro, etc.) — let the
-  // OS assign a free one instead of failing.
-  server.once("error", (error: NodeJS.ErrnoException) => {
-    if (error.code !== "EADDRINUSE") throw error;
-    console.log(`port ${DEFAULT_PORT} is in use, picked a free port instead`);
-    server.listen(0);
+    if (options.port !== undefined) {
+      server.once("error", reject);
+      server.listen(options.port, onListening);
+      return;
+    }
+
+    server.once("error", (error: NodeJS.ErrnoException) => {
+      if (error.code !== "EADDRINUSE") {
+        reject(error);
+        return;
+      }
+      console.log(`port ${DEFAULT_PORT} is in use, picked a free port instead`);
+      server.listen(0);
+    });
+    server.once("listening", onListening);
+    server.listen(DEFAULT_PORT);
   });
-  server.once("listening", onListening);
-  server.listen(DEFAULT_PORT);
+}
+
+/**
+ * Serves the bundled dashboard assets from the local machine.
+ *
+ * The server only serves static files; Usage Export data is loaded and analyzed
+ * in the browser so sensitive usage data is not uploaded anywhere.
+ */
+export function serve(options: ServeOptions): void {
+  startServer({ port: options.port })
+    .then(({ url }) => {
+      console.log(`cursor-usage dashboard running at ${url}`);
+      console.log("Drop a Cursor usage-events CSV onto the page. Ctrl+C to stop.");
+      if (options.open) openBrowser(url);
+    })
+    .catch((error) => {
+      throw error;
+    });
 }

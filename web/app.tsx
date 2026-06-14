@@ -3,36 +3,63 @@ import type { UsageEvent } from "../src/core/types.ts";
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import { billable, defaultAnalysisTimeZone, isValidTimeZone } from "../src/core/aggregate.ts";
+import {
+  billable,
+  defaultAnalysisTimeZone,
+  isValidStartHour,
+  isValidTimeZone,
+} from "../src/core/aggregate.ts";
 import { parseUsageCsv } from "../src/core/parse.ts";
-import { DayView } from "./components/DayView.tsx";
+import { DailyWindowView } from "./components/DayView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
 import { Overview } from "./components/Overview.tsx";
 
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+type SerializedUsageEvent = Omit<UsageEvent, "date"> & { date: string };
+
+declare global {
+  interface Window {
+    __CURSOR_USAGE_EVENTS__?: SerializedUsageEvent[];
+  }
+}
+
+function initialEvents(): UsageEvent[] | null {
+  const serialized = window.__CURSOR_USAGE_EVENTS__;
+  if (!serialized) return null;
+  return serialized.map((event) => ({ ...event, date: new Date(event.date) }));
+}
+
 function routeFromHash(defaultTimeZone: string): {
-  day: string | null;
+  dailyWindow: string | null;
   user: string | null;
   timeZone: string;
+  startHour: number;
+  eventLimit: number | null;
 } {
   const params = new URLSearchParams(window.location.hash.slice(1));
-  const day = params.get("day");
+  const dailyWindow = params.get("daily-window");
   const user = params.get("user");
   const timeZone = params.get("timezone");
+  const startHour = Number(params.get("start-hour") ?? 0);
+  const eventLimit = Number(params.get("event-limit"));
   return {
-    day: day && DAY_PATTERN.test(day) ? day : null,
+    dailyWindow: dailyWindow && DAY_PATTERN.test(dailyWindow) ? dailyWindow : null,
     user: user || null,
     timeZone: timeZone && isValidTimeZone(timeZone) ? timeZone : defaultTimeZone,
+    startHour: isValidStartHour(startHour) ? startHour : 0,
+    eventLimit: Number.isInteger(eventLimit) && eventLimit > 0 ? eventLimit : null,
   };
 }
 
-/** Selected Day and Analysis Time Zone, kept in sync with the URL hash. */
-function useDayRoute(): {
-  selectedDay: string | null;
+/** Selected Daily Window and Analysis Time Zone, kept in sync with the URL hash. */
+function useDailyWindowRoute(): {
+  selectedDailyWindow: string | null;
   selectedUser: string | null;
   timeZone: string;
-  setSelectedDay: (day: string | null) => void;
+  startHour: number;
+  eventLimit: number | null;
+  setSelectedDailyWindow: (dailyWindow: string | null) => void;
   setSelectedUser: (user: string | null) => void;
 } {
   const defaultTimeZone = useMemo(() => defaultAnalysisTimeZone(), []);
@@ -44,31 +71,51 @@ function useDayRoute(): {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [defaultTimeZone]);
 
-  const updateHash = (day: string | null, user: string | null, timeZone: string) => {
-    if (day || user) {
+  const updateHash = (
+    dailyWindow: string | null,
+    user: string | null,
+    timeZone: string,
+    startHour: number,
+    eventLimit: number | null,
+  ) => {
+    if (dailyWindow || user) {
       const params = new URLSearchParams({ timezone: timeZone });
-      if (day) params.set("day", day);
+      if (dailyWindow) params.set("daily-window", dailyWindow);
       if (user) params.set("user", user);
+      if (startHour !== 0) params.set("start-hour", String(startHour));
+      if (eventLimit !== null) params.set("event-limit", String(eventLimit));
       window.location.hash = params.toString();
     } else if (window.location.hash) {
       window.history.pushState(null, "", window.location.pathname + window.location.search);
     }
-    setRoute({ day, user, timeZone });
+    setRoute({ dailyWindow, user, timeZone, startHour, eventLimit });
   };
 
   return {
-    selectedDay: route.day,
+    selectedDailyWindow: route.dailyWindow,
     selectedUser: route.user,
     timeZone: route.timeZone,
-    setSelectedDay: (day) => updateHash(day, route.user, route.timeZone),
-    setSelectedUser: (user) => updateHash(route.day, user, route.timeZone),
+    startHour: route.startHour,
+    eventLimit: route.eventLimit,
+    setSelectedDailyWindow: (dailyWindow) =>
+      updateHash(dailyWindow, route.user, route.timeZone, route.startHour, route.eventLimit),
+    setSelectedUser: (user) =>
+      updateHash(route.dailyWindow, user, route.timeZone, route.startHour, route.eventLimit),
   };
 }
 
 function App() {
-  const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(null);
+  const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(() => initialEvents());
   const [error, setError] = useState<string | null>(null);
-  const { selectedDay, selectedUser, timeZone, setSelectedDay, setSelectedUser } = useDayRoute();
+  const {
+    selectedDailyWindow,
+    selectedUser,
+    timeZone,
+    startHour,
+    eventLimit,
+    setSelectedDailyWindow,
+    setSelectedUser,
+  } = useDailyWindowRoute();
 
   const onCsvText = (text: string) => {
     try {
@@ -98,7 +145,7 @@ function App() {
       <div className="header">
         <h1
           className={events ? "clickable-title" : undefined}
-          onClick={() => events && setSelectedDay(null)}
+          onClick={() => events && setSelectedDailyWindow(null)}
         >
           Cursor Usage
         </h1>
@@ -112,7 +159,7 @@ function App() {
               type="button"
               className="reload-button"
               onClick={() => {
-                setSelectedDay(null);
+                setSelectedDailyWindow(null);
                 setSelectedUser(null);
                 setAllEvents(null);
                 setError(null);
@@ -124,13 +171,15 @@ function App() {
         )}
       </div>
       {events ? (
-        selectedDay ? (
-          <DayView
+        selectedDailyWindow ? (
+          <DailyWindowView
             events={events}
-            day={selectedDay}
+            dailyWindow={selectedDailyWindow}
             timeZone={timeZone}
-            onBack={() => setSelectedDay(null)}
-            onSelectDay={setSelectedDay}
+            startHour={startHour}
+            eventLimit={eventLimit ?? undefined}
+            onBack={() => setSelectedDailyWindow(null)}
+            onSelectDailyWindow={setSelectedDailyWindow}
             onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
             selectedUser={selectedUser}
             userEvents={baseEvents ?? events}
@@ -140,7 +189,8 @@ function App() {
             events={events}
             userEvents={baseEvents ?? events}
             timeZone={timeZone}
-            onSelectDay={setSelectedDay}
+            startHour={startHour}
+            onSelectDailyWindow={setSelectedDailyWindow}
             onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
             selectedUser={selectedUser}
           />

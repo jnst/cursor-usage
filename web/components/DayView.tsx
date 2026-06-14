@@ -16,12 +16,13 @@ import {
 } from "recharts";
 
 import {
-  byDay,
+  byDailyWindow,
   byHour,
   byKind,
   byModel,
   byUser,
-  onDay,
+  eventsInDailyWindow,
+  orderedHours,
   summarize,
 } from "../../src/core/aggregate.ts";
 import { COLORS, formatTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
@@ -29,28 +30,35 @@ import { COLORS, formatTime, formatTokens, formatUsd, tooltipStyle } from "./sha
 interface Props {
   events: UsageEvent[];
   userEvents: UsageEvent[];
-  day: string;
+  dailyWindow: string;
   timeZone: string;
+  startHour: number;
+  eventLimit?: number;
   selectedUser: string | null;
   onBack: () => void;
-  onSelectDay: (day: string) => void;
+  onSelectDailyWindow: (dailyWindow: string) => void;
   onSelectUser: (user: string) => void;
 }
 
-function DaySummaryCards({
-  dayEvents,
+function DailyWindowSummaryCards({
+  dailyWindowEvents,
   timeZone,
+  startHour,
   totalCost,
   rank,
-  dayCount,
+  dailyWindowCount,
 }: {
-  dayEvents: UsageEvent[];
+  dailyWindowEvents: UsageEvent[];
   timeZone: string;
+  startHour: number;
   totalCost: number;
   rank: number;
-  dayCount: number;
+  dailyWindowCount: number;
 }) {
-  const s = useMemo(() => summarize(dayEvents, timeZone), [dayEvents, timeZone]);
+  const s = useMemo(
+    () => summarize(dailyWindowEvents, timeZone, startHour),
+    [dailyWindowEvents, timeZone, startHour],
+  );
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const cards = [
     { label: "Cost", value: formatUsd(s.totalCost), sub: `期間全体の ${share}%` },
@@ -59,9 +67,9 @@ function DaySummaryCards({
       value: String(s.eventCount),
       sub: `Max Mode ${Math.round(s.maxModeRatio * 100)}%`,
     },
-    { label: "Tokens", value: formatTokens(s.totalTokens), sub: "this day" },
-    { label: "Users / Models", value: `${s.userCount} / ${s.modelCount}`, sub: "active this day" },
-    { label: "コスト順位", value: `${rank} / ${dayCount}`, sub: "日別ランキング" },
+    { label: "Tokens", value: formatTokens(s.totalTokens), sub: "this window" },
+    { label: "Users / Models", value: `${s.userCount} / ${s.modelCount}`, sub: "active window" },
+    { label: "コスト順位", value: `${rank} / ${dailyWindowCount}`, sub: "Daily Windowランキング" },
   ];
   return (
     <div className="cards">
@@ -77,18 +85,19 @@ function DaySummaryCards({
 }
 
 function HourlyChart({
-  dayEvents,
+  dailyWindowEvents,
   scaleDayEvents,
   timeZone,
+  startHour,
 }: {
-  dayEvents: UsageEvent[];
+  dailyWindowEvents: UsageEvent[];
   scaleDayEvents: UsageEvent[];
   timeZone: string;
+  startHour: number;
 }) {
   const data = useMemo(() => {
-    const byHourMap = new Map(byHour(dayEvents, timeZone).map((b) => [b.key, b]));
-    return Array.from({ length: 24 }, (_, h) => {
-      const key = String(h).padStart(2, "0");
+    const byHourMap = new Map(byHour(dailyWindowEvents, timeZone).map((b) => [b.key, b]));
+    return orderedHours(startHour).map((key) => {
       const b = byHourMap.get(key);
       return {
         hour: key,
@@ -96,7 +105,7 @@ function HourlyChart({
         eventCount: b?.eventCount ?? 0,
       };
     });
-  }, [dayEvents, timeZone]);
+  }, [dailyWindowEvents, timeZone, startHour]);
   const maxHourlyCost = useMemo(
     () => Math.max(...byHour(scaleDayEvents, timeZone).map((b) => b.cost), 0),
     [scaleDayEvents, timeZone],
@@ -120,15 +129,21 @@ function HourlyChart({
             formatter={(value) => [formatUsd(Number(value)), "Cost"]}
             labelFormatter={(h) => `${h}:00 ${timeZone}`}
           />
-          <Bar dataKey="cost" name="Cost" fill="#58a6ff" radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="cost"
+            name="Cost"
+            fill="#58a6ff"
+            radius={[4, 4, 0, 0]}
+            isAnimationActive={false}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
-function ModelPie({ dayEvents }: { dayEvents: UsageEvent[] }) {
-  const data = useMemo(() => byModel(dayEvents), [dayEvents]);
+function ModelPie({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] }) {
+  const data = useMemo(() => byModel(dailyWindowEvents), [dailyWindowEvents]);
   return (
     <div className="panel">
       <h3>モデル別コスト構成</h3>
@@ -142,6 +157,7 @@ function ModelPie({ dayEvents }: { dayEvents: UsageEvent[] }) {
             outerRadius={90}
             paddingAngle={2}
             stroke="none"
+            isAnimationActive={false}
           >
             {data.map((entry, i) => (
               <Cell key={entry.key} fill={COLORS[i % COLORS.length]} />
@@ -156,15 +172,15 @@ function ModelPie({ dayEvents }: { dayEvents: UsageEvent[] }) {
 }
 
 function UserChart({
-  dayEvents,
+  dailyWindowEvents,
   selectedUser,
   onSelectUser,
 }: {
-  dayEvents: UsageEvent[];
+  dailyWindowEvents: UsageEvent[];
   selectedUser: string | null;
   onSelectUser: (user: string) => void;
 }) {
-  const data = useMemo(() => byUser(dayEvents).slice(0, 10), [dayEvents]);
+  const data = useMemo(() => byUser(dailyWindowEvents).slice(0, 10), [dailyWindowEvents]);
   const isSelected = (user: string) => !selectedUser || selectedUser === user;
   return (
     <div className="panel">
@@ -192,6 +208,7 @@ function UserChart({
               const user = (payload as { key?: string } | undefined)?.key;
               if (user) onSelectUser(user);
             }}
+            isAnimationActive={false}
           >
             {data.map((entry) => (
               <Cell key={entry.key} fill="#3fb950" opacity={isSelected(entry.key) ? 1 : 0.25} />
@@ -203,8 +220,8 @@ function UserChart({
   );
 }
 
-function KindBreakdown({ dayEvents }: { dayEvents: UsageEvent[] }) {
-  const data = useMemo(() => byKind(dayEvents), [dayEvents]);
+function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] }) {
+  const data = useMemo(() => byKind(dailyWindowEvents), [dailyWindowEvents]);
   const maxCost = Math.max(...data.map((d) => d.cost), 0);
   return (
     <div className="panel">
@@ -241,11 +258,26 @@ function KindBreakdown({ dayEvents }: { dayEvents: UsageEvent[] }) {
   );
 }
 
-function DayEventsTable({ dayEvents, timeZone }: { dayEvents: UsageEvent[]; timeZone: string }) {
-  const rows = useMemo(() => [...dayEvents].sort((a, b) => b.cost - a.cost), [dayEvents]);
+function DailyWindowEventsTable({
+  dailyWindowEvents,
+  timeZone,
+  eventLimit,
+}: {
+  dailyWindowEvents: UsageEvent[];
+  timeZone: string;
+  eventLimit?: number;
+}) {
+  const rows = useMemo(() => {
+    const sorted = [...dailyWindowEvents].sort((a, b) => b.cost - a.cost);
+    return eventLimit === undefined ? sorted : sorted.slice(0, eventLimit);
+  }, [dailyWindowEvents, eventLimit]);
+  const title =
+    eventLimit === undefined
+      ? `この Daily Window のイベント (${rows.length}件・コスト降順)`
+      : `この Daily Window のイベント Top ${eventLimit} (${rows.length} of ${dailyWindowEvents.length}件・コスト降順)`;
   return (
     <div className="panel wide">
-      <h3>この日のイベント ({rows.length}件・コスト降順)</h3>
+      <h3>{title}</h3>
       <div className="table-wrap scroll">
         <table>
           <thead>
@@ -262,8 +294,12 @@ function DayEventsTable({ dayEvents, timeZone }: { dayEvents: UsageEvent[]; time
             </tr>
           </thead>
           <tbody>
-            {rows.map((e, i) => (
-              <tr key={i}>
+            {rows.map((e) => (
+              <tr
+                key={[e.date.toISOString(), e.user, e.model, e.kind, e.totalTokens, e.cost].join(
+                  "|",
+                )}
+              >
                 <td>{formatTime(e.date, timeZone)}</td>
                 <td>{e.user}</td>
                 <td>
@@ -287,91 +323,112 @@ function DayEventsTable({ dayEvents, timeZone }: { dayEvents: UsageEvent[]; time
 }
 
 /**
- * Shows analysis for one Day in the selected Analysis Time Zone.
+ * Shows analysis for one Daily Window in the selected Analysis Time Zone.
  *
  * `events` is the current filtered analysis set for charts and tables.
- * `userEvents` keeps the unfiltered User comparison set for the day so the
+ * `userEvents` keeps the unfiltered User comparison set for the window so the
  * selected user can be shown without hiding the other users.
  */
-export function DayView({
+export function DailyWindowView({
   events,
   userEvents,
-  day,
+  dailyWindow,
   timeZone,
+  startHour,
+  eventLimit,
   selectedUser,
   onBack,
-  onSelectDay,
+  onSelectDailyWindow,
   onSelectUser,
 }: Props) {
-  const days = useMemo(() => byDay(events, timeZone).map((d) => d.key), [events, timeZone]);
-  const dayEvents = useMemo(() => onDay(events, day, timeZone), [events, day, timeZone]);
-  const dayUserEvents = useMemo(
-    () => onDay(userEvents, day, timeZone),
-    [userEvents, day, timeZone],
+  const dailyWindows = useMemo(
+    () => byDailyWindow(events, timeZone, startHour).map((d) => d.key),
+    [events, timeZone, startHour],
+  );
+  const dailyWindowEvents = useMemo(
+    () => eventsInDailyWindow(events, dailyWindow, timeZone, startHour),
+    [events, dailyWindow, timeZone, startHour],
+  );
+  const dailyWindowUserEvents = useMemo(
+    () => eventsInDailyWindow(userEvents, dailyWindow, timeZone, startHour),
+    [userEvents, dailyWindow, timeZone, startHour],
   );
   const totalCost = useMemo(() => events.reduce((sum, e) => sum + e.cost, 0), [events]);
   const costRank = useMemo(() => {
-    const sorted = byDay(events, timeZone).sort((a, b) => b.cost - a.cost);
-    return sorted.findIndex((d) => d.key === day) + 1;
-  }, [events, day, timeZone]);
+    const sorted = byDailyWindow(events, timeZone, startHour).sort((a, b) => b.cost - a.cost);
+    return sorted.findIndex((d) => d.key === dailyWindow) + 1;
+  }, [events, dailyWindow, timeZone, startHour]);
 
-  const idx = days.indexOf(day);
-  const prevDay = idx > 0 ? days[idx - 1] : undefined;
-  const nextDay = idx >= 0 && idx < days.length - 1 ? days[idx + 1] : undefined;
+  const idx = dailyWindows.indexOf(dailyWindow);
+  const prevDailyWindow = idx > 0 ? dailyWindows[idx - 1] : undefined;
+  const nextDailyWindow =
+    idx >= 0 && idx < dailyWindows.length - 1 ? dailyWindows[idx + 1] : undefined;
 
   return (
-    <div className="day-view">
-      <div className="day-nav">
+    <div className="daily-window-view">
+      <div className="daily-window-nav">
         <button type="button" className="reload-button" onClick={onBack}>
           ← 全体に戻る
         </button>
-        <div className="day-title">
-          <h2>{day}</h2>
-          <span className="meta">{dayEvents.length} 課金イベント</span>
+        <div className="daily-window-title">
+          <h2>{dailyWindow}</h2>
+          <span className="meta">
+            {dailyWindowEvents.length} 課金イベント ({timeZone}, start {startHour}:00)
+          </span>
         </div>
-        <div className="day-stepper">
+        <div className="daily-window-stepper">
           <button
             type="button"
             className="reload-button"
-            disabled={!prevDay}
-            onClick={() => prevDay && onSelectDay(prevDay)}
+            disabled={!prevDailyWindow}
+            onClick={() => prevDailyWindow && onSelectDailyWindow(prevDailyWindow)}
           >
-            ← 前の日
+            ← 前の Daily Window
           </button>
           <button
             type="button"
             className="reload-button"
-            disabled={!nextDay}
-            onClick={() => nextDay && onSelectDay(nextDay)}
+            disabled={!nextDailyWindow}
+            onClick={() => nextDailyWindow && onSelectDailyWindow(nextDailyWindow)}
           >
-            次の日 →
+            次の Daily Window →
           </button>
         </div>
       </div>
 
-      {dayEvents.length === 0 ? (
+      {dailyWindowEvents.length === 0 ? (
         <div className="panel wide">
-          <p className="meta">この日の課金イベントはありません。</p>
+          <p className="meta">この Daily Window の課金イベントはありません。</p>
         </div>
       ) : (
         <>
-          <DaySummaryCards
-            dayEvents={dayEvents}
+          <DailyWindowSummaryCards
+            dailyWindowEvents={dailyWindowEvents}
             timeZone={timeZone}
+            startHour={startHour}
             totalCost={totalCost}
             rank={costRank}
-            dayCount={days.length}
+            dailyWindowCount={dailyWindows.length}
           />
           <div className="grid">
-            <HourlyChart dayEvents={dayEvents} scaleDayEvents={dayUserEvents} timeZone={timeZone} />
-            <ModelPie dayEvents={dayEvents} />
+            <HourlyChart
+              dailyWindowEvents={dailyWindowEvents}
+              scaleDayEvents={dailyWindowUserEvents}
+              timeZone={timeZone}
+              startHour={startHour}
+            />
+            <ModelPie dailyWindowEvents={dailyWindowEvents} />
             <UserChart
-              dayEvents={dayUserEvents}
+              dailyWindowEvents={dailyWindowUserEvents}
               selectedUser={selectedUser}
               onSelectUser={onSelectUser}
             />
-            <KindBreakdown dayEvents={dayEvents} />
-            <DayEventsTable dayEvents={dayEvents} timeZone={timeZone} />
+            <KindBreakdown dailyWindowEvents={dailyWindowEvents} />
+            <DailyWindowEventsTable
+              dailyWindowEvents={dailyWindowEvents}
+              timeZone={timeZone}
+              eventLimit={eventLimit}
+            />
           </div>
         </>
       )}

@@ -21,23 +21,32 @@ A Usage Event whose `Kind` is `Errored, No Charge`. No Charge Events are parsed 
 No Charge Events may be included only when explicitly requested.
 
 **Analysis Time Zone**:
-The time zone used to group Usage Events into Days and Hours for analysis. The default comes from the user's environment, and users may override it for a specific analysis.
+The time zone used to group Usage Events into Daily Windows and Hours for analysis. The default comes from the user's environment, and users may override it for a specific analysis.
 
-**Day**:
-A calendar day in the Analysis Time Zone. Day boundaries are not inherently UTC boundaries.
+**Daily Window**:
+A 24-hour analysis window that starts at a selected hour in the Analysis Time Zone. Daily Windows are used when users want to describe a work session that may continue past midnight.
+_Avoid_: Day
 
-**Active Day**:
-A Day with at least one Billable Event.
+**Daily Window Key**:
+The `YYYY-MM-DD` label for a Daily Window, based on the local date at the window start in the Analysis Time Zone.
+_Avoid_: Day
 
-**Date Range**:
-The range from the first Active Day to the last Active Day in the analysis set.
+**Daily Report**:
+A shareable dashboard view for one Daily Window. Daily Reports are optimized to show when usage happened and what drove Cost.
+
+**Active Daily Window**:
+A Daily Window with at least one Billable Event.
+_Avoid_: Active Day
+
+**Daily Window Range**:
+The range from the first Active Daily Window to the last Active Daily Window in the analysis set.
 _Avoid_: Calendar Range
 
 **Hour**:
-An hour of a Day in the Analysis Time Zone.
+An hour of a Daily Window in the Analysis Time Zone.
 
 **Analysis Axis**:
-A dimension used to group Usage Events for analysis, such as Day, Hour, User, Model, or Kind.
+A dimension used to group Usage Events for analysis, such as Daily Window, Hour, User, Model, or Kind.
 
 **Metric**:
 An analysis value obtained from or calculated over Usage Events, such as Cost, Token Count, Event Count, or Max Mode Ratio.
@@ -53,12 +62,12 @@ The share of analyzed Billable Events where Max Mode is enabled.
 **Cost**:
 The USD amount reported by the `Cost` column in Cursor's usage-events CSV export. Cost is not recalculated from token counts and model prices.
 
-**Avg Cost / Active Day**:
-Total Cost divided by the number of Active Days in the analysis set.
-_Avoid_: Avg Cost / Day
+**Avg Cost / Active Daily Window**:
+Total Cost divided by the number of Active Daily Windows in the analysis set.
+_Avoid_: Avg Cost / Active Day, Avg Cost / Day
 
 **High Cost**:
-A relative description for Days or Billable Events with large Cost within the current analysis set.
+A relative description for Daily Windows or Billable Events with large Cost within the current analysis set.
 _Avoid_: Fixed Cost Threshold
 
 **Token Count**:

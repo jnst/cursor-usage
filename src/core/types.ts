@@ -21,11 +21,11 @@ export interface Summary {
   totalCost: number;
   totalTokens: number;
   eventCount: number;
-  /** YYYY-MM-DD in the selected analysis time zone */
-  firstDay: string | null;
-  lastDay: string | null;
-  dayCount: number;
-  avgCostPerActiveDay: number;
+  /** YYYY-MM-DD Daily Window Key in the selected analysis time zone */
+  firstDailyWindow: string | null;
+  lastDailyWindow: string | null;
+  dailyWindowCount: number;
+  avgCostPerActiveDailyWindow: number;
   maxModeRatio: number;
   userCount: number;
   modelCount: number;
@@ -41,8 +41,8 @@ export interface BucketStat {
   eventCount: number;
 }
 
-export interface DayModelStat {
-  day: string;
+export interface DailyWindowModelStat {
+  dailyWindow: string;
   /** model name -> cost */
   costByModel: Record<string, number>;
   totalCost: number;

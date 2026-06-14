@@ -19,7 +19,7 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
 
-Click any bar in the daily cost chart to drill into that day (hourly breakdown, per-model / per-user / per-kind costs, and every event of the day). Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected day, user, and analysis time zone are reflected in the URL hash (`#day=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
+Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model / per-user / per-kind costs, and every event in the window). Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
 
 The default port is 4321; if it is already in use, a free port is picked automatically. When `--port` is specified explicitly, that port is used as-is.
 
@@ -34,13 +34,13 @@ npx @jnst/cursor-usage stats team-usage-events.csv
 ```
 
 ```
-Cursor Usage  2026-06-01 – 2026-06-10  (610 events, 10 days)
+Cursor Usage  2026-06-01 – 2026-06-10  (610 events, 10 daily windows)
 
   Total Cost    $1446.69      Total Tokens  1.1B
   Avg/Active    $144.67       Max Mode      96%
   Users         4             Models        8
 
-Daily Cost
+Daily Window Cost
   2026-06-01  $147.44  ████████████████▊            10% 102.9M tok, 68 ev
   2026-06-02  $246.57  ████████████████████████████ 17% 180.0M tok, 79 ev
   ...
@@ -53,21 +53,22 @@ By Model
 
 Options:
 
-| Option                    | Description                                                     |
-| ------------------------- | --------------------------------------------------------------- |
-| `--by <day\|user\|model>` | Show a single breakdown axis                                    |
-| `--day <YYYY-MM-DD>`      | Drill into a single day (hourly, model, user, kind, top events) |
-| `--user <identifier>`     | Filter analysis to a single User                                |
-| `--timezone <iana-tz>`    | Group days and hours in a specific analysis time zone           |
-| `--json`                  | Output aggregated stats as JSON (pipe to jq etc.)               |
-| `--include-no-charge`     | Include "Errored, No Charge" events                             |
+| Option                             | Description                                                    |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `--by <daily-window\|user\|model>` | Show a single breakdown axis                                   |
+| `--daily-window <YYYY-MM-DD>`      | Drill into a single Daily Window                               |
+| `--start-hour <0-23>`              | Daily Window start hour (default: `0`)                         |
+| `--user <identifier>`              | Filter analysis to a single User                               |
+| `--timezone <iana-tz>`             | Group Daily Windows and hours in a specific analysis time zone |
+| `--json`                           | Output aggregated stats as JSON (pipe to jq etc.)              |
+| `--include-no-charge`              | Include "Errored, No Charge" events                            |
 
 ```bash
 # Extract key numbers
 npx @jnst/cursor-usage stats usage.csv --json | jq .summary.totalCost
 
-# Drill into the most expensive day
-npx @jnst/cursor-usage stats usage.csv --day 2026-06-02 --timezone Asia/Tokyo
+# Drill into a Daily Window
+npx @jnst/cursor-usage stats usage.csv --daily-window 2026-06-02 --timezone Asia/Tokyo
 
 # Filter to a single user
 npx @jnst/cursor-usage stats usage.csv --user jnst@example.jp
@@ -78,6 +79,54 @@ Or install globally to use the short `cursor-usage` command:
 ```bash
 npm install -g @jnst/cursor-usage   # or: bun add -g @jnst/cursor-usage
 cursor-usage stats usage.csv
+```
+
+### Screenshots
+
+```bash
+npx @jnst/cursor-usage screenshot team-usage-events.csv
+```
+
+Captures the dashboard as a PNG next to the CSV. The default screenshot is an
+Overview:
+
+```text
+team-usage-events.csv -> team-usage-events.png
+```
+
+Use `--daily-window` to capture the detail view for one Daily Window:
+
+```bash
+npx @jnst/cursor-usage screenshot team-usage-events.csv --daily-window 2026-06-14
+```
+
+```text
+team-usage-events.csv --daily-window 2026-06-14 -> team-usage-events-2026-06-14-daily.png
+```
+
+Use `--start-hour` when a Daily Window should start after midnight, and
+`--event-limit` to limit the event table in the screenshot:
+
+```bash
+npx @jnst/cursor-usage screenshot usage.csv --daily-window 2026-06-14 --start-hour 5 --event-limit 20
+```
+
+For a shareable report of the latest work session in the CSV, use
+`daily-report`. It captures the latest 5:00-start Daily Window, limits the
+event table to the top 10 events by cost, and writes `daily-report.png` in the
+current directory:
+
+```bash
+npx @jnst/cursor-usage daily-report usage.csv
+```
+
+Screenshots use a headless browser and require an installed Chrome/Chromium.
+Set `CHROME_PATH` if Chrome is not available on the default channel. Screenshots
+can also be filtered the same way as terminal stats:
+
+```bash
+npx @jnst/cursor-usage screenshot usage.csv --daily-window 2026-06-14 --user jnst@example.jp --timezone Asia/Tokyo
+npx @jnst/cursor-usage screenshot usage.csv --out dashboard.png
 ```
 
 ## Development
