@@ -25,7 +25,7 @@ import {
   orderedHours,
   summarize,
 } from "../../src/core/aggregate.ts";
-import { COLORS, formatTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
+import { COLORS, BAR_SIZE, formatTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
 
 interface Props {
   events: UsageEvent[];
@@ -209,6 +209,8 @@ function UserChart({
               if (user) onSelectUser(user);
             }}
             isAnimationActive={false}
+            barSize={BAR_SIZE}
+            maxBarSize={BAR_SIZE}
           >
             {data.map((entry) => (
               <Cell key={entry.key} fill="#3fb950" opacity={isSelected(entry.key) ? 1 : 0.25} />

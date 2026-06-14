@@ -21,6 +21,8 @@ export const COLORS = [
   "#6e7681", // gray
 ];
 
+export const BAR_SIZE = 40;
+
 /**
  * Formats Cost for web UI display.
  *

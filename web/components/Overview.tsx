@@ -23,7 +23,14 @@ import {
   summarize,
   topEvents,
 } from "../../src/core/aggregate.ts";
-import { COLORS, formatDateTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
+import {
+  COLORS,
+  BAR_SIZE,
+  formatDateTime,
+  formatTokens,
+  formatUsd,
+  tooltipStyle,
+} from "./shared.ts";
 
 export { formatTokens, formatUsd };
 
@@ -140,6 +147,8 @@ function DailyChart({
               cursor={onSelectDailyWindow ? "pointer" : undefined}
               onClick={(payload) => handleClick(payload as { dailyWindow?: string } | undefined)}
               isAnimationActive={false}
+              barSize={BAR_SIZE}
+              maxBarSize={BAR_SIZE}
             />
           ))}
           <Line
@@ -224,6 +233,8 @@ function UserChart({
               if (user) onSelectUser?.(user);
             }}
             isAnimationActive={false}
+            barSize={BAR_SIZE}
+            maxBarSize={BAR_SIZE}
           >
             {data.map((entry) => (
               <Cell key={entry.key} fill="#58a6ff" opacity={isSelected(entry.key) ? 1 : 0.25} />
