@@ -24,9 +24,11 @@ import {
 import type { UsageEvent } from "../../src/core/types.ts";
 import {
   COLORS,
+  formatAxisUsd,
   formatTime,
   formatTokens,
   formatUsd,
+  niceCostMax,
   tooltipStyle,
 } from "./shared.ts";
 
@@ -100,7 +102,10 @@ function HourlyChart({
     });
   }, [dayEvents, timeZone]);
   const maxHourlyCost = useMemo(
-    () => Math.max(...byHour(scaleDayEvents, timeZone).map((b) => b.cost), 0),
+    () =>
+      niceCostMax(
+        Math.max(...byHour(scaleDayEvents, timeZone).map((b) => b.cost), 0),
+      ),
     [scaleDayEvents, timeZone],
   );
 
@@ -115,7 +120,7 @@ function HourlyChart({
             domain={[0, maxHourlyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatUsd}
+            tickFormatter={formatAxisUsd}
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -184,7 +189,7 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatUsd}
+            tickFormatter={formatAxisUsd}
           />
           <YAxis
             type="category"

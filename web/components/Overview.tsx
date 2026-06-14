@@ -23,9 +23,11 @@ import {
 import type { UsageEvent } from "../../src/core/types.ts";
 import {
   COLORS,
+  formatAxisUsd,
   formatDateTime,
   formatTokens,
   formatUsd,
+  niceCostMax,
   tooltipStyle,
 } from "./shared.ts";
 
@@ -88,8 +90,8 @@ function DailyChart({
   const scale = useMemo(() => {
     const days = byDayAndModel(scaleEvents, timeZone);
     return {
-      maxDailyCost: Math.max(...days.map((d) => d.totalCost), 0),
-      totalCost: days.reduce((sum, d) => sum + d.totalCost, 0),
+      maxDailyCost: niceCostMax(Math.max(...days.map((d) => d.totalCost), 0)),
+      totalCost: niceCostMax(days.reduce((sum, d) => sum + d.totalCost, 0)),
     };
   }, [scaleEvents, timeZone]);
 
@@ -114,7 +116,7 @@ function DailyChart({
             domain={[0, scale.maxDailyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatUsd}
+            tickFormatter={formatAxisUsd}
           />
           <YAxis
             yAxisId="cumulative"
@@ -122,7 +124,7 @@ function DailyChart({
             orientation="right"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatUsd}
+            tickFormatter={formatAxisUsd}
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -213,7 +215,7 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatUsd}
+            tickFormatter={formatAxisUsd}
           />
           <YAxis
             type="category"
