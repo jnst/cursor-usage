@@ -23,6 +23,9 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "build": "bun run build.ts",
+    "release:patch": "bun run scripts/release.ts patch",
+    "release:minor": "bun run scripts/release.ts minor",
+    "release:major": "bun run scripts/release.ts major",
     "prepublishOnly": "bun run build"
   },
   "engines": {

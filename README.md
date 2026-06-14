@@ -95,6 +95,36 @@ bun dist/cli.js stats usage.csv
 bun scripts/generate-dummy-csv.ts > dummy-usage.csv
 ```
 
+### Release
+
+Release commands verify, version, publish, push commits/tags, and create a
+draft GitHub Release with generated notes:
+
+```bash
+bun run release:patch
+bun run release:minor
+bun run release:major
+```
+
+GitHub Releases are drafts by default so notes can be reviewed before publish.
+Use `--publish-release` to publish the GitHub Release immediately, or
+`--dry-run` to print mutating steps without running them:
+
+```bash
+bun run release:patch --dry-run
+bun run release:patch --publish-release
+```
+
+Release commands are safe to rerun after a partial failure. The script checks
+the current tag, npm package version, and GitHub Release before each publishing
+step:
+
+```bash
+# If npm publish, git push, or GitHub Release creation failed midway,
+# fix the problem and run the same command again.
+bun run release:patch
+```
+
 ## Architecture
 
 - `src/core/` — CSV parsing and aggregation (pure TS, shared between terminal and browser)
