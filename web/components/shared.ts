@@ -21,10 +21,30 @@ export const COLORS = [
   "#6e7681", // gray
 ];
 
-export function formatUsd(value: number): string {
-  return `$${value.toFixed(2)}`;
+/**
+ * Formats Cost for web UI display.
+ *
+ * The default keeps cents for cards, tooltips, and tables. Chart axes may pass
+ * `trimZeroCents` so labels like `$180.00` become `$180` while non-zero cents
+ * remain visible.
+ */
+export function formatUsd(
+  value: number,
+  options: { trimZeroCents?: boolean } = {},
+): string {
+  const fixed = value.toFixed(2);
+  if (options.trimZeroCents && fixed.endsWith(".00")) {
+    return `$${fixed.slice(0, -3)}`;
+  }
+  return `$${fixed}`;
 }
 
+/**
+ * Formats token counts with compact suffixes for dense UI labels.
+ *
+ * This is for human-readable display only; calculations and machine-readable
+ * outputs should keep the original numeric token counts.
+ */
 export function formatTokens(value: number): string {
   if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
   if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
@@ -50,6 +70,12 @@ function dateTimePart(
   return parts.find((p) => p.type === part)?.value ?? "";
 }
 
+/**
+ * Formats an event timestamp in the selected Analysis Time Zone.
+ *
+ * The input Date is an absolute timestamp; the time zone controls the calendar
+ * day and clock time shown to the user.
+ */
 export function formatDateTime(date: Date, timeZone: string): string {
   const day = [
     dateTimePart(date, timeZone, "year"),
@@ -63,6 +89,12 @@ export function formatDateTime(date: Date, timeZone: string): string {
   return `${day} ${time}`;
 }
 
+/**
+ * Formats only the clock time portion of an event timestamp.
+ *
+ * Use this inside a Day View where the Day is already visible and the relevant
+ * context is the time within that Day's Analysis Time Zone.
+ */
 export function formatTime(date: Date, timeZone: string): string {
   return [
     dateTimePart(date, timeZone, "hour"),

@@ -115,7 +115,9 @@ function HourlyChart({
             domain={[0, maxHourlyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value))}
+            tickFormatter={(value) =>
+              formatUsd(Number(value), { trimZeroCents: true })
+            }
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -184,7 +186,9 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value))}
+            tickFormatter={(value) =>
+              formatUsd(Number(value), { trimZeroCents: true })
+            }
           />
           <YAxis
             type="category"
@@ -313,6 +317,13 @@ function DayEventsTable({
   );
 }
 
+/**
+ * Shows analysis for one Day in the selected Analysis Time Zone.
+ *
+ * `events` is the current filtered analysis set for charts and tables.
+ * `userEvents` keeps the unfiltered User comparison set for the day so the
+ * selected user can be shown without hiding the other users.
+ */
 export function DayView({
   events,
   userEvents,

@@ -21,10 +21,22 @@ export const cyan = ansi("36");
 export const green = ansi("32");
 export const yellow = ansi("33");
 
+/**
+ * Formats Cost for terminal output.
+ *
+ * Terminal tables preserve cents because Cost comes from the Usage Export and
+ * should not be visually rounded away in textual summaries.
+ */
 export function formatUsd(value: number): string {
   return `$${value.toFixed(2)}`;
 }
 
+/**
+ * Formats token counts for compact human-readable terminal output.
+ *
+ * This is a display helper only. Machine-readable JSON output should keep the
+ * original numeric token counts.
+ */
 export function formatTokens(value: number): string {
   if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
   if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
@@ -32,7 +44,12 @@ export function formatTokens(value: number): string {
   return String(value);
 }
 
-/** Horizontal bar with 1/8-block resolution. */
+/**
+ * Renders a horizontal terminal bar with 1/8-block resolution.
+ *
+ * The bar is relative to the supplied maximum, so it should only be compared
+ * within the same rendered section.
+ */
 export function bar(value: number, max: number, width: number): string {
   if (max <= 0 || value <= 0) return "";
   const eighths = Math.round((value / max) * width * 8);
@@ -120,6 +137,12 @@ function renderBucketChart(
 
 export type StatsAxis = "day" | "user" | "model";
 
+/**
+ * Renders the overview analysis for terminal display.
+ *
+ * The input events should already reflect CLI filters such as Billable Events
+ * only, selected User, and No Charge inclusion.
+ */
 export function renderStats(
   events: UsageEvent[],
   axis: StatsAxis | undefined,
@@ -154,6 +177,12 @@ export function renderStats(
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
+/**
+ * Serializes the overview analysis as JSON for scripting.
+ *
+ * Unlike terminal rendering, this keeps numeric values as numbers and includes
+ * the active view filters so downstream tools can interpret the result.
+ */
 export function statsJson(
   events: UsageEvent[],
   timeZone: string,
@@ -231,6 +260,12 @@ function renderDayEvents(
   return lines;
 }
 
+/**
+ * Renders one Day View for terminal display.
+ *
+ * The Day is interpreted in the provided Analysis Time Zone, and the input
+ * events should already include any User or No Charge filtering.
+ */
 export function renderDayView(
   events: UsageEvent[],
   day: string,
@@ -270,6 +305,12 @@ export function renderDayView(
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
+/**
+ * Serializes one Day View as JSON for scripting.
+ *
+ * The returned object includes the selected Day, Analysis Time Zone, filters,
+ * and the same breakdowns shown in terminal Day View output.
+ */
 export function dayViewJson(
   events: UsageEvent[],
   day: string,

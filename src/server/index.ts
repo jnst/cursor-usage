@@ -54,6 +54,12 @@ export interface ServeOptions {
   open: boolean;
 }
 
+/**
+ * Serves the bundled dashboard assets from the local machine.
+ *
+ * The server only serves static files; Usage Export data is loaded and analyzed
+ * in the browser so sensitive usage data is not uploaded anywhere.
+ */
 export function serve(options: ServeOptions): void {
   const webRoot = findWebRoot();
 

@@ -1,8 +1,11 @@
 import type { UsageEvent } from "./types.ts";
 
 /**
- * Minimal RFC4180-style CSV parser. Handles quoted fields with embedded
- * commas, escaped quotes ("") and newlines inside quotes.
+ * Parses CSV text into rows and fields.
+ *
+ * This is intentionally small but handles the CSV features used by Cursor's
+ * Usage Export: quoted fields, embedded commas, escaped quotes, and newlines
+ * inside quoted fields.
  */
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -87,8 +90,10 @@ function toNumber(value: string | undefined): number {
 }
 
 /**
- * Parse a Cursor team usage-events CSV export into UsageEvent[].
- * Throws if the header does not look like a usage-events export.
+ * Parses a Cursor Usage Export into Usage Events.
+ *
+ * The CSV `Cost` column is treated as the reported Cost; this parser does not
+ * attempt to recalculate pricing from token counts or model names.
  */
 export function parseUsageCsv(text: string): UsageEvent[] {
   const rows = parseCsv(text.trim());

@@ -5,6 +5,12 @@ interface Props {
   error: string | null;
 }
 
+/**
+ * Lets the user load a Usage Export into the browser.
+ *
+ * The selected file is read locally and passed upward as text; this component
+ * does not upload or persist the CSV contents.
+ */
 export function DropZone({ onCsvText, error }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);

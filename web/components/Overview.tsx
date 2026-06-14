@@ -114,7 +114,9 @@ function DailyChart({
             domain={[0, scale.maxDailyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value))}
+            tickFormatter={(value) =>
+              formatUsd(Number(value), { trimZeroCents: true })
+            }
           />
           <YAxis
             yAxisId="cumulative"
@@ -122,7 +124,9 @@ function DailyChart({
             orientation="right"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value))}
+            tickFormatter={(value) =>
+              formatUsd(Number(value), { trimZeroCents: true })
+            }
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -213,7 +217,9 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value))}
+            tickFormatter={(value) =>
+              formatUsd(Number(value), { trimZeroCents: true })
+            }
           />
           <YAxis
             type="category"
@@ -301,6 +307,13 @@ function TopEventsTable({
   );
 }
 
+/**
+ * Shows the top-level analysis for the loaded Usage Export.
+ *
+ * `events` is the currently filtered analysis set. `userEvents` keeps the
+ * unfiltered User comparison set so the User chart can show selected and
+ * unselected users together.
+ */
 export function Overview({
   events,
   userEvents,
