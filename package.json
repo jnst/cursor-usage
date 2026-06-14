@@ -22,6 +22,8 @@
     "dev": "bun --hot src/server/dev.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
+    "check": "vp fmt --check .",
+    "fix": "vp fmt . --write",
     "build": "bun run build.ts",
     "release:patch": "bun run scripts/release.ts patch",
     "release:minor": "bun run scripts/release.ts minor",
@@ -44,6 +46,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "recharts": "^3.8.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite-plus": "^0.1.24"
   }
 }
