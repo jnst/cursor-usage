@@ -1,6 +1,6 @@
 {
   "name": "@jnst/cursor-usage",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Visualize Cursor usage-events CSV: terminal stats and a drag-and-drop local dashboard",
   "license": "MIT",
   "repository": {
