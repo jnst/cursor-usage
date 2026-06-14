@@ -146,29 +146,27 @@ bun scripts/generate-dummy-csv.ts > dummy-usage.csv
 
 ### Release
 
-Release commands verify, version, publish, push commits/tags, and create a
+The release command verifies, versions, publishes, pushes commits/tags, and creates a
 GitHub Release with generated notes:
 
 ```bash
-bun run release:patch
-bun run release:minor
-bun run release:major
+bun run release
 ```
 
 Use `--dry-run` to print mutating steps without running them:
 
 ```bash
-bun run release:patch --dry-run
+bun run release --dry-run
 ```
 
-Release commands are safe to rerun after a partial failure. The script checks
+The release command is safe to rerun after a partial failure. The script checks
 the current tag, npm package version, and GitHub Release before each publishing
 step:
 
 ```bash
 # If npm publish, git push, or GitHub Release creation failed midway,
 # fix the problem and run the same command again.
-bun run release:patch
+bun run release
 ```
 
 ## Architecture

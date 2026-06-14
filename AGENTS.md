@@ -5,4 +5,4 @@
 - Use `bun run fix` for formatting and import-order fixes.
 - Use `bun run precommit` before committing.
 - Use `bun run prepush` before pushing.
-- Use `bun run release:patch`, `bun run release:minor`, or `bun run release:major` for releases instead of manually sequencing version, publish, push, and GitHub Release steps.
+- Use `bun run release` for releases instead of manually sequencing version, publish, push, and GitHub Release steps.

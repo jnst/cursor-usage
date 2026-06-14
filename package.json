@@ -32,9 +32,7 @@
     "precommit": "bun run typecheck && bun test",
     "prepush": "bun run precommit && bun run build",
     "build": "bun run build.ts",
-    "release:patch": "bun run scripts/release.ts patch",
-    "release:minor": "bun run scripts/release.ts minor",
-    "release:major": "bun run scripts/release.ts major",
+    "release": "bun run scripts/release.ts minor",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
