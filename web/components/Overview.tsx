@@ -26,7 +26,6 @@ import {
   formatDateTime,
   formatTokens,
   formatUsd,
-  niceCostMax,
   tooltipStyle,
 } from "./shared.ts";
 
@@ -89,8 +88,8 @@ function DailyChart({
   const scale = useMemo(() => {
     const days = byDayAndModel(scaleEvents, timeZone);
     return {
-      maxDailyCost: niceCostMax(Math.max(...days.map((d) => d.totalCost), 0)),
-      totalCost: niceCostMax(days.reduce((sum, d) => sum + d.totalCost, 0)),
+      maxDailyCost: Math.max(...days.map((d) => d.totalCost), 0),
+      totalCost: days.reduce((sum, d) => sum + d.totalCost, 0),
     };
   }, [scaleEvents, timeZone]);
 

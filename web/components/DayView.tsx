@@ -27,7 +27,6 @@ import {
   formatTime,
   formatTokens,
   formatUsd,
-  niceCostMax,
   tooltipStyle,
 } from "./shared.ts";
 
@@ -101,10 +100,7 @@ function HourlyChart({
     });
   }, [dayEvents, timeZone]);
   const maxHourlyCost = useMemo(
-    () =>
-      niceCostMax(
-        Math.max(...byHour(scaleDayEvents, timeZone).map((b) => b.cost), 0),
-      ),
+    () => Math.max(...byHour(scaleDayEvents, timeZone).map((b) => b.cost), 0),
     [scaleDayEvents, timeZone],
   );
 

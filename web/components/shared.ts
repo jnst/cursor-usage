@@ -25,15 +25,6 @@ export function formatUsd(value: number): string {
   return `$${value.toFixed(2)}`;
 }
 
-export function niceCostMax(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return 0;
-  const magnitude = 10 ** Math.floor(Math.log10(value));
-  const normalized = value / magnitude;
-  const niceNormalized =
-    normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
-  return niceNormalized * magnitude;
-}
-
 export function formatTokens(value: number): string {
   if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
   if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
