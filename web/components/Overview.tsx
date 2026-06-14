@@ -23,7 +23,6 @@ import {
 import type { UsageEvent } from "../../src/core/types.ts";
 import {
   COLORS,
-  formatAxisUsd,
   formatDateTime,
   formatTokens,
   formatUsd,
@@ -116,7 +115,7 @@ function DailyChart({
             domain={[0, scale.maxDailyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatAxisUsd}
+            tickFormatter={(value) => formatUsd(Number(value))}
           />
           <YAxis
             yAxisId="cumulative"
@@ -124,7 +123,7 @@ function DailyChart({
             orientation="right"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatAxisUsd}
+            tickFormatter={(value) => formatUsd(Number(value))}
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -215,7 +214,7 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatAxisUsd}
+            tickFormatter={(value) => formatUsd(Number(value))}
           />
           <YAxis
             type="category"

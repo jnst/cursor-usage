@@ -24,7 +24,6 @@ import {
 import type { UsageEvent } from "../../src/core/types.ts";
 import {
   COLORS,
-  formatAxisUsd,
   formatTime,
   formatTokens,
   formatUsd,
@@ -120,7 +119,7 @@ function HourlyChart({
             domain={[0, maxHourlyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatAxisUsd}
+            tickFormatter={(value) => formatUsd(Number(value))}
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -189,7 +188,7 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={formatAxisUsd}
+            tickFormatter={(value) => formatUsd(Number(value))}
           />
           <YAxis
             type="category"

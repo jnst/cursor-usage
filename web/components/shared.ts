@@ -25,12 +25,6 @@ export function formatUsd(value: number): string {
   return `$${value.toFixed(2)}`;
 }
 
-export function formatAxisUsd(value: number | string): string {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return "";
-  return formatUsd(Number(n.toFixed(2)));
-}
-
 export function niceCostMax(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 0;
   const magnitude = 10 ** Math.floor(Math.log10(value));
