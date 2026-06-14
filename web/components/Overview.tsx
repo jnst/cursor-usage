@@ -114,7 +114,7 @@ function DailyChart({
             domain={[0, scale.maxDailyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(v: number) => `$${v}`}
+            tickFormatter={formatUsd}
           />
           <YAxis
             yAxisId="cumulative"
@@ -122,7 +122,7 @@ function DailyChart({
             orientation="right"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(v: number) => `$${v}`}
+            tickFormatter={formatUsd}
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -213,7 +213,7 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(v: number) => `$${v}`}
+            tickFormatter={formatUsd}
           />
           <YAxis
             type="category"

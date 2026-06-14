@@ -115,7 +115,7 @@ function HourlyChart({
             domain={[0, maxHourlyCost]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(v: number) => `$${v}`}
+            tickFormatter={formatUsd}
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -184,7 +184,7 @@ function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(v: number) => `$${v}`}
+            tickFormatter={formatUsd}
           />
           <YAxis
             type="category"
