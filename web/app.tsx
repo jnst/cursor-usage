@@ -21,6 +21,7 @@ type SerializedUsageEvent = Omit<UsageEvent, "date"> & { date: string };
 declare global {
   interface Window {
     __CURSOR_USAGE_EVENTS__?: SerializedUsageEvent[];
+    __CURSOR_USAGE_SCREENSHOT__?: boolean;
   }
 }
 
@@ -107,6 +108,7 @@ function useDailyWindowRoute(): {
 function App() {
   const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(() => initialEvents());
   const [error, setError] = useState<string | null>(null);
+  const showControls = window.__CURSOR_USAGE_SCREENSHOT__ !== true;
   const {
     selectedDailyWindow,
     selectedUser,
@@ -139,13 +141,21 @@ function App() {
     [baseEvents, selectedUser],
   );
   const noChargeCount = allEvents && billableEvents ? allEvents.length - billableEvents.length : 0;
+  const clearDailyWindow = () => {
+    if (events && showControls) setSelectedDailyWindow(null);
+  };
 
   return (
     <div className="app">
       <div className="header">
         <h1
-          className={events ? "clickable-title" : undefined}
-          onClick={() => events && setSelectedDailyWindow(null)}
+          className={events && showControls ? "clickable-title" : undefined}
+          onClick={clearDailyWindow}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") clearDailyWindow();
+          }}
+          role={events && showControls ? "button" : undefined}
+          tabIndex={events && showControls ? 0 : undefined}
         >
           Cursor Usage
         </h1>
@@ -155,18 +165,20 @@ function App() {
               {events.length} 課金イベント
               {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
             </span>
-            <button
-              type="button"
-              className="reload-button"
-              onClick={() => {
-                setSelectedDailyWindow(null);
-                setSelectedUser(null);
-                setAllEvents(null);
-                setError(null);
-              }}
-            >
-              別のCSVを読み込む
-            </button>
+            {showControls && (
+              <button
+                type="button"
+                className="reload-button"
+                onClick={() => {
+                  setSelectedDailyWindow(null);
+                  setSelectedUser(null);
+                  setAllEvents(null);
+                  setError(null);
+                }}
+              >
+                別のCSVを読み込む
+              </button>
+            )}
           </>
         )}
       </div>
@@ -178,6 +190,7 @@ function App() {
             timeZone={timeZone}
             startHour={startHour}
             eventLimit={eventLimit ?? undefined}
+            showControls={showControls}
             onBack={() => setSelectedDailyWindow(null)}
             onSelectDailyWindow={setSelectedDailyWindow}
             onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
@@ -190,6 +203,7 @@ function App() {
             userEvents={baseEvents ?? events}
             timeZone={timeZone}
             startHour={startHour}
+            showControls={showControls}
             onSelectDailyWindow={setSelectedDailyWindow}
             onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
             selectedUser={selectedUser}
@@ -202,4 +216,6 @@ function App() {
   );
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = document.getElementById("root");
+if (!root) throw new Error("Root element not found.");
+createRoot(root).render(<App />);

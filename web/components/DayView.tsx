@@ -34,6 +34,7 @@ interface Props {
   timeZone: string;
   startHour: number;
   eventLimit?: number;
+  showControls: boolean;
   selectedUser: string | null;
   onBack: () => void;
   onSelectDailyWindow: (dailyWindow: string) => void;
@@ -174,10 +175,12 @@ function ModelPie({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] }) {
 function UserChart({
   dailyWindowEvents,
   selectedUser,
+  showControls,
   onSelectUser,
 }: {
   dailyWindowEvents: UsageEvent[];
   selectedUser: string | null;
+  showControls: boolean;
   onSelectUser: (user: string) => void;
 }) {
   const data = useMemo(() => byUser(dailyWindowEvents).slice(0, 10), [dailyWindowEvents]);
@@ -186,7 +189,7 @@ function UserChart({
     <div className="panel">
       <h3>
         ユーザー別コスト (Top 10)
-        <span className="hint">バーをクリックでユーザー選択/解除</span>
+        {showControls && <span className="hint">バーをクリックでユーザー選択/解除</span>}
       </h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data} layout="vertical">
@@ -203,8 +206,9 @@ function UserChart({
             dataKey="cost"
             name="Cost"
             radius={[0, 4, 4, 0]}
-            cursor="pointer"
+            cursor={showControls ? "pointer" : undefined}
             onClick={(payload) => {
+              if (!showControls) return;
               const user = (payload as { key?: string } | undefined)?.key;
               if (user) onSelectUser(user);
             }}
@@ -338,6 +342,7 @@ export function DailyWindowView({
   timeZone,
   startHour,
   eventLimit,
+  showControls,
   selectedUser,
   onBack,
   onSelectDailyWindow,
@@ -369,33 +374,37 @@ export function DailyWindowView({
   return (
     <div className="daily-window-view">
       <div className="daily-window-nav">
-        <button type="button" className="reload-button" onClick={onBack}>
-          ← 全体に戻る
-        </button>
+        {showControls && (
+          <button type="button" className="reload-button" onClick={onBack}>
+            ← 全体に戻る
+          </button>
+        )}
         <div className="daily-window-title">
           <h2>{dailyWindow}</h2>
           <span className="meta">
             {dailyWindowEvents.length} 課金イベント ({timeZone}, start {startHour}:00)
           </span>
         </div>
-        <div className="daily-window-stepper">
-          <button
-            type="button"
-            className="reload-button"
-            disabled={!prevDailyWindow}
-            onClick={() => prevDailyWindow && onSelectDailyWindow(prevDailyWindow)}
-          >
-            ← 前の Daily Window
-          </button>
-          <button
-            type="button"
-            className="reload-button"
-            disabled={!nextDailyWindow}
-            onClick={() => nextDailyWindow && onSelectDailyWindow(nextDailyWindow)}
-          >
-            次の Daily Window →
-          </button>
-        </div>
+        {showControls && (
+          <div className="daily-window-stepper">
+            <button
+              type="button"
+              className="reload-button"
+              disabled={!prevDailyWindow}
+              onClick={() => prevDailyWindow && onSelectDailyWindow(prevDailyWindow)}
+            >
+              ← 前の Daily Window
+            </button>
+            <button
+              type="button"
+              className="reload-button"
+              disabled={!nextDailyWindow}
+              onClick={() => nextDailyWindow && onSelectDailyWindow(nextDailyWindow)}
+            >
+              次の Daily Window →
+            </button>
+          </div>
+        )}
       </div>
 
       {dailyWindowEvents.length === 0 ? (
@@ -423,6 +432,7 @@ export function DailyWindowView({
             <UserChart
               dailyWindowEvents={dailyWindowUserEvents}
               selectedUser={selectedUser}
+              showControls={showControls}
               onSelectUser={onSelectUser}
             />
             <KindBreakdown dailyWindowEvents={dailyWindowEvents} />

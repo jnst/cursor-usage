@@ -77,12 +77,14 @@ function DailyChart({
   scaleEvents,
   timeZone,
   startHour,
+  showControls,
   onSelectDailyWindow,
 }: {
   events: UsageEvent[];
   scaleEvents: UsageEvent[];
   timeZone: string;
   startHour: number;
+  showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
 }) {
   const models = useMemo(() => byModel(events).map((m) => m.key), [events]);
@@ -114,7 +116,9 @@ function DailyChart({
     <div className="panel wide">
       <h3>
         日別コスト推移(モデル別積み上げ + 累積)
-        {onSelectDailyWindow && <span className="hint">バーをクリックで詳細へ</span>}
+        {showControls && onSelectDailyWindow && (
+          <span className="hint">バーをクリックで詳細へ</span>
+        )}
       </h3>
       <ResponsiveContainer width="100%" height={320}>
         <ComposedChart data={data}>
@@ -144,7 +148,7 @@ function DailyChart({
               dataKey={model}
               stackId="cost"
               fill={COLORS[i % COLORS.length]}
-              cursor={onSelectDailyWindow ? "pointer" : undefined}
+              cursor={showControls && onSelectDailyWindow ? "pointer" : undefined}
               onClick={(payload) => handleClick(payload as { dailyWindow?: string } | undefined)}
               isAnimationActive={false}
               barSize={BAR_SIZE}
@@ -198,10 +202,12 @@ function ModelPie({ events }: { events: UsageEvent[] }) {
 function UserChart({
   events,
   selectedUser,
+  showControls,
   onSelectUser,
 }: {
   events: UsageEvent[];
   selectedUser: string | null;
+  showControls: boolean;
   onSelectUser?: (user: string) => void;
 }) {
   const data = useMemo(() => byUser(events).slice(0, 10), [events]);
@@ -210,7 +216,9 @@ function UserChart({
     <div className="panel">
       <h3>
         ユーザー別コスト (Top 10)
-        {onSelectUser && <span className="hint">バーをクリックでユーザー選択/解除</span>}
+        {showControls && onSelectUser && (
+          <span className="hint">バーをクリックでユーザー選択/解除</span>
+        )}
       </h3>
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart data={data} layout="vertical">
@@ -227,8 +235,9 @@ function UserChart({
             dataKey="cost"
             name="Cost"
             radius={[0, 4, 4, 0]}
-            cursor={onSelectUser ? "pointer" : undefined}
+            cursor={showControls && onSelectUser ? "pointer" : undefined}
             onClick={(payload) => {
+              if (!showControls) return;
               const user = (payload as { key?: string } | undefined)?.key;
               if (user) onSelectUser?.(user);
             }}
@@ -307,6 +316,7 @@ export function Overview({
   userEvents,
   timeZone,
   startHour,
+  showControls,
   onSelectDailyWindow,
   onSelectUser,
   selectedUser,
@@ -315,6 +325,7 @@ export function Overview({
   userEvents: UsageEvent[];
   timeZone: string;
   startHour: number;
+  showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
   onSelectUser?: (user: string) => void;
   selectedUser: string | null;
@@ -328,10 +339,16 @@ export function Overview({
           scaleEvents={userEvents}
           timeZone={timeZone}
           startHour={startHour}
+          showControls={showControls}
           onSelectDailyWindow={onSelectDailyWindow}
         />
         <ModelPie events={events} />
-        <UserChart events={userEvents} selectedUser={selectedUser} onSelectUser={onSelectUser} />
+        <UserChart
+          events={userEvents}
+          selectedUser={selectedUser}
+          showControls={showControls}
+          onSelectUser={onSelectUser}
+        />
         <TopEventsTable events={events} timeZone={timeZone} />
       </div>
     </>
