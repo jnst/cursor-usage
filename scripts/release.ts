@@ -67,6 +67,14 @@ function status(command: string, args: string[]): number {
   return spawnSync(command, args, { stdio: "ignore" }).status ?? 1;
 }
 
+function ensureNpmAuth() {
+  if (status("npm", ["whoami"]) === 0) return;
+
+  console.log("\nnpm is not authenticated. Starting npm login...");
+  run("npm", ["login"], { mutate: true });
+  run("npm", ["whoami"]);
+}
+
 function ensureCleanWorkingTree() {
   const status = output("git", ["status", "--porcelain"]);
   if (status) {
@@ -105,7 +113,7 @@ const release = parseArgs(process.argv.slice(2));
 
 ensureCleanWorkingTree();
 
-run("npm", ["whoami"]);
+ensureNpmAuth();
 run("gh", ["auth", "status"]);
 run("bun", ["run", "fix"]);
 ensureCleanWorkingTree();
