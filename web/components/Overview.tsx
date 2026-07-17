@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   Cell,
   ComposedChart,
+  DefaultTooltipContent,
   Legend,
   Line,
   Pie,
@@ -14,6 +15,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  type TooltipContentProps,
 } from "recharts";
 
 import {
@@ -33,6 +35,50 @@ import {
 } from "./shared.ts";
 
 export { formatTokens, formatUsd };
+
+const CUMULATIVE_KEY = "cumulative";
+
+/**
+ * Daily cost tooltip: model breakdown → daily total → cumulative.
+ * Order follows aggregation granularity (fine → coarse).
+ */
+function DailyCostTooltip(props: TooltipContentProps) {
+  const { active, payload } = props;
+  if (!active || !payload?.length) return null;
+
+  const modelItems = payload.filter((item) => item.dataKey !== CUMULATIVE_KEY);
+  const cumulativeItem = payload.find((item) => item.dataKey === CUMULATIVE_KEY);
+  const row = payload[0]?.payload as { total?: number } | undefined;
+  const total =
+    typeof row?.total === "number"
+      ? row.total
+      : modelItems.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
+
+  const template = modelItems[0] ?? cumulativeItem;
+  if (!template) return null;
+
+  const orderedPayload = [
+    ...modelItems,
+    {
+      ...template,
+      dataKey: "total",
+      name: "合計",
+      value: total,
+      color: "#e6edf3",
+      fill: "#e6edf3",
+    },
+    ...(cumulativeItem ? [cumulativeItem] : []),
+  ];
+
+  return (
+    <DefaultTooltipContent
+      {...props}
+      payload={orderedPayload}
+      formatter={(value) => formatUsd(Number(value))}
+      itemSorter={undefined}
+    />
+  );
+}
 
 function SummaryCards({
   events,
@@ -96,6 +142,7 @@ function DailyChart({
         dailyWindow: d.dailyWindow,
         label: d.dailyWindow.slice(5),
         ...d.costByModel,
+        total: d.totalCost,
         cumulative,
       };
     });
@@ -139,7 +186,7 @@ function DailyChart({
             fontSize={12}
             tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
           />
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
+          <Tooltip content={DailyCostTooltip} contentStyle={tooltipStyle} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {models.map((model, i) => (
             <Bar
@@ -157,7 +204,7 @@ function DailyChart({
           ))}
           <Line
             yAxisId="cumulative"
-            dataKey="cumulative"
+            dataKey={CUMULATIVE_KEY}
             name="累積"
             stroke="#e6edf3"
             strokeWidth={2}
