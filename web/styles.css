@@ -295,3 +295,38 @@ tr:last-child td {
   padding: 1px 8px;
   font-size: 11px;
 }
+
+.model-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.model-mark {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  line-height: 0;
+}
+
+.model-mark svg {
+  display: block;
+}
+
+.model-mark-max-svg {
+  display: block;
+  text-transform: uppercase;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

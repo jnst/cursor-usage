@@ -25,6 +25,7 @@ import {
   orderedHours,
   summarize,
 } from "../../src/core/aggregate.ts";
+import { ModelCell } from "./ModelCell.tsx";
 import { COLORS, BAR_SIZE, formatTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
 
 interface Props {
@@ -309,7 +310,7 @@ function DailyWindowEventsTable({
                 <td>{formatTime(e.date, timeZone)}</td>
                 <td>{e.user}</td>
                 <td>
-                  <span className="badge">{e.model}</span>
+                  <ModelCell event={e} />
                 </td>
                 <td>{e.kind}</td>
                 <td className="num">

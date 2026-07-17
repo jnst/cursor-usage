@@ -25,6 +25,7 @@ import {
   summarize,
   topEvents,
 } from "../../src/core/aggregate.ts";
+import { ModelCell } from "./ModelCell.tsx";
 import {
   COLORS,
   BAR_SIZE,
@@ -332,7 +333,7 @@ function TopEventsTable({ events, timeZone }: { events: UsageEvent[]; timeZone: 
                 <td>{formatDateTime(e.date, timeZone)}</td>
                 <td>{e.user}</td>
                 <td>
-                  <span className="badge">{e.model}</span>
+                  <ModelCell event={e} />
                 </td>
                 <td>{e.kind}</td>
                 <td className="num">
