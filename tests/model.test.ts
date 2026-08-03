@@ -1,9 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it } from "bun:test";
 
 import { modelFamilyOf } from "../src/core/model.ts";
 
 describe("modelFamilyOf", () => {
-  test("groups Auto (Cursor Router) usage at the Router level", () => {
+  it("groups Auto (Cursor Router) usage at the Router level", () => {
     expect(modelFamilyOf("Opus 5 (Auto Balanced)")).toBe("Auto");
     expect(modelFamilyOf("Opus 4.8 (Auto Intelligence)")).toBe("Auto");
     expect(modelFamilyOf("Cursor Grok 4.5 (Auto)")).toBe("Auto");
@@ -11,17 +11,17 @@ describe("modelFamilyOf", () => {
     expect(modelFamilyOf("auto-smart")).toBe("Auto");
   });
 
-  test("keeps suffixed Auto slugs in the Auto family", () => {
+  it("keeps suffixed Auto slugs in the Auto family", () => {
     expect(modelFamilyOf("auto-high")).toBe("Auto");
     expect(modelFamilyOf("auto-smart-high")).toBe("Auto");
     expect(modelFamilyOf("auto-fast")).toBe("Auto");
   });
 
-  test("strips zero-width characters from display names", () => {
+  it("strips zero-width characters from display names", () => {
     expect(modelFamilyOf("Cursor Grok 4.5 Fast\u200b (Auto Balanced)")).toBe("Auto");
   });
 
-  test("collapses reasoning effort, thinking, and fast variants", () => {
+  it("collapses reasoning effort, thinking, and fast variants", () => {
     expect(modelFamilyOf("cursor-grok-4.5-high-fast")).toBe("Grok 4.5");
     expect(modelFamilyOf("cursor-grok-4.5-low")).toBe("Grok 4.5");
     expect(modelFamilyOf("claude-fable-5-thinking-high")).toBe("Fable 5");
@@ -31,12 +31,12 @@ describe("modelFamilyOf", () => {
     expect(modelFamilyOf("gpt-5.5-high")).toBe("GPT-5.5");
   });
 
-  test("handles variant suffixes in either order", () => {
+  it("handles variant suffixes in either order", () => {
     expect(modelFamilyOf("claude-opus-4-8-thinking-high")).toBe("Opus 4.8");
     expect(modelFamilyOf("claude-4.6-opus-high-thinking")).toBe("Opus 4.6");
   });
 
-  test("maps known slugs without variant suffixes", () => {
+  it("maps known slugs without variant suffixes", () => {
     expect(modelFamilyOf("composer-2.5")).toBe("Composer 2.5");
     expect(modelFamilyOf("composer-2.5-fast")).toBe("Composer 2.5");
     expect(modelFamilyOf("claude-4.5-sonnet")).toBe("Sonnet 4.5");
@@ -44,16 +44,16 @@ describe("modelFamilyOf", () => {
     expect(modelFamilyOf("github_bugbot")).toBe("Bugbot");
   });
 
-  test("falls back to the stripped slug for unknown models", () => {
+  it("falls back to the stripped slug for unknown models", () => {
     expect(modelFamilyOf("gpt-7-nova-high")).toBe("gpt-7-nova");
     expect(modelFamilyOf("gpt-7-nova-thinking-medium-fast")).toBe("gpt-7-nova");
   });
 
-  test("keeps unknown models without variant suffixes as-is", () => {
+  it("keeps unknown models without variant suffixes as-is", () => {
     expect(modelFamilyOf("SomeFutureModel")).toBe("SomeFutureModel");
   });
 
-  test("groups mixed-case unknown models with their variants", () => {
+  it("groups mixed-case unknown models with their variants", () => {
     expect(modelFamilyOf("SomeFutureModel-high")).toBe("SomeFutureModel");
     expect(modelFamilyOf("SomeFutureModel-Thinking-High")).toBe("SomeFutureModel");
     expect(modelFamilyOf("SomeFutureModel-high")).toBe(modelFamilyOf("SomeFutureModel"));

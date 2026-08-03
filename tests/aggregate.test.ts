@@ -1,6 +1,6 @@
 import type { UsageEvent } from "../src/core/types.ts";
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it } from "bun:test";
 
 import {
   billable,
@@ -57,13 +57,13 @@ const events: UsageEvent[] = [
 ];
 
 describe("billable", () => {
-  test("filters out no-charge events", () => {
+  it("filters out no-charge events", () => {
     expect(billable(events)).toHaveLength(3);
   });
 });
 
 describe("summarize", () => {
-  test("computes totals over billable events", () => {
+  it("computes totals over billable events", () => {
     const s = summarize(billable(events));
     expect(s.totalCost).toBeCloseTo(0.7);
     expect(s.eventCount).toBe(3);
@@ -76,7 +76,7 @@ describe("summarize", () => {
     expect(s.modelCount).toBe(2);
   });
 
-  test("handles empty input", () => {
+  it("handles empty input", () => {
     const s = summarize([]);
     expect(s.totalCost).toBe(0);
     expect(s.firstDailyWindow).toBeNull();
@@ -87,20 +87,20 @@ describe("summarize", () => {
 describe("buckets", () => {
   const b = billable(events);
 
-  test("byDailyWindow is chronological", () => {
+  it("byDailyWindow is chronological", () => {
     const dailyWindows = byDailyWindow(b);
     expect(dailyWindows.map((d) => d.key)).toEqual(["2026-06-04", "2026-06-05"]);
     expect(dailyWindows[1]!.cost).toBeCloseTo(0.6);
     expect(dailyWindows[1]!.eventCount).toBe(2);
   });
 
-  test("byUser is sorted by cost desc", () => {
+  it("byUser is sorted by cost desc", () => {
     const users = byUser(b);
     expect(users[0]!.key).toBe("b@example.com");
     expect(users[0]!.cost).toBeCloseTo(0.4);
   });
 
-  test("byModel aggregates tokens", () => {
+  it("byModel aggregates tokens", () => {
     const models = byModel(b);
     expect(models[0]!.key).toBe("claude-opus");
     const gpt = models.find((m) => m.key === "gpt-5.5-medium")!;
@@ -108,7 +108,7 @@ describe("buckets", () => {
     expect(gpt.outputTokens).toBe(100);
   });
 
-  test("byKind is sorted by cost desc", () => {
+  it("byKind is sorted by cost desc", () => {
     const kinds = byKind([
       event({ kind: "Low Cost", cost: 0.1 }),
       event({ kind: "High Cost", cost: 0.4 }),
@@ -117,7 +117,7 @@ describe("buckets", () => {
     expect(kinds.map((k) => k.key)).toEqual(["High Cost", "Low Cost"]);
   });
 
-  test("byModelFamily collapses variants and Auto routing into families", () => {
+  it("byModelFamily collapses variants and Auto routing into families", () => {
     const families = byModelFamily([
       event({ model: "claude-fable-5-thinking-high", cost: 0.3 }),
       event({ model: "claude-fable-5-high", cost: 0.2 }),
@@ -129,7 +129,7 @@ describe("buckets", () => {
     expect(families[1]!.eventCount).toBe(2);
   });
 
-  test("eventsInModelFamily keeps the Models routed by Auto visible", () => {
+  it("eventsInModelFamily keeps the Models routed by Auto visible", () => {
     const routed = eventsInModelFamily(
       [
         event({ model: "Opus 5 (Auto Balanced)" }),
@@ -144,7 +144,7 @@ describe("buckets", () => {
     ]);
   });
 
-  test("byDailyWindowAndModelFamily stacks costs by family", () => {
+  it("byDailyWindowAndModelFamily stacks costs by family", () => {
     const stacked = byDailyWindowAndModelFamily([
       event({ model: "claude-fable-5-thinking-high", cost: 0.25 }),
       event({ model: "claude-fable-5-high", cost: 0.25 }),
@@ -154,7 +154,7 @@ describe("buckets", () => {
     expect(stacked[0]!.totalCost).toBeCloseTo(1.0);
   });
 
-  test("byDailyWindowAndModel builds stacked data", () => {
+  it("byDailyWindowAndModel builds stacked data", () => {
     const stacked = byDailyWindowAndModel(b);
     expect(stacked[1]!.costByKey).toEqual({
       "claude-opus": 0.4,
@@ -163,25 +163,25 @@ describe("buckets", () => {
     expect(stacked[1]!.totalCost).toBeCloseTo(0.6);
   });
 
-  test("topEvents returns most expensive first", () => {
+  it("topEvents returns most expensive first", () => {
     const top = topEvents(b, 2);
     expect(top.map((e) => e.cost)).toEqual([0.4, 0.2]);
   });
 
-  test("eventsInDailyWindow filters to a single UTC daily window", () => {
+  it("eventsInDailyWindow filters to a single UTC daily window", () => {
     const dailyWindow = eventsInDailyWindow(b, "2026-06-05");
     expect(dailyWindow).toHaveLength(2);
     expect(dailyWindow.every((e) => e.date.toISOString().startsWith("2026-06-05"))).toBe(true);
   });
 
-  test("byHour buckets by UTC hour, chronological", () => {
+  it("byHour buckets by UTC hour, chronological", () => {
     const hours = byHour(eventsInDailyWindow(b, "2026-06-05"));
     expect(hours.map((h) => h.key)).toEqual(["10", "23"]);
     expect(hours[0]!.cost).toBeCloseTo(0.4);
     expect(hours[1]!.cost).toBeCloseTo(0.2);
   });
 
-  test("daily window and hour can be grouped in an analysis time zone", () => {
+  it("daily window and hour can be grouped in an analysis time zone", () => {
     const lateUtc = event({ date: new Date("2026-06-05T23:59:59Z") });
 
     expect(dailyWindowKeyOf(lateUtc.date)).toBe("2026-06-05");
@@ -190,13 +190,13 @@ describe("buckets", () => {
     expect(hourOf(lateUtc.date, "Asia/Tokyo")).toBe("08");
   });
 
-  test("eventsInDailyWindow uses the selected analysis time zone", () => {
+  it("eventsInDailyWindow uses the selected analysis time zone", () => {
     const tokyoDailyWindow = eventsInDailyWindow(b, "2026-06-06", "Asia/Tokyo");
     expect(tokyoDailyWindow).toHaveLength(1);
     expect(tokyoDailyWindow[0]!.date.toISOString()).toBe("2026-06-05T23:59:59.000Z");
   });
 
-  test("daily windows can start after midnight", () => {
+  it("daily windows can start after midnight", () => {
     const earlyTokyo = event({ date: new Date("2026-06-05T19:30:00Z") }); // 04:30 JST
     const morningTokyo = event({ date: new Date("2026-06-05T20:30:00Z") }); // 05:30 JST
 

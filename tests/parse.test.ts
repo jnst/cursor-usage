@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it } from "bun:test";
 
 import { parseCsv, parseUsageCsv } from "../src/core/parse.ts";
 
@@ -6,7 +6,7 @@ const HEADER =
   "Date,User,Cloud Agent ID,Automation ID,Kind,Model,Max Mode,Input (w/ Cache Write),Input (w/o Cache Write),Cache Read,Output Tokens,Total Tokens,Cost";
 
 describe("parseCsv", () => {
-  test("parses quoted fields with commas and escaped quotes", () => {
+  it("parses quoted fields with commas and escaped quotes", () => {
     const rows = parseCsv('a,"b,c","d""e"\n1,2,3');
     expect(rows).toEqual([
       ["a", "b,c", 'd"e'],
@@ -14,7 +14,7 @@ describe("parseCsv", () => {
     ]);
   });
 
-  test("handles CRLF and trailing newline", () => {
+  it("handles CRLF and trailing newline", () => {
     const rows = parseCsv("a,b\r\nc,d\r\n");
     expect(rows).toEqual([
       ["a", "b"],
@@ -24,7 +24,7 @@ describe("parseCsv", () => {
 });
 
 describe("parseUsageCsv", () => {
-  test("parses a usage event row", () => {
+  it("parses a usage event row", () => {
     const csv = [
       HEADER,
       '"2026-06-10T14:19:26.869Z","j@example.com","bc-123","auto-1","On-Demand","composer-2.5","Yes","0","21174","98521","3728","123423","0.07"',
@@ -47,7 +47,7 @@ describe("parseUsageCsv", () => {
     expect(e.date.toISOString()).toBe("2026-06-10T14:19:26.869Z");
   });
 
-  test("empty agent/automation ids become null", () => {
+  it("empty agent/automation ids become null", () => {
     const csv = [
       HEADER,
       '"2026-06-10T12:55:01.730Z","j@example.com","","","On-Demand","gpt-5.5-medium","No","1615","2","187200","1506","190323","0.33"',
@@ -58,15 +58,15 @@ describe("parseUsageCsv", () => {
     expect(e.maxMode).toBe(false);
   });
 
-  test("throws on a non-usage CSV", () => {
+  it("throws on a non-usage CSV", () => {
     expect(() => parseUsageCsv("foo,bar\n1,2")).toThrow(/missing column/);
   });
 
-  test("returns empty array for empty input", () => {
+  it("returns empty array for empty input", () => {
     expect(parseUsageCsv("")).toEqual([]);
   });
 
-  test("skips rows with invalid dates", () => {
+  it("skips rows with invalid dates", () => {
     const csv = [
       HEADER,
       '"not-a-date","j@example.com","","","On-Demand","m","No","0","0","0","0","0","0.01"',
