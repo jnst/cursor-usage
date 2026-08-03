@@ -86,7 +86,7 @@ An analysis grouping of Models that differ only by variant attributes such as re
 _Avoid_: Model Group, Base Model
 
 **Auto (Cursor Router)**:
-Cursor's model router. Usage Exports report Auto usage either as an `auto` Model identifier or as a routed display name such as `Opus 5 (Auto Balanced)`, where the parenthesized part names the Router mode and the leading part names the routed Model.
+Cursor's model router. Usage Exports report Auto usage in three shapes: an `auto` Model identifier, an `auto-smart` Model identifier (the Router's internal model id, recorded for Auto usage via the SDK/API and JetBrains ACP sessions), or a routed display name such as `Opus 5 (Auto Balanced)`, where the parenthesized part names the Router mode and the leading part names the routed Model. All three shapes belong to the `Auto` Model Family.
 _Avoid_: Auto Mode Family per Router mode
 
 **Kind**:
