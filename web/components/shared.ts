@@ -1,3 +1,7 @@
+import type { UsageEvent } from "../../src/core/types.ts";
+
+import { byModelFamily } from "../../src/core/aggregate.ts";
+
 export const COLORS = [
   "#58a6ff", // blue
   "#3fb950", // green
@@ -22,6 +26,20 @@ export const COLORS = [
 ];
 
 export const BAR_SIZE = 40;
+
+/**
+ * Assigns a stable color to each Model Family.
+ *
+ * Compute this from the unfiltered analysis set so a Model Family keeps the
+ * same color across the Overview, Daily Window views, and User filters.
+ */
+export function modelFamilyColors(events: UsageEvent[]): Map<string, string> {
+  const colors = new Map<string, string>();
+  byModelFamily(events).forEach((family, i) => {
+    colors.set(family.key, COLORS[i % COLORS.length]!);
+  });
+  return colors;
+}
 
 /**
  * Formats Cost for web UI display.

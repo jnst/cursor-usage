@@ -5,6 +5,7 @@ import {
   byHour,
   byKind,
   byModel,
+  byModelFamily,
   byUser,
   eventsInDailyWindow,
   orderedHours,
@@ -95,14 +96,17 @@ function renderSummaryBlock(
   timeZone: string,
   user: string | undefined,
   startHour: number,
+  modelFamily?: string,
 ): string[] {
   const period =
     summary.firstDailyWindow && summary.lastDailyWindow
       ? `${summary.firstDailyWindow} – ${summary.lastDailyWindow}`
       : "no data";
-  const scope = user
-    ? `${timeZone}, start ${startHour}:00, user ${user}`
-    : `${timeZone}, start ${startHour}:00`;
+  const scope = [
+    `${timeZone}, start ${startHour}:00`,
+    ...(user ? [`user ${user}`] : []),
+    ...(modelFamily ? [`model family ${modelFamily}`] : []),
+  ].join(", ");
   const label = (s: string) => dim(padEndDisplay(s, 14));
   const value = (s: string) => bold(padEndDisplay(s, 12));
   return [
@@ -139,13 +143,15 @@ function renderBucketChart(
   return lines;
 }
 
-export type StatsAxis = "daily-window" | "user" | "model";
+export type StatsAxis = "daily-window" | "user" | "model" | "model-family";
 
 /**
  * Renders the overview analysis for terminal display.
  *
  * The input events should already reflect CLI filters such as Billable Events
- * only, selected User, and No Charge inclusion.
+ * only, selected User, selected Model Family, and No Charge inclusion. The
+ * default view groups Models by Model Family; use the `model` axis or a
+ * Model Family filter to see individual Models.
  */
 export function renderStats(
   events: UsageEvent[],
@@ -153,9 +159,12 @@ export function renderStats(
   timeZone: string,
   user?: string,
   startHour = 0,
+  modelFamily?: string,
 ): string {
   const summary = summarize(events, timeZone, startHour);
-  const sections: string[][] = [renderSummaryBlock(summary, timeZone, user, startHour)];
+  const sections: string[][] = [
+    renderSummaryBlock(summary, timeZone, user, startHour, modelFamily),
+  ];
 
   const charts: Record<StatsAxis, () => string[]> = {
     "daily-window": () =>
@@ -167,6 +176,10 @@ export function renderStats(
       renderBucketChart("By Model", byModel(events), {
         totalCost: summary.totalCost,
       }),
+    "model-family": () =>
+      renderBucketChart("By Model Family", byModelFamily(events), {
+        totalCost: summary.totalCost,
+      }),
     user: () =>
       renderBucketChart("By User", byUser(events), {
         totalCost: summary.totalCost,
@@ -176,7 +189,13 @@ export function renderStats(
   if (axis) {
     sections.push(charts[axis]());
   } else {
-    sections.push(charts["daily-window"](), charts.model(), charts.user());
+    // With a Model Family filter the family chart is one row; show the
+    // Models inside the family instead.
+    sections.push(
+      charts["daily-window"](),
+      modelFamily ? charts.model() : charts["model-family"](),
+      charts.user(),
+    );
   }
 
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
@@ -193,14 +212,16 @@ export function statsJson(
   timeZone: string,
   user?: string,
   startHour = 0,
+  modelFamily?: string,
 ): string {
   return JSON.stringify(
     {
       timeZone,
       startHour,
-      filters: { user: user ?? null },
+      filters: { user: user ?? null, modelFamily: modelFamily ?? null },
       summary: summarize(events, timeZone, startHour),
       byDailyWindow: byDailyWindow(events, timeZone, startHour),
+      byModelFamily: byModelFamily(events),
       byModel: byModel(events),
       byUser: byUser(events),
     },
@@ -281,6 +302,7 @@ export function renderDailyWindowView(
   timeZone: string,
   user?: string,
   startHour = 0,
+  modelFamily?: string,
 ): string {
   const dailyWindows = byDailyWindow(events, timeZone, startHour);
   const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, timeZone, startHour);
@@ -307,7 +329,15 @@ export function renderDailyWindowView(
       dailyWindows.length,
     ),
     ...(user ? [[dim(`Filtered to user: ${user}`)]] : []),
+    ...(modelFamily ? [[dim(`Filtered to model family: ${modelFamily}`)]] : []),
     renderHourlyChart(dailyWindowEvents, timeZone, startHour),
+    ...(modelFamily
+      ? []
+      : [
+          renderBucketChart("By Model Family", byModelFamily(dailyWindowEvents), {
+            totalCost: dailyWindowTotal,
+          }),
+        ]),
     renderBucketChart("By Model", byModel(dailyWindowEvents), {
       totalCost: dailyWindowTotal,
     }),
@@ -333,6 +363,7 @@ export function dailyWindowViewJson(
   timeZone: string,
   user?: string,
   startHour = 0,
+  modelFamily?: string,
 ): string {
   const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, timeZone, startHour);
   return JSON.stringify(
@@ -340,9 +371,10 @@ export function dailyWindowViewJson(
       dailyWindow,
       timeZone,
       startHour,
-      filters: { user: user ?? null },
+      filters: { user: user ?? null, modelFamily: modelFamily ?? null },
       summary: summarize(dailyWindowEvents, timeZone, startHour),
       byHour: byHour(dailyWindowEvents, timeZone),
+      byModelFamily: byModelFamily(dailyWindowEvents),
       byModel: byModel(dailyWindowEvents),
       byUser: byUser(dailyWindowEvents),
       byKind: byKind(dailyWindowEvents),

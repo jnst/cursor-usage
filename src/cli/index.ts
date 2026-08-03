@@ -5,6 +5,7 @@ import { parseArgs } from "node:util";
 import {
   billable,
   defaultAnalysisTimeZone,
+  eventsInModelFamily,
   isValidStartHour,
   isValidTimeZone,
   latestDailyWindowKey,
@@ -29,10 +30,13 @@ Usage:
   cursor-usage daily-report <csv>                 Capture a shareable daily report PNG
 
 Stats options:
-  --by <daily-window|user|model>  Show a single breakdown axis (default: all)
+  --by <daily-window|user|model|model-family>
+                                  Show a single breakdown axis (default: all)
   --daily-window <YYYY-MM-DD>     Drill into a single Daily Window
   --start-hour <0-23>             Daily Window start hour (default: 0)
   --user <identifier>             Filter analysis to a single User
+  --model-family <name>           Filter analysis to a single Model Family
+                                  (e.g. "Auto", "Opus 4.8", "Fable 5")
   --timezone <iana-tz>            Analysis time zone (default: current environment)
   --json                          Output aggregated stats as JSON
   --include-no-charge             Include "Errored, No Charge" events
@@ -109,6 +113,7 @@ async function runStats(args: string[]): Promise<void> {
       "daily-window": { type: "string" },
       "start-hour": { type: "string" },
       user: { type: "string" },
+      "model-family": { type: "string" },
       timezone: { type: "string" },
       json: { type: "boolean", default: false },
       "include-no-charge": { type: "boolean", default: false },
@@ -119,8 +124,8 @@ async function runStats(args: string[]): Promise<void> {
   if (!csvPath) fail("stats requires a path to a CSV file");
 
   const axis = values.by as StatsAxis | undefined;
-  if (axis && !["daily-window", "user", "model"].includes(axis)) {
-    fail(`invalid --by value: ${axis} (expected daily-window, user or model)`);
+  if (axis && !["daily-window", "user", "model", "model-family"].includes(axis)) {
+    fail(`invalid --by value: ${axis} (expected daily-window, user, model or model-family)`);
   }
 
   const dailyWindow = values["daily-window"];
@@ -135,21 +140,26 @@ async function runStats(args: string[]): Promise<void> {
   const startHour = parseStartHour(values["start-hour"], 0);
 
   const user = values.user;
-  const events = await readUsageEvents(csvPath, values["include-no-charge"], user);
+  const modelFamily = values["model-family"];
+  let events = await readUsageEvents(csvPath, values["include-no-charge"], user);
+  if (modelFamily) {
+    events = eventsInModelFamily(events, modelFamily);
+    if (events.length === 0) fail(`no usage events for model family: ${modelFamily}`);
+  }
 
   if (dailyWindow) {
     console.log(
       values.json
-        ? dailyWindowViewJson(events, dailyWindow, timeZone, user, startHour)
-        : renderDailyWindowView(events, dailyWindow, timeZone, user, startHour),
+        ? dailyWindowViewJson(events, dailyWindow, timeZone, user, startHour, modelFamily)
+        : renderDailyWindowView(events, dailyWindow, timeZone, user, startHour, modelFamily),
     );
     return;
   }
 
   console.log(
     values.json
-      ? statsJson(events, timeZone, user, startHour)
-      : renderStats(events, axis, timeZone, user, startHour),
+      ? statsJson(events, timeZone, user, startHour, modelFamily)
+      : renderStats(events, axis, timeZone, user, startHour, modelFamily),
   );
 }
 

@@ -193,6 +193,27 @@ body {
   color: var(--text-dim);
 }
 
+.panel-back {
+  background: none;
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0 8px;
+  margin-right: 8px;
+  font-size: 12px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.panel-back:hover {
+  border-color: var(--accent);
+}
+
+.share {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
 /* Daily Window detail view */
 .daily-window-nav {
   display: flex;

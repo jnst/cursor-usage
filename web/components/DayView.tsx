@@ -6,9 +6,6 @@ import {
   CartesianGrid,
   Cell,
   ComposedChart,
-  Legend,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,14 +16,21 @@ import {
   byDailyWindow,
   byHour,
   byKind,
-  byModel,
   byUser,
   eventsInDailyWindow,
   orderedHours,
   summarize,
 } from "../../src/core/aggregate.ts";
 import { ModelCell } from "./ModelCell.tsx";
-import { COLORS, BAR_SIZE, formatTime, formatTokens, formatUsd, tooltipStyle } from "./shared.ts";
+import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
+import {
+  BAR_SIZE,
+  formatTime,
+  formatTokens,
+  formatUsd,
+  modelFamilyColors,
+  tooltipStyle,
+} from "./shared.ts";
 
 interface Props {
   events: UsageEvent[];
@@ -139,35 +143,6 @@ function HourlyChart({
             isAnimationActive={false}
           />
         </ComposedChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function ModelPie({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] }) {
-  const data = useMemo(() => byModel(dailyWindowEvents), [dailyWindowEvents]);
-  return (
-    <div className="panel">
-      <h3>モデル別コスト</h3>
-      <ResponsiveContainer width="100%" height={260}>
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="cost"
-            nameKey="key"
-            innerRadius={50}
-            outerRadius={90}
-            paddingAngle={2}
-            stroke="none"
-            isAnimationActive={false}
-          >
-            {data.map((entry, i) => (
-              <Cell key={entry.key} fill={COLORS[i % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-        </PieChart>
       </ResponsiveContainer>
     </div>
   );
@@ -367,6 +342,7 @@ export function DailyWindowView({
     return sorted.findIndex((d) => d.key === dailyWindow) + 1;
   }, [events, dailyWindow, timeZone, startHour]);
 
+  const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
   const idx = dailyWindows.indexOf(dailyWindow);
   const prevDailyWindow = idx > 0 ? dailyWindows[idx - 1] : undefined;
   const nextDailyWindow =
@@ -429,7 +405,12 @@ export function DailyWindowView({
               timeZone={timeZone}
               startHour={startHour}
             />
-            <ModelPie dailyWindowEvents={dailyWindowEvents} />
+            <ModelFamilyPanel
+              events={dailyWindowEvents}
+              familyColors={familyColors}
+              showControls={showControls}
+              height={260}
+            />
             <UserChart
               dailyWindowEvents={dailyWindowUserEvents}
               selectedUser={selectedUser}

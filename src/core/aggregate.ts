@@ -1,3 +1,4 @@
+import { modelFamilyOf } from "./model.ts";
 import {
   type BucketStat,
   type DailyWindowModelStat,
@@ -262,11 +263,33 @@ export function byUser(events: UsageEvent[]): BucketStat[] {
 /**
  * Groups events by Model, ordered by Cost descending.
  *
- * Model keys are the identifiers reported by the Usage Export; Model Family
- * aggregation is intentionally not introduced here.
+ * Model keys are the identifiers reported by the Usage Export. Use
+ * `byModelFamily` for the coarse Model Family view and this function for the
+ * Model-level detail inside one Model Family.
  */
 export function byModel(events: UsageEvent[]): BucketStat[] {
   return bucketBy(events, (e) => e.model).sort((a, b) => b.cost - a.cost);
+}
+
+/**
+ * Groups events by Model Family, ordered by Cost descending.
+ *
+ * Model Families collapse variant attributes (reasoning effort, thinking,
+ * fast mode) and group Auto (Cursor Router) usage under one `Auto` key, so
+ * charts stay readable when exports contain many Model variants.
+ */
+export function byModelFamily(events: UsageEvent[]): BucketStat[] {
+  return bucketBy(events, (e) => modelFamilyOf(e.model)).sort((a, b) => b.cost - a.cost);
+}
+
+/**
+ * Filters Usage Events to a single Model Family.
+ *
+ * Use this to drill from a Model Family breakdown into the Models it
+ * contains, such as the actual Models routed by Auto (Cursor Router).
+ */
+export function eventsInModelFamily(events: UsageEvent[], family: string): UsageEvent[] {
+  return events.filter((e) => modelFamilyOf(e.model) === family);
 }
 
 /**
@@ -291,6 +314,27 @@ export function byHour(events: UsageEvent[], timeZone = UTC_TIME_ZONE): BucketSt
   );
 }
 
+function byDailyWindowAndKey(
+  events: UsageEvent[],
+  keyOf: (e: UsageEvent) => string,
+  timeZone: string,
+  startHour: number,
+): DailyWindowModelStat[] {
+  const dailyWindows = new Map<string, DailyWindowModelStat>();
+  for (const e of events) {
+    const dailyWindow = dailyWindowKeyOf(e.date, timeZone, startHour);
+    let d = dailyWindows.get(dailyWindow);
+    if (!d) {
+      d = { dailyWindow, costByModel: {}, totalCost: 0 };
+      dailyWindows.set(dailyWindow, d);
+    }
+    const key = keyOf(e);
+    d.costByModel[key] = (d.costByModel[key] ?? 0) + e.cost;
+    d.totalCost += e.cost;
+  }
+  return [...dailyWindows.values()].sort((a, b) => a.dailyWindow.localeCompare(b.dailyWindow));
+}
+
 /**
  * Builds Daily-Window-by-Model cost buckets for stacked Daily Window charts.
  *
@@ -302,18 +346,21 @@ export function byDailyWindowAndModel(
   timeZone = UTC_TIME_ZONE,
   startHour = 0,
 ): DailyWindowModelStat[] {
-  const dailyWindows = new Map<string, DailyWindowModelStat>();
-  for (const e of events) {
-    const dailyWindow = dailyWindowKeyOf(e.date, timeZone, startHour);
-    let d = dailyWindows.get(dailyWindow);
-    if (!d) {
-      d = { dailyWindow, costByModel: {}, totalCost: 0 };
-      dailyWindows.set(dailyWindow, d);
-    }
-    d.costByModel[e.model] = (d.costByModel[e.model] ?? 0) + e.cost;
-    d.totalCost += e.cost;
-  }
-  return [...dailyWindows.values()].sort((a, b) => a.dailyWindow.localeCompare(b.dailyWindow));
+  return byDailyWindowAndKey(events, (e) => e.model, timeZone, startHour);
+}
+
+/**
+ * Builds Daily-Window-by-Model-Family cost buckets for stacked charts.
+ *
+ * This is the Model Family variant of `byDailyWindowAndModel`; `costByModel`
+ * is keyed by Model Family so stacked Daily Window charts stay readable.
+ */
+export function byDailyWindowAndModelFamily(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+  startHour = 0,
+): DailyWindowModelStat[] {
+  return byDailyWindowAndKey(events, (e) => modelFamilyOf(e.model), timeZone, startHour);
 }
 
 /**

@@ -6,12 +6,15 @@ import {
   billable,
   byDailyWindow,
   byDailyWindowAndModel,
+  byDailyWindowAndModelFamily,
   byHour,
   byKind,
   byModel,
+  byModelFamily,
   byUser,
   dailyWindowKeyOf,
   eventsInDailyWindow,
+  eventsInModelFamily,
   hourOf,
   latestDailyWindowKey,
   orderedHours,
@@ -112,6 +115,43 @@ describe("buckets", () => {
       event({ kind: "Low Cost", cost: 0.1 }),
     ]);
     expect(kinds.map((k) => k.key)).toEqual(["High Cost", "Low Cost"]);
+  });
+
+  test("byModelFamily collapses variants and Auto routing into families", () => {
+    const families = byModelFamily([
+      event({ model: "claude-fable-5-thinking-high", cost: 0.3 }),
+      event({ model: "claude-fable-5-high", cost: 0.2 }),
+      event({ model: "Opus 5 (Auto Balanced)", cost: 0.4 }),
+      event({ model: "Cursor Grok 4.5 (Auto Intelligence)", cost: 0.3 }),
+    ]);
+    expect(families.map((f) => f.key)).toEqual(["Auto", "Fable 5"]);
+    expect(families[0]!.cost).toBeCloseTo(0.7);
+    expect(families[1]!.eventCount).toBe(2);
+  });
+
+  test("eventsInModelFamily keeps the Models routed by Auto visible", () => {
+    const routed = eventsInModelFamily(
+      [
+        event({ model: "Opus 5 (Auto Balanced)" }),
+        event({ model: "Cursor Grok 4.5 (Auto Intelligence)" }),
+        event({ model: "claude-fable-5-thinking-high" }),
+      ],
+      "Auto",
+    );
+    expect(routed.map((e) => e.model)).toEqual([
+      "Opus 5 (Auto Balanced)",
+      "Cursor Grok 4.5 (Auto Intelligence)",
+    ]);
+  });
+
+  test("byDailyWindowAndModelFamily stacks costs by family", () => {
+    const stacked = byDailyWindowAndModelFamily([
+      event({ model: "claude-fable-5-thinking-high", cost: 0.25 }),
+      event({ model: "claude-fable-5-high", cost: 0.25 }),
+      event({ model: "Opus 5 (Auto Balanced)", cost: 0.5 }),
+    ]);
+    expect(stacked[0]!.costByModel).toEqual({ "Fable 5": 0.5, Auto: 0.5 });
+    expect(stacked[0]!.totalCost).toBeCloseTo(1.0);
   });
 
   test("byDailyWindowAndModel builds stacked data", () => {

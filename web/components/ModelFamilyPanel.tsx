@@ -1,0 +1,132 @@
+import type { UsageEvent } from "../../src/core/types.ts";
+
+import { useMemo, useState } from "react";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+
+import { byModel, byModelFamily, eventsInModelFamily } from "../../src/core/aggregate.ts";
+import { COLORS, formatUsd, tooltipStyle } from "./shared.ts";
+
+/**
+ * Model Family cost pie with a Model-level drilldown.
+ *
+ * The pie groups costs by Model Family (Auto is one Router-level slice).
+ * Clicking a slice swaps the pie for a table of the Models inside that
+ * family — for Auto this reveals the actual Models the Router selected.
+ */
+export function ModelFamilyPanel({
+  events,
+  familyColors,
+  showControls,
+  height = 280,
+}: {
+  events: UsageEvent[];
+  familyColors: Map<string, string>;
+  showControls: boolean;
+  height?: number;
+}) {
+  const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
+  const families = useMemo(() => byModelFamily(events), [events]);
+  const models = useMemo(
+    () => (selectedFamily ? byModel(eventsInModelFamily(events, selectedFamily)) : []),
+    [events, selectedFamily],
+  );
+
+  if (selectedFamily) {
+    const familyCost = models.reduce((sum, m) => sum + m.cost, 0);
+    const maxCost = Math.max(...models.map((m) => m.cost), 0);
+    return (
+      <div className="panel">
+        <h3>
+          <button
+            type="button"
+            className="panel-back"
+            onClick={() => setSelectedFamily(null)}
+            aria-label="モデル分類へ戻る"
+          >
+            ←
+          </button>
+          {selectedFamily} の内訳
+          <span className="hint">
+            {formatUsd(familyCost)} ・ モデル別
+            {selectedFamily === "Auto" ? " (Auto の実モデル)" : ""}
+          </span>
+        </h3>
+        <div className="table-wrap scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>モデル</th>
+                <th className="num">イベント</th>
+                <th className="num">Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {models.length === 0 ? (
+                <tr>
+                  <td colSpan={3}>この分類のイベントはありません。</td>
+                </tr>
+              ) : (
+                models.map((m) => (
+                  <tr key={m.key}>
+                    <td>
+                      <span className="badge">{m.key}</span>
+                    </td>
+                    <td className="num">{m.eventCount}</td>
+                    <td className="num">
+                      <span
+                        className="cost-bar"
+                        style={{ width: maxCost > 0 ? `${(m.cost / maxCost) * 96}px` : 0 }}
+                      />
+                      {formatUsd(m.cost)}
+                      <span className="share">
+                        {familyCost > 0 ? ` ${Math.round((m.cost / familyCost) * 100)}%` : ""}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="panel">
+      <h3>
+        モデル別コスト
+        {showControls && <span className="hint">クリックで実モデルの内訳へ</span>}
+      </h3>
+      <ResponsiveContainer width="100%" height={height}>
+        <PieChart>
+          <Pie
+            data={families}
+            dataKey="cost"
+            nameKey="key"
+            innerRadius={height >= 280 ? 55 : 50}
+            outerRadius={height >= 280 ? 95 : 90}
+            paddingAngle={2}
+            stroke="none"
+            isAnimationActive={false}
+            cursor={showControls ? "pointer" : undefined}
+            onClick={(_, index) => {
+              if (!showControls) return;
+              const family = families[index]?.key;
+              if (family) setSelectedFamily(family);
+            }}
+          >
+            {families.map((entry, i) => (
+              <Cell
+                key={entry.key}
+                fill={familyColors.get(entry.key) ?? COLORS[i % COLORS.length]}
+              />
+            ))}
+          </Pie>
+          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

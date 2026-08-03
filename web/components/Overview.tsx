@@ -9,8 +9,6 @@ import {
   DefaultTooltipContent,
   Legend,
   Line,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,19 +17,21 @@ import {
 } from "recharts";
 
 import {
-  byDailyWindowAndModel,
-  byModel,
+  byDailyWindowAndModelFamily,
+  byModelFamily,
   byUser,
   summarize,
   topEvents,
 } from "../../src/core/aggregate.ts";
 import { ModelCell } from "./ModelCell.tsx";
+import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
 import {
   COLORS,
   BAR_SIZE,
   formatDateTime,
   formatTokens,
   formatUsd,
+  modelFamilyColors,
   tooltipStyle,
 } from "./shared.ts";
 
@@ -124,6 +124,7 @@ function DailyChart({
   scaleEvents,
   timeZone,
   startHour,
+  familyColors,
   showControls,
   onSelectDailyWindow,
 }: {
@@ -131,13 +132,14 @@ function DailyChart({
   scaleEvents: UsageEvent[];
   timeZone: string;
   startHour: number;
+  familyColors: Map<string, string>;
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
 }) {
-  const models = useMemo(() => byModel(events).map((m) => m.key), [events]);
+  const families = useMemo(() => byModelFamily(events).map((f) => f.key), [events]);
   const data = useMemo(() => {
     let cumulative = 0;
-    return byDailyWindowAndModel(events, timeZone, startHour).map((d) => {
+    return byDailyWindowAndModelFamily(events, timeZone, startHour).map((d) => {
       cumulative += d.totalCost;
       return {
         dailyWindow: d.dailyWindow,
@@ -149,7 +151,7 @@ function DailyChart({
     });
   }, [events, timeZone, startHour]);
   const scale = useMemo(() => {
-    const dailyWindows = byDailyWindowAndModel(scaleEvents, timeZone, startHour);
+    const dailyWindows = byDailyWindowAndModelFamily(scaleEvents, timeZone, startHour);
     return {
       maxDailyCost: Math.max(...dailyWindows.map((d) => d.totalCost), 0),
       totalCost: dailyWindows.reduce((sum, d) => sum + d.totalCost, 0),
@@ -163,7 +165,7 @@ function DailyChart({
   return (
     <div className="panel wide">
       <h3>
-        日別コスト推移(モデル別積み上げ + 累積)
+        日別コスト推移(モデル分類別積み上げ + 累積)
         {showControls && onSelectDailyWindow && (
           <span className="hint">バーをクリックで詳細へ</span>
         )}
@@ -189,13 +191,13 @@ function DailyChart({
           />
           <Tooltip content={DailyCostTooltip} contentStyle={tooltipStyle} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          {models.map((model, i) => (
+          {families.map((family, i) => (
             <Bar
-              key={model}
+              key={family}
               yAxisId="cost"
-              dataKey={model}
+              dataKey={family}
               stackId="cost"
-              fill={COLORS[i % COLORS.length]}
+              fill={familyColors.get(family) ?? COLORS[i % COLORS.length]}
               cursor={showControls && onSelectDailyWindow ? "pointer" : undefined}
               onClick={(payload) => handleClick(payload as { dailyWindow?: string } | undefined)}
               isAnimationActive={false}
@@ -213,35 +215,6 @@ function DailyChart({
             isAnimationActive={false}
           />
         </ComposedChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function ModelPie({ events }: { events: UsageEvent[] }) {
-  const data = useMemo(() => byModel(events), [events]);
-  return (
-    <div className="panel">
-      <h3>モデル別コスト</h3>
-      <ResponsiveContainer width="100%" height={280}>
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="cost"
-            nameKey="key"
-            innerRadius={55}
-            outerRadius={95}
-            paddingAngle={2}
-            stroke="none"
-            isAnimationActive={false}
-          >
-            {data.map((entry, i) => (
-              <Cell key={entry.key} fill={COLORS[i % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-        </PieChart>
       </ResponsiveContainer>
     </div>
   );
@@ -378,6 +351,7 @@ export function Overview({
   onSelectUser?: (user: string) => void;
   selectedUser: string | null;
 }) {
+  const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
   return (
     <>
       <SummaryCards events={events} timeZone={timeZone} startHour={startHour} />
@@ -387,10 +361,11 @@ export function Overview({
           scaleEvents={userEvents}
           timeZone={timeZone}
           startHour={startHour}
+          familyColors={familyColors}
           showControls={showControls}
           onSelectDailyWindow={onSelectDailyWindow}
         />
-        <ModelPie events={events} />
+        <ModelFamilyPanel events={events} familyColors={familyColors} showControls={showControls} />
         <UserChart
           events={userEvents}
           selectedUser={selectedUser}

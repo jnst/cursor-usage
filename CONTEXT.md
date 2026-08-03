@@ -78,8 +78,16 @@ The user identifier reported by the `User` column in Cursor's usage-events CSV e
 _Avoid_: Account, Member
 
 **Model**:
-The model identifier reported by the `Model` column in Cursor's usage-events CSV export.
-_Avoid_: Model Family, Provider
+The model identifier reported by the `Model` column in Cursor's usage-events CSV export. Model is the event-level identifier; charts group Models into Model Families.
+_Avoid_: Provider
+
+**Model Family**:
+An analysis grouping of Models that differ only by variant attributes such as reasoning effort, thinking, and fast mode. Usage routed through Auto (Cursor Router) belongs to the `Auto` Model Family regardless of Router mode or routed Model; the routed Models stay visible in Model-level detail views.
+_Avoid_: Model Group, Base Model
+
+**Auto (Cursor Router)**:
+Cursor's model router. Usage Exports report Auto usage either as an `auto` Model identifier or as a routed display name such as `Opus 5 (Auto Balanced)`, where the parenthesized part names the Router mode and the leading part names the routed Model.
+_Avoid_: Auto Mode Family per Router mode
 
 **Kind**:
 The event classification reported by the `Kind` column in Cursor's usage-events CSV export. Kind is an analysis axis.
