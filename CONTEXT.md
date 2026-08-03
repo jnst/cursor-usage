@@ -82,8 +82,18 @@ The model identifier reported by the `Model` column in Cursor's usage-events CSV
 _Avoid_: Provider
 
 **Model Family**:
-An analysis grouping of Models that differ only by variant attributes such as reasoning effort, thinking, and fast mode. Usage routed through Auto (Cursor Router) belongs to the `Auto` Model Family regardless of Router mode or routed Model; the routed Models stay visible in Model-level detail views.
+An analysis grouping of Models that differ only by Variant Attributes. Usage routed through Auto (Cursor Router) belongs to the `Auto` Model Family regardless of Router mode or routed Model; the routed Models stay visible in Model-level detail views.
 _Avoid_: Model Group, Base Model
+
+**Variant Attribute**:
+A Model identifier suffix that does not change the Model Family. There are exactly three axes:
+
+1. **Reasoning effort** — `high`, `medium`, `low`, or `max`
+2. **Thinking** — present or absent (`thinking`)
+3. **Fast mode** — present or absent (`fast`)
+
+Suffix order varies between Usage Exports (`-thinking-high` vs `-high-thinking`); all three axes may combine on one Model. Variant Attributes are distinct from Auto (Cursor Router) naming and from Max Mode, which is a separate CSV column.
+_Avoid_: Model Variant as a separate analysis axis
 
 **Auto (Cursor Router)**:
 Cursor's model router. Usage Exports report Auto usage in three shapes: an `auto` Model identifier, an `auto-smart` Model identifier (the Router's internal model id, recorded for Auto usage via the SDK/API and JetBrains ACP sessions), or a routed display name such as `Opus 5 (Auto Balanced)`, where the parenthesized part names the Router mode and the leading part names the routed Model. All three shapes belong to the `Auto` Model Family.
