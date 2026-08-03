@@ -9,6 +9,17 @@ Visualize the usage events CSV exported from the Cursor dashboard.
 
 Runs on Node.js 20+ (`npx`) or [Bun](https://bun.sh) (`bunx`).
 
+## Features
+
+- **Local-only analysis** — drag & drop a Usage Export; data stays in the browser and is never sent anywhere
+- **Daily Window cost trends** — stacked bars by Model Family plus a cumulative line, with click-through to a per-window detail view
+- **Model Family grouping** — reasoning effort / thinking / fast variants are collapsed, and Auto (Cursor Router) is one slice; click it to see the actual Models the Router selected
+- **User breakdown & filter** — Top 10 costs per User; click a bar to focus the whole analysis on one User
+- **High Cost events** — the most expensive events at a glance, with Cloud Agent / Automation / Max Mode marks
+- **Daily Window detail** — hourly cost, Kind breakdown, and every event in the window
+- **CLI parity** — the same breakdowns in the terminal, or as JSON for scripting
+- **Screenshots & daily report** — capture the Overview or a shareable Daily Window PNG
+
 ## Usage
 
 ### Dashboard (default)
