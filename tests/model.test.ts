@@ -11,6 +11,12 @@ describe("modelFamilyOf", () => {
     expect(modelFamilyOf("auto-smart")).toBe("Auto");
   });
 
+  test("keeps suffixed Auto slugs in the Auto family", () => {
+    expect(modelFamilyOf("auto-high")).toBe("Auto");
+    expect(modelFamilyOf("auto-smart-high")).toBe("Auto");
+    expect(modelFamilyOf("auto-fast")).toBe("Auto");
+  });
+
   test("strips zero-width characters from display names", () => {
     expect(modelFamilyOf("Cursor Grok 4.5 Fast\u200b (Auto Balanced)")).toBe("Auto");
   });
@@ -45,5 +51,11 @@ describe("modelFamilyOf", () => {
 
   test("keeps unknown models without variant suffixes as-is", () => {
     expect(modelFamilyOf("SomeFutureModel")).toBe("SomeFutureModel");
+  });
+
+  test("groups mixed-case unknown models with their variants", () => {
+    expect(modelFamilyOf("SomeFutureModel-high")).toBe("SomeFutureModel");
+    expect(modelFamilyOf("SomeFutureModel-Thinking-High")).toBe("SomeFutureModel");
+    expect(modelFamilyOf("SomeFutureModel-high")).toBe(modelFamilyOf("SomeFutureModel"));
   });
 });

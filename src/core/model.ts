@@ -3,10 +3,10 @@ export const AUTO_MODEL_FAMILY = "Auto";
 /**
  * Display labels for known Model Family slugs.
  *
- * Keys are Model identifiers with variant suffixes (reasoning effort,
- * thinking, fast) already stripped. Unknown slugs intentionally fall back to
- * the stripped slug itself so new models still group correctly across their
- * variants without a release.
+ * Keys are lowercased Model identifiers with variant suffixes (reasoning
+ * effort, thinking, fast) already stripped. Unknown identifiers intentionally
+ * fall back to their variant-stripped name (original casing preserved) so new
+ * models still group correctly across their variants without a release.
  */
 const FAMILY_LABELS: Record<string, string> = {
   "cursor-grok-4.5": "Grok 4.5",
@@ -45,6 +45,9 @@ const INVISIBLE_CHARS = /[\u200b\u200c\u200d\ufeff]/g;
  */
 const AUTO_DISPLAY_NAME = /\(Auto[^)]*\)$/;
 
+/** Auto slugs group into the Auto Model Family, before or after suffix stripping. */
+const AUTO_SLUGS = new Set(["auto", "auto-smart"]);
+
 /**
  * Returns the Model Family for a Model identifier.
  *
@@ -53,21 +56,23 @@ const AUTO_DISPLAY_NAME = /\(Auto[^)]*\)$/;
  * Auto (Cursor Router) is grouped into the `Auto` Model Family regardless of
  * the routed Model or Router mode; the routed Model stays visible in
  * Model-level detail views.
+ *
+ * Variant suffixes are stripped case-insensitively while the remaining name
+ * keeps its original casing, so unknown Models group with their variants
+ * (`SomeFutureModel` and `SomeFutureModel-high` share one family). Auto is
+ * matched after stripping as well, so suffixed Auto slugs such as
+ * `auto-high` stay in the Auto Model Family.
  */
 export function modelFamilyOf(model: string): string {
   const sanitized = model.replace(INVISIBLE_CHARS, "").trim();
   if (AUTO_DISPLAY_NAME.test(sanitized)) return AUTO_MODEL_FAMILY;
 
-  const lower = sanitized.toLowerCase();
-  if (lower === "auto" || lower === "auto-smart") return AUTO_MODEL_FAMILY;
-
-  const known = FAMILY_LABELS[lower];
-  if (known) return known;
-
-  const tokens = lower.split("-");
-  while (tokens.length > 1 && VARIANT_TOKENS.has(tokens[tokens.length - 1]!)) {
+  const tokens = sanitized.split("-");
+  while (tokens.length > 1 && VARIANT_TOKENS.has(tokens[tokens.length - 1]!.toLowerCase())) {
     tokens.pop();
   }
-  const slug = tokens.join("-");
-  return FAMILY_LABELS[slug] ?? (slug === lower ? sanitized : slug);
+  const stripped = tokens.join("-");
+  const slug = stripped.toLowerCase();
+  if (AUTO_SLUGS.has(slug)) return AUTO_MODEL_FAMILY;
+  return FAMILY_LABELS[slug] ?? stripped;
 }

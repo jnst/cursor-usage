@@ -1,7 +1,7 @@
 import { modelFamilyOf } from "./model.ts";
 import {
   type BucketStat,
-  type DailyWindowModelStat,
+  type DailyWindowCostStat,
   NO_CHARGE_KIND,
   type Summary,
   type UsageEvent,
@@ -319,17 +319,17 @@ function byDailyWindowAndKey(
   keyOf: (e: UsageEvent) => string,
   timeZone: string,
   startHour: number,
-): DailyWindowModelStat[] {
-  const dailyWindows = new Map<string, DailyWindowModelStat>();
+): DailyWindowCostStat[] {
+  const dailyWindows = new Map<string, DailyWindowCostStat>();
   for (const e of events) {
     const dailyWindow = dailyWindowKeyOf(e.date, timeZone, startHour);
     let d = dailyWindows.get(dailyWindow);
     if (!d) {
-      d = { dailyWindow, costByModel: {}, totalCost: 0 };
+      d = { dailyWindow, costByKey: {}, totalCost: 0 };
       dailyWindows.set(dailyWindow, d);
     }
     const key = keyOf(e);
-    d.costByModel[key] = (d.costByModel[key] ?? 0) + e.cost;
+    d.costByKey[key] = (d.costByKey[key] ?? 0) + e.cost;
     d.totalCost += e.cost;
   }
   return [...dailyWindows.values()].sort((a, b) => a.dailyWindow.localeCompare(b.dailyWindow));
@@ -345,21 +345,21 @@ export function byDailyWindowAndModel(
   events: UsageEvent[],
   timeZone = UTC_TIME_ZONE,
   startHour = 0,
-): DailyWindowModelStat[] {
+): DailyWindowCostStat[] {
   return byDailyWindowAndKey(events, (e) => e.model, timeZone, startHour);
 }
 
 /**
  * Builds Daily-Window-by-Model-Family cost buckets for stacked charts.
  *
- * This is the Model Family variant of `byDailyWindowAndModel`; `costByModel`
+ * This is the Model Family variant of `byDailyWindowAndModel`; `costByKey`
  * is keyed by Model Family so stacked Daily Window charts stay readable.
  */
 export function byDailyWindowAndModelFamily(
   events: UsageEvent[],
   timeZone = UTC_TIME_ZONE,
   startHour = 0,
-): DailyWindowModelStat[] {
+): DailyWindowCostStat[] {
   return byDailyWindowAndKey(events, (e) => modelFamilyOf(e.model), timeZone, startHour);
 }
 

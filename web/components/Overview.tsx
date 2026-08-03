@@ -144,7 +144,7 @@ function DailyChart({
       return {
         dailyWindow: d.dailyWindow,
         label: d.dailyWindow.slice(5),
-        ...d.costByModel,
+        ...d.costByKey,
         total: d.totalCost,
         cumulative,
       };

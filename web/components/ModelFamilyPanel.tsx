@@ -95,7 +95,7 @@ export function ModelFamilyPanel({
   return (
     <div className="panel">
       <h3>
-        モデル別コスト
+        モデル分類別コスト
         {showControls && <span className="hint">クリックで実モデルの内訳へ</span>}
       </h3>
       <ResponsiveContainer width="100%" height={height}>

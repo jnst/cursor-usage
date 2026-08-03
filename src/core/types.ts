@@ -41,9 +41,10 @@ export interface BucketStat {
   eventCount: number;
 }
 
-export interface DailyWindowModelStat {
+/** Daily Window cost stacked by a grouping key (Model or Model Family). */
+export interface DailyWindowCostStat {
   dailyWindow: string;
-  /** model name -> cost */
-  costByModel: Record<string, number>;
+  /** grouping key (Model or Model Family) -> cost */
+  costByKey: Record<string, number>;
   totalCost: number;
 }

@@ -150,13 +150,13 @@ describe("buckets", () => {
       event({ model: "claude-fable-5-high", cost: 0.25 }),
       event({ model: "Opus 5 (Auto Balanced)", cost: 0.5 }),
     ]);
-    expect(stacked[0]!.costByModel).toEqual({ "Fable 5": 0.5, Auto: 0.5 });
+    expect(stacked[0]!.costByKey).toEqual({ "Fable 5": 0.5, Auto: 0.5 });
     expect(stacked[0]!.totalCost).toBeCloseTo(1.0);
   });
 
   test("byDailyWindowAndModel builds stacked data", () => {
     const stacked = byDailyWindowAndModel(b);
-    expect(stacked[1]!.costByModel).toEqual({
+    expect(stacked[1]!.costByKey).toEqual({
       "claude-opus": 0.4,
       "gpt-5.5-medium": 0.2,
     });

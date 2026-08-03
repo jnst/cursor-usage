@@ -19,7 +19,7 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
 
-Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model / per-user / per-kind costs, and every event in the window). Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
+Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model-family / per-user / per-kind costs, and every event in the window). Cost charts group Models by Model Family — variant suffixes such as reasoning effort and fast mode are collapsed, and usage routed through Auto (Cursor Router) is shown as one `Auto` slice. Click a slice in the Model Family pie to see the Models inside it; for `Auto` this reveals the actual Models the Router selected. Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
 
 The default port is 4321; if it is already in use, a free port is picked automatically. When `--port` is specified explicitly, that port is used as-is.
 
@@ -45,23 +45,24 @@ Daily Window Cost
   2026-06-02  $246.57  ████████████████████████████ 17% 180.0M tok, 79 ev
   ...
 
-By Model
-  gpt-5.5-medium                 $954.95  ████████████████████████████ 66% 804.2M tok, 472 ev
-  claude-opus-4-8-thinking-high  $357.92  ██████████▌                  25% 135.5M tok, 69 ev
+By Model Family
+  GPT-5.5   $954.95  ████████████████████████████ 66% 804.2M tok, 472 ev
+  Opus 4.8  $357.92  ██████████▌                  25% 135.5M tok, 69 ev
   ...
 ```
 
 Options:
 
-| Option                             | Description                                                    |
-| ---------------------------------- | -------------------------------------------------------------- |
-| `--by <daily-window\|user\|model>` | Show a single breakdown axis                                   |
-| `--daily-window <YYYY-MM-DD>`      | Drill into a single Daily Window                               |
-| `--start-hour <0-23>`              | Daily Window start hour (default: `0`)                         |
-| `--user <identifier>`              | Filter analysis to a single User                               |
-| `--timezone <iana-tz>`             | Group Daily Windows and hours in a specific analysis time zone |
-| `--json`                           | Output aggregated stats as JSON (pipe to jq etc.)              |
-| `--include-no-charge`              | Include "Errored, No Charge" events                            |
+| Option                                           | Description                                                    |
+| ------------------------------------------------ | -------------------------------------------------------------- |
+| `--by <daily-window\|user\|model\|model-family>` | Show a single breakdown axis                                   |
+| `--daily-window <YYYY-MM-DD>`                    | Drill into a single Daily Window                               |
+| `--start-hour <0-23>`                            | Daily Window start hour (default: `0`)                         |
+| `--user <identifier>`                            | Filter analysis to a single User                               |
+| `--model-family <name>`                          | Filter analysis to a single Model Family (e.g. `Auto`)         |
+| `--timezone <iana-tz>`                           | Group Daily Windows and hours in a specific analysis time zone |
+| `--json`                                         | Output aggregated stats as JSON (pipe to jq etc.)              |
+| `--include-no-charge`                            | Include "Errored, No Charge" events                            |
 
 ```bash
 # Extract key numbers
@@ -72,6 +73,9 @@ npx @jnst/cursor-usage stats usage.csv --daily-window 2026-06-02 --timezone Asia
 
 # Filter to a single user
 npx @jnst/cursor-usage stats usage.csv --user jnst@example.jp
+
+# See the Models inside one Model Family (e.g. what Auto routed to)
+npx @jnst/cursor-usage stats usage.csv --model-family Auto --by model
 ```
 
 Or install globally to use the short `cursor-usage` command:
