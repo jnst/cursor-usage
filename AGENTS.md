@@ -8,3 +8,4 @@
 - Use `bun run release` for releases instead of manually sequencing version, publish, push, and GitHub Release steps.
 - Write all commit messages in English, including the subject and body.
 - Write pull request titles and bodies in English.
+- Place unit tests next to the implementation they cover (for example `src/core/parse.test.ts`).

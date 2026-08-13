@@ -49,3 +49,11 @@ Usage Exports report Models at variant granularity: one underlying model appears
 Usage routed through Auto (Cursor Router) is grouped into a single `Auto` Model Family regardless of Router mode (Intelligence, Balance, Cost) or routed Model, because the routing decision — not the user's model choice — drove the cost. The Models that Auto actually selected stay visible one level down: the web dashboard drills from the Model Family pie into a Model-level breakdown, and the CLI accepts a Model Family filter (`--model-family Auto`) that shows the same Model-level detail.
 
 This partially revises the earlier stance that Model Family aggregation is intentionally not introduced. Model remains the identifier reported by the Usage Export and remains the key for event-level tables and JSON output; Model Family is an additional analysis axis derived locally by normalization. Normalization must tolerate naming churn: unknown identifiers fall back to their variant-stripped slug (or the raw identifier) so new models still group across their variants without a release, and parsing strips zero-width characters and accepts variant suffixes in any order because real exports contain both.
+
+## ADR-008: Colocate Unit Tests with Implementation
+
+Unit tests live next to the module they cover, using the `*.test.ts` suffix (`src/core/parse.ts` and `src/core/parse.test.ts`). This keeps the test for a module visible when that module changes, and it keeps import paths local (`./parse.ts` instead of `../src/core/parse.ts`).
+
+A top-level `tests/` directory is reserved for tests that span multiple modules or entry points, such as CLI or dashboard flows. There are none yet.
+
+This rejects keeping all tests in `tests/` by default. `bun test` already discovers `*.test.ts` recursively, and the published package only ships `dist/`, so colocated tests are not included in the npm tarball.
