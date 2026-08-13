@@ -182,6 +182,9 @@ export function latestDailyWindowKey(
   events: UsageEvent[],
   ctx: Partial<AnalysisContext> = {},
 ): string | null {
-  const latest = [...events].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+  let latest: UsageEvent | undefined;
+  for (const event of events) {
+    if (!latest || event.date.getTime() > latest.date.getTime()) latest = event;
+  }
   return latest ? dailyWindowKeyOf(latest.date, ctx) : null;
 }

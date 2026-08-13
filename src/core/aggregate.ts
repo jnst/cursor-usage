@@ -202,23 +202,9 @@ function byDailyWindowAndKey(
 }
 
 /**
- * Builds Daily-Window-by-Model cost buckets for stacked Daily Window charts.
- *
- * Daily Windows are derived in the selected Analysis Time Zone, and model costs
- * are kept separate so charts can show both totals and model composition.
- */
-export function byDailyWindowAndModel(
-  events: UsageEvent[],
-  ctx: Partial<AnalysisContext> = {},
-): DailyWindowCostStat[] {
-  return byDailyWindowAndKey(events, (e) => e.model, ctx);
-}
-
-/**
  * Builds Daily-Window-by-Model-Family cost buckets for stacked charts.
  *
- * This is the Model Family variant of `byDailyWindowAndModel`; `costByKey`
- * is keyed by Model Family so stacked Daily Window charts stay readable.
+ * `costByKey` is keyed by Model Family so stacked Daily Window charts stay readable.
  */
 export function byDailyWindowAndModelFamily(
   events: UsageEvent[],

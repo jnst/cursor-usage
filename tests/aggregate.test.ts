@@ -5,7 +5,6 @@ import { describe, expect, it } from "bun:test";
 import {
   billable,
   byDailyWindow,
-  byDailyWindowAndModel,
   byDailyWindowAndModelFamily,
   byHour,
   byKind,
@@ -168,15 +167,6 @@ describe("buckets", () => {
     ]);
     expect(stacked[0]!.costByKey).toEqual({ "Fable 5": 0.5, Auto: 0.5 });
     expect(stacked[0]!.totalCost).toBeCloseTo(1.0);
-  });
-
-  it("byDailyWindowAndModel builds stacked data", () => {
-    const stacked = byDailyWindowAndModel(b);
-    expect(stacked[1]!.costByKey).toEqual({
-      "claude-opus": 0.4,
-      "gpt-5.5-medium": 0.2,
-    });
-    expect(stacked[1]!.totalCost).toBeCloseTo(0.6);
   });
 
   it("topEvents returns most expensive first", () => {

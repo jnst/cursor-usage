@@ -28,8 +28,6 @@ import { BAR_SIZE, COLORS, modelFamilyColors, tooltipStyle } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
 import { UserChart } from "./UserChart.tsx";
 
-export { formatTokens, formatUsd };
-
 const CUMULATIVE_KEY = "cumulative";
 
 /**
