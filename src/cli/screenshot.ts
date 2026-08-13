@@ -1,4 +1,4 @@
-import type { UsageEvent } from "../core/types.ts";
+import type { AnalysisContext, UsageEvent } from "../core/types.ts";
 
 import { basename, dirname, extname, join } from "node:path";
 
@@ -8,9 +8,8 @@ import { startServer } from "../server/index.ts";
 interface ScreenshotOptions {
   csvPath: string;
   events: UsageEvent[];
-  timeZone: string;
+  ctx: AnalysisContext;
   dailyWindow?: string;
-  startHour: number;
   eventLimit?: number;
   dailyReport: boolean;
   out?: string;
@@ -77,15 +76,10 @@ export async function writeScreenshot(options: ScreenshotOptions): Promise<strin
   }
 
   if (options.dailyWindow) {
-    const windowEvents = eventsInDailyWindow(
-      options.events,
-      options.dailyWindow,
-      options.timeZone,
-      options.startHour,
-    );
+    const windowEvents = eventsInDailyWindow(options.events, options.dailyWindow, options.ctx);
     if (windowEvents.length === 0) {
       throw new Error(
-        `No billable usage events found in Daily Window ${options.dailyWindow} (start hour ${options.startHour}, ${options.timeZone}).`,
+        `No billable usage events found in Daily Window ${options.dailyWindow} (start hour ${options.ctx.startHour}, ${options.ctx.timeZone}).`,
       );
     }
   }
@@ -122,10 +116,10 @@ export async function writeScreenshot(options: ScreenshotOptions): Promise<strin
 
     const url = new URL(runningServer.url);
     url.hash = new URLSearchParams({
-      timezone: options.timeZone,
+      timezone: options.ctx.timeZone,
       ...(options.user ? { user: options.user } : {}),
       ...(options.dailyWindow ? { "daily-window": options.dailyWindow } : {}),
-      ...(options.startHour !== 0 ? { "start-hour": String(options.startHour) } : {}),
+      ...(options.ctx.startHour !== 0 ? { "start-hour": String(options.ctx.startHour) } : {}),
       ...(options.eventLimit !== undefined ? { "event-limit": String(options.eventLimit) } : {}),
     }).toString();
 

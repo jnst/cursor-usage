@@ -1,4 +1,4 @@
-import type { UsageEvent } from "../../src/core/types.ts";
+import type { AnalysisContext, UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo } from "react";
 import {
@@ -29,8 +29,7 @@ interface Props {
   events: UsageEvent[];
   userEvents: UsageEvent[];
   dailyWindow: string;
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
   eventLimit?: number;
   showControls: boolean;
   selectedUser: string | null;
@@ -41,23 +40,18 @@ interface Props {
 
 function DailyWindowSummaryCards({
   dailyWindowEvents,
-  timeZone,
-  startHour,
+  ctx,
   totalCost,
   rank,
   dailyWindowCount,
 }: {
   dailyWindowEvents: UsageEvent[];
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
   totalCost: number;
   rank: number;
   dailyWindowCount: number;
 }) {
-  const s = useMemo(
-    () => summarize(dailyWindowEvents, timeZone, startHour),
-    [dailyWindowEvents, timeZone, startHour],
-  );
+  const s = useMemo(() => summarize(dailyWindowEvents, ctx), [dailyWindowEvents, ctx]);
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const cards = [
     { label: "Cost", value: formatUsd(s.totalCost), sub: `期間全体の ${share}%` },
@@ -86,17 +80,15 @@ function DailyWindowSummaryCards({
 function HourlyChart({
   dailyWindowEvents,
   scaleDayEvents,
-  timeZone,
-  startHour,
+  ctx,
 }: {
   dailyWindowEvents: UsageEvent[];
   scaleDayEvents: UsageEvent[];
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
 }) {
   const data = useMemo(() => {
-    const byHourMap = new Map(byHour(dailyWindowEvents, timeZone).map((b) => [b.key, b]));
-    return orderedHours(startHour).map((key) => {
+    const byHourMap = new Map(byHour(dailyWindowEvents, ctx).map((b) => [b.key, b]));
+    return orderedHours(ctx).map((key) => {
       const b = byHourMap.get(key);
       return {
         hour: key,
@@ -104,15 +96,15 @@ function HourlyChart({
         eventCount: b?.eventCount ?? 0,
       };
     });
-  }, [dailyWindowEvents, timeZone, startHour]);
+  }, [dailyWindowEvents, ctx]);
   const maxHourlyCost = useMemo(
-    () => Math.max(...byHour(scaleDayEvents, timeZone).map((b) => b.cost), 0),
-    [scaleDayEvents, timeZone],
+    () => Math.max(...byHour(scaleDayEvents, ctx).map((b) => b.cost), 0),
+    [scaleDayEvents, ctx],
   );
 
   return (
     <div className="panel wide">
-      <h3>時間帯別コスト ({timeZone})</h3>
+      <h3>時間帯別コスト ({ctx.timeZone})</h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
           <CartesianGrid stroke="#21262d" vertical={false} />
@@ -126,7 +118,7 @@ function HourlyChart({
           <Tooltip
             contentStyle={tooltipStyle}
             formatter={(value) => [formatUsd(Number(value)), "Cost"]}
-            labelFormatter={(h) => `${h}:00 ${timeZone}`}
+            labelFormatter={(h) => `${h}:00 ${ctx.timeZone}`}
           />
           <Bar
             dataKey="cost"
@@ -308,8 +300,7 @@ export function DailyWindowView({
   events,
   userEvents,
   dailyWindow,
-  timeZone,
-  startHour,
+  ctx,
   eventLimit,
   showControls,
   selectedUser,
@@ -317,23 +308,20 @@ export function DailyWindowView({
   onSelectDailyWindow,
   onSelectUser,
 }: Props) {
-  const dailyWindows = useMemo(
-    () => byDailyWindow(events, timeZone, startHour).map((d) => d.key),
-    [events, timeZone, startHour],
-  );
+  const dailyWindows = useMemo(() => byDailyWindow(events, ctx).map((d) => d.key), [events, ctx]);
   const dailyWindowEvents = useMemo(
-    () => eventsInDailyWindow(events, dailyWindow, timeZone, startHour),
-    [events, dailyWindow, timeZone, startHour],
+    () => eventsInDailyWindow(events, dailyWindow, ctx),
+    [events, dailyWindow, ctx],
   );
   const dailyWindowUserEvents = useMemo(
-    () => eventsInDailyWindow(userEvents, dailyWindow, timeZone, startHour),
-    [userEvents, dailyWindow, timeZone, startHour],
+    () => eventsInDailyWindow(userEvents, dailyWindow, ctx),
+    [userEvents, dailyWindow, ctx],
   );
   const totalCost = useMemo(() => events.reduce((sum, e) => sum + e.cost, 0), [events]);
   const costRank = useMemo(() => {
-    const sorted = byDailyWindow(events, timeZone, startHour).sort((a, b) => b.cost - a.cost);
+    const sorted = byDailyWindow(events, ctx).sort((a, b) => b.cost - a.cost);
     return sorted.findIndex((d) => d.key === dailyWindow) + 1;
-  }, [events, dailyWindow, timeZone, startHour]);
+  }, [events, dailyWindow, ctx]);
 
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
   const idx = dailyWindows.indexOf(dailyWindow);
@@ -352,7 +340,7 @@ export function DailyWindowView({
         <div className="daily-window-title">
           <h2>{dailyWindow}</h2>
           <span className="meta">
-            {dailyWindowEvents.length} 課金イベント ({timeZone}, start {startHour}:00)
+            {dailyWindowEvents.length} 課金イベント ({ctx.timeZone}, start {ctx.startHour}:00)
           </span>
         </div>
         {showControls && (
@@ -385,8 +373,7 @@ export function DailyWindowView({
         <>
           <DailyWindowSummaryCards
             dailyWindowEvents={dailyWindowEvents}
-            timeZone={timeZone}
-            startHour={startHour}
+            ctx={ctx}
             totalCost={totalCost}
             rank={costRank}
             dailyWindowCount={dailyWindows.length}
@@ -395,8 +382,7 @@ export function DailyWindowView({
             <HourlyChart
               dailyWindowEvents={dailyWindowEvents}
               scaleDayEvents={dailyWindowUserEvents}
-              timeZone={timeZone}
-              startHour={startHour}
+              ctx={ctx}
             />
             <ModelFamilyPanel
               events={dailyWindowEvents}
@@ -413,7 +399,7 @@ export function DailyWindowView({
             <KindBreakdown dailyWindowEvents={dailyWindowEvents} />
             <DailyWindowEventsTable
               dailyWindowEvents={dailyWindowEvents}
-              timeZone={timeZone}
+              timeZone={ctx.timeZone}
               eventLimit={eventLimit}
             />
           </div>

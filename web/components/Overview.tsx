@@ -1,4 +1,4 @@
-import type { UsageEvent } from "../../src/core/types.ts";
+import type { AnalysisContext, UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo } from "react";
 import {
@@ -81,16 +81,8 @@ function DailyCostTooltip(props: TooltipContentProps) {
   );
 }
 
-function SummaryCards({
-  events,
-  timeZone,
-  startHour,
-}: {
-  events: UsageEvent[];
-  timeZone: string;
-  startHour: number;
-}) {
-  const s = useMemo(() => summarize(events, timeZone, startHour), [events, timeZone, startHour]);
+function SummaryCards({ events, ctx }: { events: UsageEvent[]; ctx: AnalysisContext }) {
+  const s = useMemo(() => summarize(events, ctx), [events, ctx]);
   const cards = [
     {
       label: "Total Cost",
@@ -122,16 +114,14 @@ function SummaryCards({
 function DailyChart({
   events,
   scaleEvents,
-  timeZone,
-  startHour,
+  ctx,
   familyColors,
   showControls,
   onSelectDailyWindow,
 }: {
   events: UsageEvent[];
   scaleEvents: UsageEvent[];
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
   familyColors: Map<string, string>;
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
@@ -139,7 +129,7 @@ function DailyChart({
   const families = useMemo(() => byModelFamily(events).map((f) => f.key), [events]);
   const data = useMemo(() => {
     let cumulative = 0;
-    return byDailyWindowAndModelFamily(events, timeZone, startHour).map((d) => {
+    return byDailyWindowAndModelFamily(events, ctx).map((d) => {
       cumulative += d.totalCost;
       return {
         dailyWindow: d.dailyWindow,
@@ -149,14 +139,14 @@ function DailyChart({
         cumulative,
       };
     });
-  }, [events, timeZone, startHour]);
+  }, [events, ctx]);
   const scale = useMemo(() => {
-    const dailyWindows = byDailyWindowAndModelFamily(scaleEvents, timeZone, startHour);
+    const dailyWindows = byDailyWindowAndModelFamily(scaleEvents, ctx);
     return {
       maxDailyCost: Math.max(...dailyWindows.map((d) => d.totalCost), 0),
       totalCost: dailyWindows.reduce((sum, d) => sum + d.totalCost, 0),
     };
-  }, [scaleEvents, timeZone, startHour]);
+  }, [scaleEvents, ctx]);
 
   const handleClick = (payload: { dailyWindow?: string } | undefined) => {
     if (payload?.dailyWindow) onSelectDailyWindow?.(payload.dailyWindow);
@@ -335,8 +325,7 @@ function TopEventsTable({ events, timeZone }: { events: UsageEvent[]; timeZone: 
 export function Overview({
   events,
   userEvents,
-  timeZone,
-  startHour,
+  ctx,
   showControls,
   onSelectDailyWindow,
   onSelectUser,
@@ -344,8 +333,7 @@ export function Overview({
 }: {
   events: UsageEvent[];
   userEvents: UsageEvent[];
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
   onSelectUser?: (user: string) => void;
@@ -354,13 +342,12 @@ export function Overview({
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
   return (
     <>
-      <SummaryCards events={events} timeZone={timeZone} startHour={startHour} />
+      <SummaryCards events={events} ctx={ctx} />
       <div className="grid">
         <DailyChart
           events={events}
           scaleEvents={userEvents}
-          timeZone={timeZone}
-          startHour={startHour}
+          ctx={ctx}
           familyColors={familyColors}
           showControls={showControls}
           onSelectDailyWindow={onSelectDailyWindow}
@@ -372,7 +359,7 @@ export function Overview({
           showControls={showControls}
           onSelectUser={onSelectUser}
         />
-        <TopEventsTable events={events} timeZone={timeZone} />
+        <TopEventsTable events={events} timeZone={ctx.timeZone} />
       </div>
     </>
   );

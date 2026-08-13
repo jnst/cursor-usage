@@ -1,4 +1,4 @@
-import type { UsageEvent } from "../src/core/types.ts";
+import type { AnalysisContext, UsageEvent } from "../src/core/types.ts";
 
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -30,8 +30,7 @@ function initialEvents(): UsageEvent[] | null {
 function routeFromHash(defaultTimeZone: string): {
   dailyWindow: string | null;
   user: string | null;
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
   eventLimit: number | null;
 } {
   const params = new URLSearchParams(window.location.hash.slice(1));
@@ -43,8 +42,10 @@ function routeFromHash(defaultTimeZone: string): {
   return {
     dailyWindow: dailyWindow && DAY_PATTERN.test(dailyWindow) ? dailyWindow : null,
     user: user || null,
-    timeZone: timeZone && isValidTimeZone(timeZone) ? timeZone : defaultTimeZone,
-    startHour: isValidStartHour(startHour) ? startHour : 0,
+    ctx: {
+      timeZone: timeZone && isValidTimeZone(timeZone) ? timeZone : defaultTimeZone,
+      startHour: isValidStartHour(startHour) ? startHour : 0,
+    },
     eventLimit: Number.isInteger(eventLimit) && eventLimit > 0 ? eventLimit : null,
   };
 }
@@ -53,8 +54,7 @@ function routeFromHash(defaultTimeZone: string): {
 function useDailyWindowRoute(): {
   selectedDailyWindow: string | null;
   selectedUser: string | null;
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
   eventLimit: number | null;
   setSelectedDailyWindow: (dailyWindow: string | null) => void;
   setSelectedUser: (user: string | null) => void;
@@ -71,33 +71,30 @@ function useDailyWindowRoute(): {
   const updateHash = (
     dailyWindow: string | null,
     user: string | null,
-    timeZone: string,
-    startHour: number,
+    ctx: AnalysisContext,
     eventLimit: number | null,
   ) => {
     if (dailyWindow || user) {
-      const params = new URLSearchParams({ timezone: timeZone });
+      const params = new URLSearchParams({ timezone: ctx.timeZone });
       if (dailyWindow) params.set("daily-window", dailyWindow);
       if (user) params.set("user", user);
-      if (startHour !== 0) params.set("start-hour", String(startHour));
+      if (ctx.startHour !== 0) params.set("start-hour", String(ctx.startHour));
       if (eventLimit !== null) params.set("event-limit", String(eventLimit));
       window.location.hash = params.toString();
     } else if (window.location.hash) {
       window.history.pushState(null, "", window.location.pathname + window.location.search);
     }
-    setRoute({ dailyWindow, user, timeZone, startHour, eventLimit });
+    setRoute({ dailyWindow, user, ctx, eventLimit });
   };
 
   return {
     selectedDailyWindow: route.dailyWindow,
     selectedUser: route.user,
-    timeZone: route.timeZone,
-    startHour: route.startHour,
+    ctx: route.ctx,
     eventLimit: route.eventLimit,
     setSelectedDailyWindow: (dailyWindow) =>
-      updateHash(dailyWindow, route.user, route.timeZone, route.startHour, route.eventLimit),
-    setSelectedUser: (user) =>
-      updateHash(route.dailyWindow, user, route.timeZone, route.startHour, route.eventLimit),
+      updateHash(dailyWindow, route.user, route.ctx, route.eventLimit),
+    setSelectedUser: (user) => updateHash(route.dailyWindow, user, route.ctx, route.eventLimit),
   };
 }
 
@@ -108,8 +105,7 @@ function App() {
   const {
     selectedDailyWindow,
     selectedUser,
-    timeZone,
-    startHour,
+    ctx,
     eventLimit,
     setSelectedDailyWindow,
     setSelectedUser,
@@ -183,8 +179,7 @@ function App() {
           <DailyWindowView
             events={events}
             dailyWindow={selectedDailyWindow}
-            timeZone={timeZone}
-            startHour={startHour}
+            ctx={ctx}
             eventLimit={eventLimit ?? undefined}
             showControls={showControls}
             onBack={() => setSelectedDailyWindow(null)}
@@ -197,8 +192,7 @@ function App() {
           <Overview
             events={events}
             userEvents={baseEvents ?? events}
-            timeZone={timeZone}
-            startHour={startHour}
+            ctx={ctx}
             showControls={showControls}
             onSelectDailyWindow={setSelectedDailyWindow}
             onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}

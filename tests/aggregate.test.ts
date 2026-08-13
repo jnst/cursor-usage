@@ -188,12 +188,12 @@ describe("buckets", () => {
 
     expect(dailyWindowKeyOf(lateUtc.date)).toBe("2026-06-05");
     expect(hourOf(lateUtc.date)).toBe("23");
-    expect(dailyWindowKeyOf(lateUtc.date, "Asia/Tokyo")).toBe("2026-06-06");
-    expect(hourOf(lateUtc.date, "Asia/Tokyo")).toBe("08");
+    expect(dailyWindowKeyOf(lateUtc.date, { timeZone: "Asia/Tokyo" })).toBe("2026-06-06");
+    expect(hourOf(lateUtc.date, { timeZone: "Asia/Tokyo" })).toBe("08");
   });
 
   it("eventsInDailyWindow uses the selected analysis time zone", () => {
-    const tokyoDailyWindow = eventsInDailyWindow(b, "2026-06-06", "Asia/Tokyo");
+    const tokyoDailyWindow = eventsInDailyWindow(b, "2026-06-06", { timeZone: "Asia/Tokyo" });
     expect(tokyoDailyWindow).toHaveLength(1);
     expect(tokyoDailyWindow[0]!.date.toISOString()).toBe("2026-06-05T23:59:59.000Z");
   });
@@ -202,10 +202,16 @@ describe("buckets", () => {
     const earlyTokyo = event({ date: new Date("2026-06-05T19:30:00Z") }); // 04:30 JST
     const morningTokyo = event({ date: new Date("2026-06-05T20:30:00Z") }); // 05:30 JST
 
-    expect(dailyWindowKeyOf(earlyTokyo.date, "Asia/Tokyo", 5)).toBe("2026-06-05");
-    expect(dailyWindowKeyOf(morningTokyo.date, "Asia/Tokyo", 5)).toBe("2026-06-06");
-    expect(latestDailyWindowKey([earlyTokyo, morningTokyo], "Asia/Tokyo", 5)).toBe("2026-06-06");
-    expect(orderedHours(5).slice(0, 5)).toEqual(["05", "06", "07", "08", "09"]);
-    expect(orderedHours(5).slice(-5)).toEqual(["00", "01", "02", "03", "04"]);
+    expect(dailyWindowKeyOf(earlyTokyo.date, { timeZone: "Asia/Tokyo", startHour: 5 })).toBe(
+      "2026-06-05",
+    );
+    expect(dailyWindowKeyOf(morningTokyo.date, { timeZone: "Asia/Tokyo", startHour: 5 })).toBe(
+      "2026-06-06",
+    );
+    expect(
+      latestDailyWindowKey([earlyTokyo, morningTokyo], { timeZone: "Asia/Tokyo", startHour: 5 }),
+    ).toBe("2026-06-06");
+    expect(orderedHours({ startHour: 5 }).slice(0, 5)).toEqual(["05", "06", "07", "08", "09"]);
+    expect(orderedHours({ startHour: 5 }).slice(-5)).toEqual(["00", "01", "02", "03", "04"]);
   });
 });

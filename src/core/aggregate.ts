@@ -1,6 +1,7 @@
 import { modelFamilyOf } from "./model.ts";
-import { dailyWindowKeyOf, hourOf, UTC_TIME_ZONE } from "./time.ts";
+import { dailyWindowKeyOf, hourOf } from "./time.ts";
 import {
+  type AnalysisContext,
   type BucketStat,
   type DailyWindowCostStat,
   NO_CHARGE_KIND,
@@ -24,7 +25,7 @@ export function billable(events: UsageEvent[]): UsageEvent[] {
  * Daily Window Range and Active Daily Window count are derived from Billable
  * Events already selected by the caller, grouped in the selected Analysis Time Zone.
  */
-export function summarize(events: UsageEvent[], timeZone = UTC_TIME_ZONE, startHour = 0): Summary {
+export function summarize(events: UsageEvent[], ctx: Partial<AnalysisContext> = {}): Summary {
   let totalCost = 0;
   let totalTokens = 0;
   let maxModeCount = 0;
@@ -36,7 +37,7 @@ export function summarize(events: UsageEvent[], timeZone = UTC_TIME_ZONE, startH
     totalCost += e.cost;
     totalTokens += e.totalTokens;
     if (e.maxMode) maxModeCount++;
-    dailyWindows.add(dailyWindowKeyOf(e.date, timeZone, startHour));
+    dailyWindows.add(dailyWindowKeyOf(e.date, ctx));
     users.add(e.user);
     models.add(e.model);
   }
@@ -91,10 +92,9 @@ function bucketBy(events: UsageEvent[], keyFn: (e: UsageEvent) => string): Bucke
  */
 export function byDailyWindow(
   events: UsageEvent[],
-  timeZone = UTC_TIME_ZONE,
-  startHour = 0,
+  ctx: Partial<AnalysisContext> = {},
 ): BucketStat[] {
-  return bucketBy(events, (e) => dailyWindowKeyOf(e.date, timeZone, startHour)).sort((a, b) =>
+  return bucketBy(events, (e) => dailyWindowKeyOf(e.date, ctx)).sort((a, b) =>
     a.key.localeCompare(b.key),
   );
 }
@@ -157,21 +157,18 @@ export function byKind(events: UsageEvent[]): BucketStat[] {
  * Only hours that contain activity are returned. Callers that need a complete
  * 24-hour chart should fill missing hours explicitly.
  */
-export function byHour(events: UsageEvent[], timeZone = UTC_TIME_ZONE): BucketStat[] {
-  return bucketBy(events, (e) => hourOf(e.date, timeZone)).sort((a, b) =>
-    a.key.localeCompare(b.key),
-  );
+export function byHour(events: UsageEvent[], ctx: Partial<AnalysisContext> = {}): BucketStat[] {
+  return bucketBy(events, (e) => hourOf(e.date, ctx)).sort((a, b) => a.key.localeCompare(b.key));
 }
 
 function byDailyWindowAndKey(
   events: UsageEvent[],
   keyOf: (e: UsageEvent) => string,
-  timeZone: string,
-  startHour: number,
+  ctx: Partial<AnalysisContext> = {},
 ): DailyWindowCostStat[] {
   const dailyWindows = new Map<string, DailyWindowCostStat>();
   for (const e of events) {
-    const dailyWindow = dailyWindowKeyOf(e.date, timeZone, startHour);
+    const dailyWindow = dailyWindowKeyOf(e.date, ctx);
     let d = dailyWindows.get(dailyWindow);
     if (!d) {
       d = { dailyWindow, costByKey: {}, totalCost: 0 };
@@ -192,10 +189,9 @@ function byDailyWindowAndKey(
  */
 export function byDailyWindowAndModel(
   events: UsageEvent[],
-  timeZone = UTC_TIME_ZONE,
-  startHour = 0,
+  ctx: Partial<AnalysisContext> = {},
 ): DailyWindowCostStat[] {
-  return byDailyWindowAndKey(events, (e) => e.model, timeZone, startHour);
+  return byDailyWindowAndKey(events, (e) => e.model, ctx);
 }
 
 /**
@@ -206,10 +202,9 @@ export function byDailyWindowAndModel(
  */
 export function byDailyWindowAndModelFamily(
   events: UsageEvent[],
-  timeZone = UTC_TIME_ZONE,
-  startHour = 0,
+  ctx: Partial<AnalysisContext> = {},
 ): DailyWindowCostStat[] {
-  return byDailyWindowAndKey(events, (e) => modelFamilyOf(e.model), timeZone, startHour);
+  return byDailyWindowAndKey(events, (e) => modelFamilyOf(e.model), ctx);
 }
 
 /**

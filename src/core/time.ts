@@ -1,6 +1,24 @@
-import type { UsageEvent } from "./types.ts";
+import type { AnalysisContext, UsageEvent } from "./types.ts";
 
 export const UTC_TIME_ZONE = "UTC";
+
+export const DEFAULT_ANALYSIS_CONTEXT: AnalysisContext = {
+  timeZone: UTC_TIME_ZONE,
+  startHour: 0,
+};
+
+/**
+ * Fills omitted Analysis Context fields with UTC and a midnight start hour.
+ *
+ * Core grouping functions accept a partial context so tests and callers can
+ * override only the field they care about.
+ */
+export function resolveAnalysisContext(ctx: Partial<AnalysisContext> = {}): AnalysisContext {
+  return {
+    timeZone: ctx.timeZone ?? DEFAULT_ANALYSIS_CONTEXT.timeZone,
+    startHour: ctx.startHour ?? DEFAULT_ANALYSIS_CONTEXT.startHour,
+  };
+}
 
 /**
  * Returns the environment's default Analysis Time Zone.
@@ -96,7 +114,8 @@ function addDays(dateKey: string, days: number): string {
  * The key is based on the local date at the start of the Daily Window. A
  * midnight start hour preserves the usual calendar-aligned grouping.
  */
-export function dailyWindowKeyOf(date: Date, timeZone = UTC_TIME_ZONE, startHour = 0): string {
+export function dailyWindowKeyOf(date: Date, ctx: Partial<AnalysisContext> = {}): string {
+  const { timeZone, startHour } = resolveAnalysisContext(ctx);
   assertStartHour(startHour);
   const { dateKey, hour } = localDateKeyAndHour(date, timeZone);
   return hour < startHour ? addDays(dateKey, -1) : dateKey;
@@ -108,7 +127,8 @@ export function dailyWindowKeyOf(date: Date, timeZone = UTC_TIME_ZONE, startHour
  * The result is a two-digit clock hour (`"00"` through `"23"`) suitable for
  * chronological hourly buckets.
  */
-export function hourOf(date: Date, timeZone = UTC_TIME_ZONE): string {
+export function hourOf(date: Date, ctx: Partial<AnalysisContext> = {}): string {
+  const { timeZone } = resolveAnalysisContext(ctx);
   return dateTimeParts(date, timeZone).get("hour") ?? "";
 }
 
@@ -118,7 +138,8 @@ export function hourOf(date: Date, timeZone = UTC_TIME_ZONE): string {
  * Use this for charts that should read in Daily Window order rather than
  * midnight-first clock order.
  */
-export function orderedHours(startHour = 0): string[] {
+export function orderedHours(ctx: Partial<AnalysisContext> = {}): string[] {
+  const { startHour } = resolveAnalysisContext(ctx);
   assertStartHour(startHour);
   return Array.from({ length: 24 }, (_, i) => String((startHour + i) % 24).padStart(2, "0"));
 }
@@ -129,10 +150,9 @@ export function orderedHours(startHour = 0): string[] {
 export function eventsInDailyWindow(
   events: UsageEvent[],
   dailyWindow: string,
-  timeZone = UTC_TIME_ZONE,
-  startHour = 0,
+  ctx: Partial<AnalysisContext> = {},
 ): UsageEvent[] {
-  return events.filter((e) => dailyWindowKeyOf(e.date, timeZone, startHour) === dailyWindow);
+  return events.filter((e) => dailyWindowKeyOf(e.date, ctx) === dailyWindow);
 }
 
 /**
@@ -140,9 +160,8 @@ export function eventsInDailyWindow(
  */
 export function latestDailyWindowKey(
   events: UsageEvent[],
-  timeZone = UTC_TIME_ZONE,
-  startHour = 0,
+  ctx: Partial<AnalysisContext> = {},
 ): string | null {
   const latest = [...events].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
-  return latest ? dailyWindowKeyOf(latest.date, timeZone, startHour) : null;
+  return latest ? dailyWindowKeyOf(latest.date, ctx) : null;
 }
