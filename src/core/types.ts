@@ -17,6 +17,17 @@ export interface UsageEvent {
 
 export const NO_CHARGE_KIND = "Errored, No Charge";
 
+/**
+ * Time-axis settings used to group Usage Events into Daily Windows and Hours.
+ *
+ * These two fields travel together: a Daily Window Key is only meaningful in
+ * an Analysis Time Zone at a chosen start hour.
+ */
+export interface AnalysisContext {
+  timeZone: string;
+  startHour: number;
+}
+
 export interface Summary {
   totalCost: number;
   totalTokens: number;

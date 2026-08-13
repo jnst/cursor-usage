@@ -1,4 +1,4 @@
-import type { BucketStat, Summary, UsageEvent } from "../core/types.ts";
+import type { AnalysisContext, BucketStat, Summary, UsageEvent } from "../core/types.ts";
 
 import {
   byDailyWindow,
@@ -7,11 +7,11 @@ import {
   byModel,
   byModelFamily,
   byUser,
-  eventsInDailyWindow,
-  orderedHours,
   summarize,
   topEvents,
 } from "../core/aggregate.ts";
+import { formatTime, formatTokens, formatUsd } from "../core/format.ts";
+import { eventsInDailyWindow, orderedHours } from "../core/time.ts";
 
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
 
@@ -22,29 +22,6 @@ export const dim = ansi("2");
 export const cyan = ansi("36");
 export const green = ansi("32");
 export const yellow = ansi("33");
-
-/**
- * Formats Cost for terminal output.
- *
- * Terminal tables preserve cents because Cost comes from the Usage Export and
- * should not be visually rounded away in textual summaries.
- */
-export function formatUsd(value: number): string {
-  return `$${value.toFixed(2)}`;
-}
-
-/**
- * Formats token counts for compact human-readable terminal output.
- *
- * This is a display helper only. Machine-readable JSON output should keep the
- * original numeric token counts.
- */
-export function formatTokens(value: number): string {
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return String(value);
-}
 
 /**
  * Renders a horizontal terminal bar with 1/8-block resolution.
@@ -65,37 +42,10 @@ function padEndDisplay(s: string, width: number): string {
   return s.length >= width ? s : s + " ".repeat(width - s.length);
 }
 
-function dateTimePart(
-  date: Date,
-  timeZone: string,
-  part: "year" | "month" | "day" | "hour" | "minute" | "second",
-): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  return parts.find((p) => p.type === part)?.value ?? "";
-}
-
-function formatTime(date: Date, timeZone: string): string {
-  return [
-    dateTimePart(date, timeZone, "hour"),
-    dateTimePart(date, timeZone, "minute"),
-    dateTimePart(date, timeZone, "second"),
-  ].join(":");
-}
-
 function renderSummaryBlock(
   summary: Summary,
-  timeZone: string,
+  ctx: AnalysisContext,
   user: string | undefined,
-  startHour: number,
   modelFamily?: string,
 ): string[] {
   const period =
@@ -103,7 +53,7 @@ function renderSummaryBlock(
       ? `${summary.firstDailyWindow} – ${summary.lastDailyWindow}`
       : "no data";
   const scope = [
-    `${timeZone}, start ${startHour}:00`,
+    `${ctx.timeZone}, start ${ctx.startHour}:00`,
     ...(user ? [`user ${user}`] : []),
     ...(modelFamily ? [`model family ${modelFamily}`] : []),
   ].join(", ");
@@ -156,19 +106,16 @@ export type StatsAxis = "daily-window" | "user" | "model" | "model-family";
 export function renderStats(
   events: UsageEvent[],
   axis: StatsAxis | undefined,
-  timeZone: string,
+  ctx: AnalysisContext,
   user?: string,
-  startHour = 0,
   modelFamily?: string,
 ): string {
-  const summary = summarize(events, timeZone, startHour);
-  const sections: string[][] = [
-    renderSummaryBlock(summary, timeZone, user, startHour, modelFamily),
-  ];
+  const summary = summarize(events, ctx);
+  const sections: string[][] = [renderSummaryBlock(summary, ctx, user, modelFamily)];
 
   const charts: Record<StatsAxis, () => string[]> = {
     "daily-window": () =>
-      renderBucketChart("Daily Window Cost", byDailyWindow(events, timeZone, startHour), {
+      renderBucketChart("Daily Window Cost", byDailyWindow(events, ctx), {
         totalCost: summary.totalCost,
         maxRows: 31,
       }),
@@ -209,18 +156,17 @@ export function renderStats(
  */
 export function statsJson(
   events: UsageEvent[],
-  timeZone: string,
+  ctx: AnalysisContext,
   user?: string,
-  startHour = 0,
   modelFamily?: string,
 ): string {
   return JSON.stringify(
     {
-      timeZone,
-      startHour,
+      timeZone: ctx.timeZone,
+      startHour: ctx.startHour,
       filters: { user: user ?? null, modelFamily: modelFamily ?? null },
-      summary: summarize(events, timeZone, startHour),
-      byDailyWindow: byDailyWindow(events, timeZone, startHour),
+      summary: summarize(events, ctx),
+      byDailyWindow: byDailyWindow(events, ctx),
       byModelFamily: byModelFamily(events),
       byModel: byModel(events),
       byUser: byUser(events),
@@ -233,18 +179,17 @@ export function statsJson(
 function renderDailyWindowSummaryBlock(
   dailyWindow: string,
   dailyWindowEvents: UsageEvent[],
-  timeZone: string,
-  startHour: number,
+  ctx: AnalysisContext,
   totalCost: number,
   rank: number,
   dailyWindowCount: number,
 ): string[] {
-  const s = summarize(dailyWindowEvents, timeZone, startHour);
+  const s = summarize(dailyWindowEvents, ctx);
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const label = (str: string) => dim(padEndDisplay(str, 14));
   const value = (str: string) => bold(padEndDisplay(str, 12));
   return [
-    `${bold(`Daily Window ${dailyWindow}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dailyWindowCount} by cost, ${timeZone}, start ${startHour}:00)`)}`,
+    `${bold(`Daily Window ${dailyWindow}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dailyWindowCount} by cost, ${ctx.timeZone}, start ${ctx.startHour}:00)`)}`,
     "",
     `  ${label("Cost")}${value(formatUsd(s.totalCost))}  ${label("of period")}${value(`${share}%`)}`,
     `  ${label("Total Tokens")}${value(formatTokens(s.totalTokens))}  ${label("Max Mode")}${value(`${Math.round(s.maxModeRatio * 100)}%`)}`,
@@ -252,15 +197,11 @@ function renderDailyWindowSummaryBlock(
   ];
 }
 
-function renderHourlyChart(
-  dailyWindowEvents: UsageEvent[],
-  timeZone: string,
-  startHour: number,
-): string[] {
-  const byHourMap = new Map(byHour(dailyWindowEvents, timeZone).map((b) => [b.key, b]));
+function renderHourlyChart(dailyWindowEvents: UsageEvent[], ctx: AnalysisContext): string[] {
+  const byHourMap = new Map(byHour(dailyWindowEvents, ctx).map((b) => [b.key, b]));
   const maxCost = Math.max(...[...byHourMap.values()].map((b) => b.cost), 0);
-  const lines = [bold(`By Hour (${timeZone})`)];
-  for (const key of orderedHours(startHour)) {
+  const lines = [bold(`By Hour (${ctx.timeZone})`)];
+  for (const key of orderedHours(ctx)) {
     const b = byHourMap.get(key);
     const cost = b?.cost ?? 0;
     const events = b?.eventCount ?? 0;
@@ -299,13 +240,12 @@ function renderDailyWindowEvents(
 export function renderDailyWindowView(
   events: UsageEvent[],
   dailyWindow: string,
-  timeZone: string,
+  ctx: AnalysisContext,
   user?: string,
-  startHour = 0,
   modelFamily?: string,
 ): string {
-  const dailyWindows = byDailyWindow(events, timeZone, startHour);
-  const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, timeZone, startHour);
+  const dailyWindows = byDailyWindow(events, ctx);
+  const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, ctx);
   if (dailyWindowEvents.length === 0) {
     const known = dailyWindows.map((d) => d.key);
     const hint =
@@ -316,21 +256,20 @@ export function renderDailyWindowView(
   const totalCost = events.reduce((sum, e) => sum + e.cost, 0);
   const rank =
     [...dailyWindows].sort((a, b) => b.cost - a.cost).findIndex((d) => d.key === dailyWindow) + 1;
-  const dailyWindowTotal = summarize(dailyWindowEvents, timeZone, startHour).totalCost;
+  const dailyWindowTotal = summarize(dailyWindowEvents, ctx).totalCost;
 
   const sections: string[][] = [
     renderDailyWindowSummaryBlock(
       dailyWindow,
       dailyWindowEvents,
-      timeZone,
-      startHour,
+      ctx,
       totalCost,
       rank,
       dailyWindows.length,
     ),
     ...(user ? [[dim(`Filtered to user: ${user}`)]] : []),
     ...(modelFamily ? [[dim(`Filtered to model family: ${modelFamily}`)]] : []),
-    renderHourlyChart(dailyWindowEvents, timeZone, startHour),
+    renderHourlyChart(dailyWindowEvents, ctx),
     ...(modelFamily
       ? []
       : [
@@ -345,7 +284,7 @@ export function renderDailyWindowView(
       totalCost: dailyWindowTotal,
     }),
     renderBucketChart("By Kind", byKind(dailyWindowEvents), { totalCost: dailyWindowTotal }),
-    renderDailyWindowEvents(dailyWindowEvents, 20, timeZone),
+    renderDailyWindowEvents(dailyWindowEvents, 20, ctx.timeZone),
   ];
 
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
@@ -360,20 +299,19 @@ export function renderDailyWindowView(
 export function dailyWindowViewJson(
   events: UsageEvent[],
   dailyWindow: string,
-  timeZone: string,
+  ctx: AnalysisContext,
   user?: string,
-  startHour = 0,
   modelFamily?: string,
 ): string {
-  const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, timeZone, startHour);
+  const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, ctx);
   return JSON.stringify(
     {
       dailyWindow,
-      timeZone,
-      startHour,
+      timeZone: ctx.timeZone,
+      startHour: ctx.startHour,
       filters: { user: user ?? null, modelFamily: modelFamily ?? null },
-      summary: summarize(dailyWindowEvents, timeZone, startHour),
-      byHour: byHour(dailyWindowEvents, timeZone),
+      summary: summarize(dailyWindowEvents, ctx),
+      byHour: byHour(dailyWindowEvents, ctx),
       byModelFamily: byModelFamily(dailyWindowEvents),
       byModel: byModel(dailyWindowEvents),
       byUser: byUser(dailyWindowEvents),

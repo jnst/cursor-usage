@@ -1,16 +1,18 @@
 #!/usr/bin/env node
+import type { AnalysisContext } from "../core/types.ts";
+
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 
+import { filterEvents } from "../core/aggregate.ts";
+import { parseUsageCsv } from "../core/parse.ts";
 import {
-  billable,
   defaultAnalysisTimeZone,
-  eventsInModelFamily,
+  isValidDailyWindowKey,
   isValidStartHour,
   isValidTimeZone,
   latestDailyWindowKey,
-} from "../core/aggregate.ts";
-import { parseUsageCsv } from "../core/parse.ts";
+} from "../core/time.ts";
 import { serve } from "../server/index.ts";
 import {
   dailyWindowViewJson,
@@ -64,6 +66,18 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+function parseAnalysisContext(
+  timeZoneValue: string | undefined,
+  startHourValue: string | undefined,
+  startHourDefault = 0,
+): AnalysisContext {
+  const timeZone = timeZoneValue ?? defaultAnalysisTimeZone();
+  if (!isValidTimeZone(timeZone)) {
+    fail(`invalid --timezone value: ${timeZone}`);
+  }
+  return { timeZone, startHour: parseStartHour(startHourValue, startHourDefault) };
+}
+
 function parseStartHour(value: string | undefined, defaultValue: number): number {
   if (value === undefined) return defaultValue;
   const startHour = Number(value);
@@ -71,6 +85,21 @@ function parseStartHour(value: string | undefined, defaultValue: number): number
     fail(`invalid --start-hour value: ${value} (expected 0-23)`);
   }
   return startHour;
+}
+
+const SHARED_ANALYSIS_OPTIONS = {
+  "daily-window": { type: "string" },
+  "start-hour": { type: "string" },
+  user: { type: "string" },
+  timezone: { type: "string" },
+  "include-no-charge": { type: "boolean", default: false },
+} as const;
+
+function parseDailyWindow(value: string | undefined): string | undefined {
+  if (value !== undefined && !isValidDailyWindowKey(value)) {
+    fail(`invalid --daily-window value: ${value} (expected YYYY-MM-DD)`);
+  }
+  return value;
 }
 
 function parseEventLimit(value: string | undefined): number | undefined {
@@ -84,8 +113,7 @@ function parseEventLimit(value: string | undefined): number | undefined {
 
 async function readUsageEvents(
   csvPath: string,
-  includeNoCharge: boolean,
-  user: string | undefined,
+  filters: { includeNoCharge?: boolean; user?: string; modelFamily?: string },
   emptyMessage = "No usage events found for the requested filters.",
 ): Promise<ReturnType<typeof parseUsageCsv>> {
   let text: string;
@@ -95,9 +123,7 @@ async function readUsageEvents(
     fail(`file not found: ${csvPath}`);
   }
 
-  let events = parseUsageCsv(text);
-  if (!includeNoCharge) events = billable(events);
-  if (user) events = events.filter((e) => e.user === user);
+  const events = filterEvents(parseUsageCsv(text), filters);
   if (events.length === 0) {
     fail(emptyMessage);
   }
@@ -109,14 +135,10 @@ async function runStats(args: string[]): Promise<void> {
     args,
     allowPositionals: true,
     options: {
+      ...SHARED_ANALYSIS_OPTIONS,
       by: { type: "string" },
-      "daily-window": { type: "string" },
-      "start-hour": { type: "string" },
-      user: { type: "string" },
       "model-family": { type: "string" },
-      timezone: { type: "string" },
       json: { type: "boolean", default: false },
-      "include-no-charge": { type: "boolean", default: false },
     },
   });
 
@@ -128,38 +150,31 @@ async function runStats(args: string[]): Promise<void> {
     fail(`invalid --by value: ${axis} (expected daily-window, user, model or model-family)`);
   }
 
-  const dailyWindow = values["daily-window"];
-  if (dailyWindow !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(dailyWindow)) {
-    fail(`invalid --daily-window value: ${dailyWindow} (expected YYYY-MM-DD)`);
-  }
-
-  const timeZone = values.timezone ?? defaultAnalysisTimeZone();
-  if (!isValidTimeZone(timeZone)) {
-    fail(`invalid --timezone value: ${timeZone}`);
-  }
-  const startHour = parseStartHour(values["start-hour"], 0);
-
+  const dailyWindow = parseDailyWindow(values["daily-window"]);
+  const ctx = parseAnalysisContext(values.timezone, values["start-hour"]);
   const user = values.user;
   const modelFamily = values["model-family"];
-  let events = await readUsageEvents(csvPath, values["include-no-charge"], user);
-  if (modelFamily) {
-    events = eventsInModelFamily(events, modelFamily);
-    if (events.length === 0) fail(`no usage events for model family: ${modelFamily}`);
-  }
+  const events = await readUsageEvents(
+    csvPath,
+    { includeNoCharge: values["include-no-charge"], user, modelFamily },
+    modelFamily
+      ? `no usage events for model family: ${modelFamily}`
+      : "No usage events found for the requested filters.",
+  );
 
   if (dailyWindow) {
     console.log(
       values.json
-        ? dailyWindowViewJson(events, dailyWindow, timeZone, user, startHour, modelFamily)
-        : renderDailyWindowView(events, dailyWindow, timeZone, user, startHour, modelFamily),
+        ? dailyWindowViewJson(events, dailyWindow, ctx, user, modelFamily)
+        : renderDailyWindowView(events, dailyWindow, ctx, user, modelFamily),
     );
     return;
   }
 
   console.log(
     values.json
-      ? statsJson(events, timeZone, user, startHour, modelFamily)
-      : renderStats(events, axis, timeZone, user, startHour, modelFamily),
+      ? statsJson(events, ctx, user, modelFamily)
+      : renderStats(events, axis, ctx, user, modelFamily),
   );
 }
 
@@ -168,37 +183,28 @@ async function runScreenshot(args: string[]): Promise<void> {
     args,
     allowPositionals: true,
     options: {
-      "daily-window": { type: "string" },
-      "start-hour": { type: "string" },
+      ...SHARED_ANALYSIS_OPTIONS,
       "event-limit": { type: "string" },
       out: { type: "string" },
-      user: { type: "string" },
-      timezone: { type: "string" },
-      "include-no-charge": { type: "boolean", default: false },
     },
   });
 
   const csvPath = positionals[0];
   if (!csvPath) fail("screenshot requires a path to a CSV file");
 
-  const timeZone = values.timezone ?? defaultAnalysisTimeZone();
-  if (!isValidTimeZone(timeZone)) {
-    fail(`invalid --timezone value: ${timeZone}`);
-  }
-  const dailyWindow = values["daily-window"];
-  if (dailyWindow !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(dailyWindow)) {
-    fail(`invalid --daily-window value: ${dailyWindow} (expected YYYY-MM-DD)`);
-  }
-  const startHour = parseStartHour(values["start-hour"], 0);
+  const ctx = parseAnalysisContext(values.timezone, values["start-hour"]);
+  const dailyWindow = parseDailyWindow(values["daily-window"]);
   const eventLimit = parseEventLimit(values["event-limit"]);
 
-  const events = await readUsageEvents(csvPath, values["include-no-charge"], values.user);
+  const events = await readUsageEvents(csvPath, {
+    includeNoCharge: values["include-no-charge"],
+    user: values.user,
+  });
   const path = await writeScreenshot({
     csvPath,
     events,
-    timeZone,
+    ctx,
     dailyWindow,
-    startHour,
     eventLimit,
     dailyReport: false,
     out: values.out,
@@ -218,23 +224,20 @@ async function runDailyReport(args: string[]): Promise<void> {
   if (!csvPath) fail("daily-report requires a path to a CSV file");
   if (positionals.length > 1) fail(`unexpected argument: ${positionals[1]}`);
 
-  const timeZone = defaultAnalysisTimeZone();
-  const startHour = 5;
+  const ctx: AnalysisContext = { timeZone: defaultAnalysisTimeZone(), startHour: 5 };
   const events = await readUsageEvents(
     csvPath,
-    false,
-    undefined,
+    {},
     "No billable usage events found in the Usage Export.",
   );
-  const dailyWindow = latestDailyWindowKey(events, timeZone, startHour);
+  const dailyWindow = latestDailyWindowKey(events, ctx);
   if (!dailyWindow) fail("No billable usage events found in the Usage Export.");
 
   const path = await writeScreenshot({
     csvPath,
     events,
-    timeZone,
+    ctx,
     dailyWindow,
-    startHour,
     eventLimit: 10,
     dailyReport: true,
   });

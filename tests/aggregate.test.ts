@@ -5,22 +5,24 @@ import { describe, expect, it } from "bun:test";
 import {
   billable,
   byDailyWindow,
-  byDailyWindowAndModel,
   byDailyWindowAndModelFamily,
   byHour,
   byKind,
   byModel,
   byModelFamily,
   byUser,
-  dailyWindowKeyOf,
-  eventsInDailyWindow,
   eventsInModelFamily,
-  hourOf,
-  latestDailyWindowKey,
-  orderedHours,
+  filterEvents,
   summarize,
   topEvents,
 } from "../src/core/aggregate.ts";
+import {
+  dailyWindowKeyOf,
+  eventsInDailyWindow,
+  hourOf,
+  latestDailyWindowKey,
+  orderedHours,
+} from "../src/core/time.ts";
 
 function event(overrides: Partial<UsageEvent>): UsageEvent {
   return {
@@ -59,6 +61,19 @@ const events: UsageEvent[] = [
 describe("billable", () => {
   it("filters out no-charge events", () => {
     expect(billable(events)).toHaveLength(3);
+  });
+});
+
+describe("filterEvents", () => {
+  it("keeps billable events by default and can narrow by user and family", () => {
+    expect(filterEvents(events)).toHaveLength(3);
+    expect(filterEvents(events, { includeNoCharge: true })).toHaveLength(4);
+    expect(filterEvents(events, { user: "b@example.com" }).map((e) => e.user)).toEqual([
+      "b@example.com",
+    ]);
+    expect(
+      filterEvents(events, { modelFamily: "GPT-5.5" }).every((e) => e.model.startsWith("gpt-5.5")),
+    ).toBe(true);
   });
 });
 
@@ -154,15 +169,6 @@ describe("buckets", () => {
     expect(stacked[0]!.totalCost).toBeCloseTo(1.0);
   });
 
-  it("byDailyWindowAndModel builds stacked data", () => {
-    const stacked = byDailyWindowAndModel(b);
-    expect(stacked[1]!.costByKey).toEqual({
-      "claude-opus": 0.4,
-      "gpt-5.5-medium": 0.2,
-    });
-    expect(stacked[1]!.totalCost).toBeCloseTo(0.6);
-  });
-
   it("topEvents returns most expensive first", () => {
     const top = topEvents(b, 2);
     expect(top.map((e) => e.cost)).toEqual([0.4, 0.2]);
@@ -186,12 +192,12 @@ describe("buckets", () => {
 
     expect(dailyWindowKeyOf(lateUtc.date)).toBe("2026-06-05");
     expect(hourOf(lateUtc.date)).toBe("23");
-    expect(dailyWindowKeyOf(lateUtc.date, "Asia/Tokyo")).toBe("2026-06-06");
-    expect(hourOf(lateUtc.date, "Asia/Tokyo")).toBe("08");
+    expect(dailyWindowKeyOf(lateUtc.date, { timeZone: "Asia/Tokyo" })).toBe("2026-06-06");
+    expect(hourOf(lateUtc.date, { timeZone: "Asia/Tokyo" })).toBe("08");
   });
 
   it("eventsInDailyWindow uses the selected analysis time zone", () => {
-    const tokyoDailyWindow = eventsInDailyWindow(b, "2026-06-06", "Asia/Tokyo");
+    const tokyoDailyWindow = eventsInDailyWindow(b, "2026-06-06", { timeZone: "Asia/Tokyo" });
     expect(tokyoDailyWindow).toHaveLength(1);
     expect(tokyoDailyWindow[0]!.date.toISOString()).toBe("2026-06-05T23:59:59.000Z");
   });
@@ -200,10 +206,16 @@ describe("buckets", () => {
     const earlyTokyo = event({ date: new Date("2026-06-05T19:30:00Z") }); // 04:30 JST
     const morningTokyo = event({ date: new Date("2026-06-05T20:30:00Z") }); // 05:30 JST
 
-    expect(dailyWindowKeyOf(earlyTokyo.date, "Asia/Tokyo", 5)).toBe("2026-06-05");
-    expect(dailyWindowKeyOf(morningTokyo.date, "Asia/Tokyo", 5)).toBe("2026-06-06");
-    expect(latestDailyWindowKey([earlyTokyo, morningTokyo], "Asia/Tokyo", 5)).toBe("2026-06-06");
-    expect(orderedHours(5).slice(0, 5)).toEqual(["05", "06", "07", "08", "09"]);
-    expect(orderedHours(5).slice(-5)).toEqual(["00", "01", "02", "03", "04"]);
+    expect(dailyWindowKeyOf(earlyTokyo.date, { timeZone: "Asia/Tokyo", startHour: 5 })).toBe(
+      "2026-06-05",
+    );
+    expect(dailyWindowKeyOf(morningTokyo.date, { timeZone: "Asia/Tokyo", startHour: 5 })).toBe(
+      "2026-06-06",
+    );
+    expect(
+      latestDailyWindowKey([earlyTokyo, morningTokyo], { timeZone: "Asia/Tokyo", startHour: 5 }),
+    ).toBe("2026-06-06");
+    expect(orderedHours({ startHour: 5 }).slice(0, 5)).toEqual(["05", "06", "07", "08", "09"]);
+    expect(orderedHours({ startHour: 5 }).slice(-5)).toEqual(["00", "01", "02", "03", "04"]);
   });
 });

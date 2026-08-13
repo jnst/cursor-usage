@@ -1,10 +1,9 @@
-import type { UsageEvent } from "../../src/core/types.ts";
+import type { AnalysisContext, UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo } from "react";
 import {
   Bar,
   CartesianGrid,
-  Cell,
   ComposedChart,
   ResponsiveContainer,
   Tooltip,
@@ -12,32 +11,20 @@ import {
   YAxis,
 } from "recharts";
 
-import {
-  byDailyWindow,
-  byHour,
-  byKind,
-  byUser,
-  eventsInDailyWindow,
-  orderedHours,
-  summarize,
-} from "../../src/core/aggregate.ts";
-import { ModelCell } from "./ModelCell.tsx";
+import { byDailyWindow, byHour, byKind, summarize } from "../../src/core/aggregate.ts";
+import { formatTime, formatTokens, formatUsd } from "../../src/core/format.ts";
+import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
+import { EventsTable } from "./EventsTable.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
-import {
-  BAR_SIZE,
-  formatTime,
-  formatTokens,
-  formatUsd,
-  modelFamilyColors,
-  tooltipStyle,
-} from "./shared.ts";
+import { modelFamilyColors, tooltipStyle } from "./shared.ts";
+import { SummaryCards } from "./SummaryCards.tsx";
+import { UserChart } from "./UserChart.tsx";
 
 interface Props {
   events: UsageEvent[];
   userEvents: UsageEvent[];
   dailyWindow: string;
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
   eventLimit?: number;
   showControls: boolean;
   selectedUser: string | null;
@@ -48,23 +35,18 @@ interface Props {
 
 function DailyWindowSummaryCards({
   dailyWindowEvents,
-  timeZone,
-  startHour,
+  ctx,
   totalCost,
   rank,
   dailyWindowCount,
 }: {
   dailyWindowEvents: UsageEvent[];
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
   totalCost: number;
   rank: number;
   dailyWindowCount: number;
 }) {
-  const s = useMemo(
-    () => summarize(dailyWindowEvents, timeZone, startHour),
-    [dailyWindowEvents, timeZone, startHour],
-  );
+  const s = useMemo(() => summarize(dailyWindowEvents, ctx), [dailyWindowEvents, ctx]);
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const cards = [
     { label: "Cost", value: formatUsd(s.totalCost), sub: `期間全体の ${share}%` },
@@ -77,33 +59,21 @@ function DailyWindowSummaryCards({
     { label: "Users / Models", value: `${s.userCount} / ${s.modelCount}`, sub: "active window" },
     { label: "コスト順位", value: `${rank} / ${dailyWindowCount}`, sub: "Daily Windowランキング" },
   ];
-  return (
-    <div className="cards">
-      {cards.map((c) => (
-        <div className="card" key={c.label}>
-          <div className="label">{c.label}</div>
-          <div className="value">{c.value}</div>
-          <div className="sub">{c.sub}</div>
-        </div>
-      ))}
-    </div>
-  );
+  return <SummaryCards cards={cards} />;
 }
 
 function HourlyChart({
   dailyWindowEvents,
   scaleDayEvents,
-  timeZone,
-  startHour,
+  ctx,
 }: {
   dailyWindowEvents: UsageEvent[];
   scaleDayEvents: UsageEvent[];
-  timeZone: string;
-  startHour: number;
+  ctx: AnalysisContext;
 }) {
   const data = useMemo(() => {
-    const byHourMap = new Map(byHour(dailyWindowEvents, timeZone).map((b) => [b.key, b]));
-    return orderedHours(startHour).map((key) => {
+    const byHourMap = new Map(byHour(dailyWindowEvents, ctx).map((b) => [b.key, b]));
+    return orderedHours(ctx).map((key) => {
       const b = byHourMap.get(key);
       return {
         hour: key,
@@ -111,15 +81,15 @@ function HourlyChart({
         eventCount: b?.eventCount ?? 0,
       };
     });
-  }, [dailyWindowEvents, timeZone, startHour]);
+  }, [dailyWindowEvents, ctx]);
   const maxHourlyCost = useMemo(
-    () => Math.max(...byHour(scaleDayEvents, timeZone).map((b) => b.cost), 0),
-    [scaleDayEvents, timeZone],
+    () => Math.max(...byHour(scaleDayEvents, ctx).map((b) => b.cost), 0),
+    [scaleDayEvents, ctx],
   );
 
   return (
     <div className="panel wide">
-      <h3>時間帯別コスト ({timeZone})</h3>
+      <h3>時間帯別コスト ({ctx.timeZone})</h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
           <CartesianGrid stroke="#21262d" vertical={false} />
@@ -133,7 +103,7 @@ function HourlyChart({
           <Tooltip
             contentStyle={tooltipStyle}
             formatter={(value) => [formatUsd(Number(value)), "Cost"]}
-            labelFormatter={(h) => `${h}:00 ${timeZone}`}
+            labelFormatter={(h) => `${h}:00 ${ctx.timeZone}`}
           />
           <Bar
             dataKey="cost"
@@ -142,60 +112,6 @@ function HourlyChart({
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
           />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function UserChart({
-  dailyWindowEvents,
-  selectedUser,
-  showControls,
-  onSelectUser,
-}: {
-  dailyWindowEvents: UsageEvent[];
-  selectedUser: string | null;
-  showControls: boolean;
-  onSelectUser: (user: string) => void;
-}) {
-  const data = useMemo(() => byUser(dailyWindowEvents).slice(0, 10), [dailyWindowEvents]);
-  const isSelected = (user: string) => !selectedUser || selectedUser === user;
-  return (
-    <div className="panel">
-      <h3>
-        ユーザー別コスト (Top 10)
-        {showControls && <span className="hint">バーをクリックでユーザー選択/解除</span>}
-      </h3>
-      <ResponsiveContainer width="100%" height={260}>
-        <ComposedChart data={data} layout="vertical">
-          <CartesianGrid stroke="#21262d" horizontal={false} />
-          <XAxis
-            type="number"
-            stroke="#8b949e"
-            fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
-          />
-          <YAxis type="category" dataKey="key" stroke="#8b949e" fontSize={12} width={160} />
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
-          <Bar
-            dataKey="cost"
-            name="Cost"
-            radius={[0, 4, 4, 0]}
-            cursor={showControls ? "pointer" : undefined}
-            onClick={(payload) => {
-              if (!showControls) return;
-              const user = (payload as { key?: string } | undefined)?.key;
-              if (user) onSelectUser(user);
-            }}
-            isAnimationActive={false}
-            barSize={BAR_SIZE}
-            maxBarSize={BAR_SIZE}
-          >
-            {data.map((entry) => (
-              <Cell key={entry.key} fill="#3fb950" opacity={isSelected(entry.key) ? 1 : 0.25} />
-            ))}
-          </Bar>
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -240,70 +156,6 @@ function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] 
   );
 }
 
-function DailyWindowEventsTable({
-  dailyWindowEvents,
-  timeZone,
-  eventLimit,
-}: {
-  dailyWindowEvents: UsageEvent[];
-  timeZone: string;
-  eventLimit?: number;
-}) {
-  const rows = useMemo(() => {
-    const sorted = [...dailyWindowEvents].sort((a, b) => b.cost - a.cost);
-    return eventLimit === undefined ? sorted : sorted.slice(0, eventLimit);
-  }, [dailyWindowEvents, eventLimit]);
-  const title =
-    eventLimit === undefined
-      ? `この Daily Window のイベント (${rows.length}件・コスト降順)`
-      : `この Daily Window のイベント Top ${eventLimit} (${rows.length} of ${dailyWindowEvents.length}件・コスト降順)`;
-  return (
-    <div className="panel wide">
-      <h3>{title}</h3>
-      <div className="table-wrap scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>時刻 ({timeZone})</th>
-              <th>ユーザー</th>
-              <th>モデル</th>
-              <th>種別</th>
-              <th className="num">Input</th>
-              <th className="num">Cache Read</th>
-              <th className="num">Output</th>
-              <th className="num">Total</th>
-              <th className="num">Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((e) => (
-              <tr
-                key={[e.date.toISOString(), e.user, e.model, e.kind, e.totalTokens, e.cost].join(
-                  "|",
-                )}
-              >
-                <td>{formatTime(e.date, timeZone)}</td>
-                <td>{e.user}</td>
-                <td>
-                  <ModelCell event={e} />
-                </td>
-                <td>{e.kind}</td>
-                <td className="num">
-                  {formatTokens(e.inputWithCacheWrite + e.inputWithoutCacheWrite)}
-                </td>
-                <td className="num">{formatTokens(e.cacheRead)}</td>
-                <td className="num">{formatTokens(e.outputTokens)}</td>
-                <td className="num">{formatTokens(e.totalTokens)}</td>
-                <td className="num">{formatUsd(e.cost)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 /**
  * Shows analysis for one Daily Window in the selected Analysis Time Zone.
  *
@@ -315,8 +167,7 @@ export function DailyWindowView({
   events,
   userEvents,
   dailyWindow,
-  timeZone,
-  startHour,
+  ctx,
   eventLimit,
   showControls,
   selectedUser,
@@ -324,25 +175,30 @@ export function DailyWindowView({
   onSelectDailyWindow,
   onSelectUser,
 }: Props) {
-  const dailyWindows = useMemo(
-    () => byDailyWindow(events, timeZone, startHour).map((d) => d.key),
-    [events, timeZone, startHour],
-  );
+  const dailyWindows = useMemo(() => byDailyWindow(events, ctx).map((d) => d.key), [events, ctx]);
   const dailyWindowEvents = useMemo(
-    () => eventsInDailyWindow(events, dailyWindow, timeZone, startHour),
-    [events, dailyWindow, timeZone, startHour],
+    () => eventsInDailyWindow(events, dailyWindow, ctx),
+    [events, dailyWindow, ctx],
   );
   const dailyWindowUserEvents = useMemo(
-    () => eventsInDailyWindow(userEvents, dailyWindow, timeZone, startHour),
-    [userEvents, dailyWindow, timeZone, startHour],
+    () => eventsInDailyWindow(userEvents, dailyWindow, ctx),
+    [userEvents, dailyWindow, ctx],
   );
   const totalCost = useMemo(() => events.reduce((sum, e) => sum + e.cost, 0), [events]);
   const costRank = useMemo(() => {
-    const sorted = byDailyWindow(events, timeZone, startHour).sort((a, b) => b.cost - a.cost);
+    const sorted = byDailyWindow(events, ctx).sort((a, b) => b.cost - a.cost);
     return sorted.findIndex((d) => d.key === dailyWindow) + 1;
-  }, [events, dailyWindow, timeZone, startHour]);
+  }, [events, dailyWindow, ctx]);
 
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
+  const eventRows = useMemo(() => {
+    const sorted = [...dailyWindowEvents].sort((a, b) => b.cost - a.cost);
+    return eventLimit === undefined ? sorted : sorted.slice(0, eventLimit);
+  }, [dailyWindowEvents, eventLimit]);
+  const eventTitle =
+    eventLimit === undefined
+      ? `この Daily Window のイベント (${eventRows.length}件・コスト降順)`
+      : `この Daily Window のイベント Top ${eventLimit} (${eventRows.length} of ${dailyWindowEvents.length}件・コスト降順)`;
   const idx = dailyWindows.indexOf(dailyWindow);
   const prevDailyWindow = idx > 0 ? dailyWindows[idx - 1] : undefined;
   const nextDailyWindow =
@@ -359,7 +215,7 @@ export function DailyWindowView({
         <div className="daily-window-title">
           <h2>{dailyWindow}</h2>
           <span className="meta">
-            {dailyWindowEvents.length} 課金イベント ({timeZone}, start {startHour}:00)
+            {dailyWindowEvents.length} 課金イベント ({ctx.timeZone}, start {ctx.startHour}:00)
           </span>
         </div>
         {showControls && (
@@ -392,8 +248,7 @@ export function DailyWindowView({
         <>
           <DailyWindowSummaryCards
             dailyWindowEvents={dailyWindowEvents}
-            timeZone={timeZone}
-            startHour={startHour}
+            ctx={ctx}
             totalCost={totalCost}
             rank={costRank}
             dailyWindowCount={dailyWindows.length}
@@ -402,8 +257,7 @@ export function DailyWindowView({
             <HourlyChart
               dailyWindowEvents={dailyWindowEvents}
               scaleDayEvents={dailyWindowUserEvents}
-              timeZone={timeZone}
-              startHour={startHour}
+              ctx={ctx}
             />
             <ModelFamilyPanel
               events={dailyWindowEvents}
@@ -412,16 +266,21 @@ export function DailyWindowView({
               height={260}
             />
             <UserChart
-              dailyWindowEvents={dailyWindowUserEvents}
+              events={dailyWindowUserEvents}
               selectedUser={selectedUser}
               showControls={showControls}
               onSelectUser={onSelectUser}
+              height={260}
+              barFill="#3fb950"
             />
             <KindBreakdown dailyWindowEvents={dailyWindowEvents} />
-            <DailyWindowEventsTable
-              dailyWindowEvents={dailyWindowEvents}
-              timeZone={timeZone}
-              eventLimit={eventLimit}
+            <EventsTable
+              events={eventRows}
+              timeZone={ctx.timeZone}
+              title={eventTitle}
+              timeHeader={`時刻 (${ctx.timeZone})`}
+              formatTimestamp={formatTime}
+              wrapClassName="table-wrap scroll"
             />
           </div>
         </>
