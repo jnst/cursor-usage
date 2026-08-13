@@ -52,7 +52,7 @@ This partially revises the earlier stance that Model Family aggregation is inten
 
 ## ADR-008: Colocate Unit Tests with Implementation
 
-Unit tests live next to the module they cover, using the `*.test.ts` suffix (`src/core/parse.ts` and `src/core/parse.test.ts`). This keeps the test for a module visible when that module changes, and it keeps import paths local (`./parse.ts` instead of `../src/core/parse.ts`).
+Unit tests live next to the module they cover, using the `*.test.ts` suffix (`src/core/parse.ts` and `src/core/parse.test.ts`). This keeps the test for a module visible when that module changes.
 
 A top-level `tests/` directory is reserved for tests that span multiple modules or entry points, such as CLI or dashboard flows. There are none yet.
 
