@@ -2,7 +2,7 @@ import type { UsageEvent } from "../core/types.ts";
 
 import { basename, dirname, extname, join } from "node:path";
 
-import { eventsInDailyWindow } from "../core/aggregate.ts";
+import { eventsInDailyWindow } from "../core/time.ts";
 import { startServer } from "../server/index.ts";
 
 interface ScreenshotOptions {

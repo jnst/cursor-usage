@@ -12,15 +12,8 @@ import {
   YAxis,
 } from "recharts";
 
-import {
-  byDailyWindow,
-  byHour,
-  byKind,
-  byUser,
-  eventsInDailyWindow,
-  orderedHours,
-  summarize,
-} from "../../src/core/aggregate.ts";
+import { byDailyWindow, byHour, byKind, byUser, summarize } from "../../src/core/aggregate.ts";
+import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
 import { ModelCell } from "./ModelCell.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
 import {

@@ -12,15 +12,17 @@ import {
   byModel,
   byModelFamily,
   byUser,
-  dailyWindowKeyOf,
-  eventsInDailyWindow,
   eventsInModelFamily,
-  hourOf,
-  latestDailyWindowKey,
-  orderedHours,
   summarize,
   topEvents,
 } from "../src/core/aggregate.ts";
+import {
+  dailyWindowKeyOf,
+  eventsInDailyWindow,
+  hourOf,
+  latestDailyWindowKey,
+  orderedHours,
+} from "../src/core/time.ts";
 
 function event(overrides: Partial<UsageEvent>): UsageEvent {
   return {

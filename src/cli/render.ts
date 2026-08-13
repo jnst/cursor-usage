@@ -7,11 +7,10 @@ import {
   byModel,
   byModelFamily,
   byUser,
-  eventsInDailyWindow,
-  orderedHours,
   summarize,
   topEvents,
 } from "../core/aggregate.ts";
+import { eventsInDailyWindow, orderedHours } from "../core/time.ts";
 
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
 

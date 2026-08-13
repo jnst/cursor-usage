@@ -1,0 +1,148 @@
+import type { UsageEvent } from "./types.ts";
+
+export const UTC_TIME_ZONE = "UTC";
+
+/**
+ * Returns the environment's default Analysis Time Zone.
+ *
+ * This is the fallback used when the caller has not chosen a time zone
+ * explicitly. UTC is used only when the runtime cannot report a local zone.
+ */
+export function defaultAnalysisTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || UTC_TIME_ZONE;
+}
+
+/**
+ * Checks whether a string is accepted by `Intl.DateTimeFormat` as an IANA time zone.
+ *
+ * Use this before accepting CLI or URL state; invalid zones should not silently
+ * change how Daily Windows and Hours are grouped.
+ */
+export function isValidTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
+  const cached = dateTimeFormatters.get(timeZone);
+  if (cached) return cached;
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+  });
+  dateTimeFormatters.set(timeZone, formatter);
+  return formatter;
+}
+
+function dateTimeParts(date: Date, timeZone: string): Map<Intl.DateTimeFormatPartTypes, string> {
+  return new Map(
+    dateTimeFormatter(timeZone)
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  );
+}
+
+/**
+ * Checks whether a Daily Window start hour is representable on a 24-hour clock.
+ */
+export function isValidStartHour(startHour: number): boolean {
+  return Number.isInteger(startHour) && startHour >= 0 && startHour <= 23;
+}
+
+function assertStartHour(startHour: number): void {
+  if (!isValidStartHour(startHour)) {
+    throw new Error(`Invalid Daily Window start hour: ${startHour}`);
+  }
+}
+
+function localDateKeyAndHour(date: Date, timeZone: string): { dateKey: string; hour: number } {
+  const parts = dateTimeParts(date, timeZone);
+  return {
+    dateKey: [parts.get("year"), parts.get("month"), parts.get("day")].join("-"),
+    hour: Number(parts.get("hour") ?? 0),
+  };
+}
+
+function dateParts(dateKey: string): { year: number; month: number; date: number } {
+  const [year, month, date] = dateKey.split("-").map(Number);
+  if (year === undefined || month === undefined || date === undefined) {
+    throw new Error(`Invalid Daily Window Key: ${dateKey}`);
+  }
+  return { year, month, date };
+}
+
+function formatUtcDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(dateKey: string, days: number): string {
+  const { year, month, date } = dateParts(dateKey);
+  return formatUtcDate(new Date(Date.UTC(year, month - 1, date) + days * 86_400_000));
+}
+
+/**
+ * Returns the Daily Window Key for an absolute timestamp.
+ *
+ * The key is based on the local date at the start of the Daily Window. A
+ * midnight start hour preserves the usual calendar-aligned grouping.
+ */
+export function dailyWindowKeyOf(date: Date, timeZone = UTC_TIME_ZONE, startHour = 0): string {
+  assertStartHour(startHour);
+  const { dateKey, hour } = localDateKeyAndHour(date, timeZone);
+  return hour < startHour ? addDays(dateKey, -1) : dateKey;
+}
+
+/**
+ * Returns the Hour for an absolute timestamp in the selected Analysis Time Zone.
+ *
+ * The result is a two-digit clock hour (`"00"` through `"23"`) suitable for
+ * chronological hourly buckets.
+ */
+export function hourOf(date: Date, timeZone = UTC_TIME_ZONE): string {
+  return dateTimeParts(date, timeZone).get("hour") ?? "";
+}
+
+/**
+ * Returns clock hours ordered from a Daily Window start hour.
+ *
+ * Use this for charts that should read in Daily Window order rather than
+ * midnight-first clock order.
+ */
+export function orderedHours(startHour = 0): string[] {
+  assertStartHour(startHour);
+  return Array.from({ length: 24 }, (_, i) => String((startHour + i) % 24).padStart(2, "0"));
+}
+
+/**
+ * Filters Usage Events to a single Daily Window.
+ */
+export function eventsInDailyWindow(
+  events: UsageEvent[],
+  dailyWindow: string,
+  timeZone = UTC_TIME_ZONE,
+  startHour = 0,
+): UsageEvent[] {
+  return events.filter((e) => dailyWindowKeyOf(e.date, timeZone, startHour) === dailyWindow);
+}
+
+/**
+ * Returns the Daily Window Key containing the latest event in the analysis set.
+ */
+export function latestDailyWindowKey(
+  events: UsageEvent[],
+  timeZone = UTC_TIME_ZONE,
+  startHour = 0,
+): string | null {
+  const latest = [...events].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+  return latest ? dailyWindowKeyOf(latest.date, timeZone, startHour) : null;
+}
