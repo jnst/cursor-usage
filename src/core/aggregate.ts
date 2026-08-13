@@ -19,6 +19,26 @@ export function billable(events: UsageEvent[]): UsageEvent[] {
   return events.filter((e) => e.kind !== NO_CHARGE_KIND);
 }
 
+export interface EventFilters {
+  includeNoCharge?: boolean;
+  user?: string;
+  modelFamily?: string;
+}
+
+/**
+ * Applies the usual analysis filters: Billable Events, optional User, optional
+ * Model Family.
+ *
+ * No Charge Events stay out unless `includeNoCharge` is set. Callers that need
+ * the unfiltered User comparison set should omit `user`.
+ */
+export function filterEvents(events: UsageEvent[], filters: EventFilters = {}): UsageEvent[] {
+  let out = filters.includeNoCharge ? events : billable(events);
+  if (filters.user) out = out.filter((e) => e.user === filters.user);
+  if (filters.modelFamily) out = eventsInModelFamily(out, filters.modelFamily);
+  return out;
+}
+
 /**
  * Computes top-level Metrics for the current analysis set.
  *

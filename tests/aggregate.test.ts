@@ -13,6 +13,7 @@ import {
   byModelFamily,
   byUser,
   eventsInModelFamily,
+  filterEvents,
   summarize,
   topEvents,
 } from "../src/core/aggregate.ts";
@@ -61,6 +62,19 @@ const events: UsageEvent[] = [
 describe("billable", () => {
   it("filters out no-charge events", () => {
     expect(billable(events)).toHaveLength(3);
+  });
+});
+
+describe("filterEvents", () => {
+  it("keeps billable events by default and can narrow by user and family", () => {
+    expect(filterEvents(events)).toHaveLength(3);
+    expect(filterEvents(events, { includeNoCharge: true })).toHaveLength(4);
+    expect(filterEvents(events, { user: "b@example.com" }).map((e) => e.user)).toEqual([
+      "b@example.com",
+    ]);
+    expect(
+      filterEvents(events, { modelFamily: "GPT-5.5" }).every((e) => e.model.startsWith("gpt-5.5")),
+    ).toBe(true);
   });
 });
 

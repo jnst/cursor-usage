@@ -3,7 +3,7 @@ import type { AnalysisContext, UsageEvent } from "../src/core/types.ts";
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import { billable } from "../src/core/aggregate.ts";
+import { filterEvents } from "../src/core/aggregate.ts";
 import { parseUsageCsv } from "../src/core/parse.ts";
 import {
   defaultAnalysisTimeZone,
@@ -128,14 +128,12 @@ function App() {
     }
   };
 
-  const billableEvents = useMemo(() => (allEvents ? billable(allEvents) : null), [allEvents]);
-  const baseEvents = billableEvents;
+  const userEvents = useMemo(() => (allEvents ? filterEvents(allEvents) : null), [allEvents]);
   const events = useMemo(
-    () =>
-      baseEvents && selectedUser ? baseEvents.filter((e) => e.user === selectedUser) : baseEvents,
-    [baseEvents, selectedUser],
+    () => (allEvents ? filterEvents(allEvents, { user: selectedUser ?? undefined }) : null),
+    [allEvents, selectedUser],
   );
-  const noChargeCount = allEvents && billableEvents ? allEvents.length - billableEvents.length : 0;
+  const noChargeCount = allEvents && userEvents ? allEvents.length - userEvents.length : 0;
   const clearDailyWindow = () => {
     if (events && showControls) setSelectedDailyWindow(null);
   };
@@ -189,12 +187,12 @@ function App() {
             onSelectDailyWindow={setSelectedDailyWindow}
             onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
             selectedUser={selectedUser}
-            userEvents={baseEvents ?? events}
+            userEvents={userEvents ?? events}
           />
         ) : (
           <Overview
             events={events}
-            userEvents={baseEvents ?? events}
+            userEvents={userEvents ?? events}
             ctx={ctx}
             showControls={showControls}
             onSelectDailyWindow={setSelectedDailyWindow}
