@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { parseCsv, parseUsageCsv } from "../src/core/parse.ts";
+import { parseCsv, parseUsageCsv } from "./parse.ts";
 
 const HEADER =
   "Date,User,Cloud Agent ID,Automation ID,Kind,Model,Max Mode,Input (w/ Cache Write),Input (w/o Cache Write),Cache Read,Output Tokens,Total Tokens,Cost";
@@ -19,6 +19,14 @@ describe("parseCsv", () => {
     expect(rows).toEqual([
       ["a", "b"],
       ["c", "d"],
+    ]);
+  });
+
+  it("keeps newlines inside quoted fields", () => {
+    const rows = parseCsv('a,"b\nc",d\n1,2,3');
+    expect(rows).toEqual([
+      ["a", "b\nc", "d"],
+      ["1", "2", "3"],
     ]);
   });
 });
@@ -72,5 +80,36 @@ describe("parseUsageCsv", () => {
       '"not-a-date","j@example.com","","","On-Demand","m","No","0","0","0","0","0","0.01"',
     ].join("\n");
     expect(parseUsageCsv(csv)).toEqual([]);
+  });
+
+  it("skips empty rows between events", () => {
+    const csv = [
+      HEADER,
+      "",
+      '"2026-06-10T14:19:26.869Z","j@example.com","","","On-Demand","m","No","0","0","0","0","0","0.01"',
+      "",
+    ].join("\n");
+    expect(parseUsageCsv(csv)).toHaveLength(1);
+  });
+
+  it("throws when a required column is missing", () => {
+    expect(() => parseUsageCsv("Date,User,Model\n2026-06-10T00:00:00Z,j@example.com,m")).toThrow(
+      /missing column "Cost"/,
+    );
+  });
+
+  it("parses extra columns and treats non-numeric token or cost fields as zero", () => {
+    const csv = [
+      `${HEADER},Notes`,
+      '"2026-06-10T14:19:26.869Z","j@example.com","","","On-Demand","m","YES","n/a","","","x","y","?"',
+    ].join("\n");
+    const e = parseUsageCsv(csv)[0]!;
+    expect(e.maxMode).toBe(true);
+    expect(e.inputWithCacheWrite).toBe(0);
+    expect(e.inputWithoutCacheWrite).toBe(0);
+    expect(e.cacheRead).toBe(0);
+    expect(e.outputTokens).toBe(0);
+    expect(e.totalTokens).toBe(0);
+    expect(e.cost).toBe(0);
   });
 });

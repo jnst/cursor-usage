@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { modelFamilyOf } from "../src/core/model.ts";
+import { modelFamilyOf } from "./model.ts";
 
 describe("modelFamilyOf", () => {
   it("groups Auto (Cursor Router) usage at the Router level", () => {
@@ -57,5 +57,11 @@ describe("modelFamilyOf", () => {
     expect(modelFamilyOf("SomeFutureModel-high")).toBe("SomeFutureModel");
     expect(modelFamilyOf("SomeFutureModel-Thinking-High")).toBe("SomeFutureModel");
     expect(modelFamilyOf("SomeFutureModel-high")).toBe(modelFamilyOf("SomeFutureModel"));
+  });
+
+  it("trims whitespace and keeps an empty identifier as-is", () => {
+    expect(modelFamilyOf("  composer-2.5  ")).toBe("Composer 2.5");
+    expect(modelFamilyOf("")).toBe("");
+    expect(modelFamilyOf("   ")).toBe("");
   });
 });

@@ -1,4 +1,4 @@
-import type { UsageEvent } from "../src/core/types.ts";
+import type { UsageEvent } from "./types.ts";
 
 import { describe, expect, it } from "bun:test";
 
@@ -15,14 +15,8 @@ import {
   filterEvents,
   summarize,
   topEvents,
-} from "../src/core/aggregate.ts";
-import {
-  dailyWindowKeyOf,
-  eventsInDailyWindow,
-  hourOf,
-  latestDailyWindowKey,
-  orderedHours,
-} from "../src/core/time.ts";
+} from "./aggregate.ts";
+import { eventsInDailyWindow } from "./time.ts";
 
 function event(overrides: Partial<UsageEvent>): UsageEvent {
   return {
@@ -75,6 +69,22 @@ describe("filterEvents", () => {
       filterEvents(events, { modelFamily: "GPT-5.5" }).every((e) => e.model.startsWith("gpt-5.5")),
     ).toBe(true);
   });
+
+  it("combines user and model-family filters", () => {
+    const filtered = filterEvents(events, { user: "a@example.com", modelFamily: "GPT-5.5" });
+    expect(filtered).toHaveLength(2);
+    expect(filtered.every((e) => e.user === "a@example.com")).toBe(true);
+  });
+
+  it("keeps a user's no-charge events when includeNoCharge is set", () => {
+    const filtered = filterEvents(events, { user: "a@example.com", includeNoCharge: true });
+    expect(filtered).toHaveLength(3);
+    expect(filtered.some((e) => e.kind === "Errored, No Charge")).toBe(true);
+  });
+
+  it("returns an empty set for an unknown user", () => {
+    expect(filterEvents(events, { user: "nobody@example.com" })).toEqual([]);
+  });
 });
 
 describe("summarize", () => {
@@ -96,6 +106,14 @@ describe("summarize", () => {
     expect(s.totalCost).toBe(0);
     expect(s.firstDailyWindow).toBeNull();
     expect(s.avgCostPerActiveDailyWindow).toBe(0);
+  });
+
+  it("groups Daily Windows in the selected analysis time zone", () => {
+    const lateUtc = event({ date: new Date("2026-06-05T23:59:59Z") });
+    const s = summarize([lateUtc], { timeZone: "Asia/Tokyo" });
+    expect(s.firstDailyWindow).toBe("2026-06-06");
+    expect(s.lastDailyWindow).toBe("2026-06-06");
+    expect(s.dailyWindowCount).toBe(1);
   });
 });
 
@@ -174,12 +192,6 @@ describe("buckets", () => {
     expect(top.map((e) => e.cost)).toEqual([0.4, 0.2]);
   });
 
-  it("eventsInDailyWindow filters to a single UTC daily window", () => {
-    const dailyWindow = eventsInDailyWindow(b, "2026-06-05");
-    expect(dailyWindow).toHaveLength(2);
-    expect(dailyWindow.every((e) => e.date.toISOString().startsWith("2026-06-05"))).toBe(true);
-  });
-
   it("byHour buckets by UTC hour, chronological", () => {
     const hours = byHour(eventsInDailyWindow(b, "2026-06-05"));
     expect(hours.map((h) => h.key)).toEqual(["10", "23"]);
@@ -187,35 +199,23 @@ describe("buckets", () => {
     expect(hours[1]!.cost).toBeCloseTo(0.2);
   });
 
-  it("daily window and hour can be grouped in an analysis time zone", () => {
+  it("byDailyWindow uses the selected analysis time zone and start hour", () => {
+    const earlyTokyo = event({ date: new Date("2026-06-05T19:30:00Z"), cost: 0.1 });
+    const morningTokyo = event({ date: new Date("2026-06-05T20:30:00Z"), cost: 0.2 });
+    const ctx = { timeZone: "Asia/Tokyo", startHour: 5 };
+    const dailyWindows = byDailyWindow([earlyTokyo, morningTokyo], ctx);
+    expect(dailyWindows.map((d) => d.key)).toEqual(["2026-06-05", "2026-06-06"]);
+    expect(dailyWindows[0]!.cost).toBeCloseTo(0.1);
+    expect(dailyWindows[1]!.cost).toBeCloseTo(0.2);
+  });
+
+  it("byHour uses the selected analysis time zone", () => {
     const lateUtc = event({ date: new Date("2026-06-05T23:59:59Z") });
-
-    expect(dailyWindowKeyOf(lateUtc.date)).toBe("2026-06-05");
-    expect(hourOf(lateUtc.date)).toBe("23");
-    expect(dailyWindowKeyOf(lateUtc.date, { timeZone: "Asia/Tokyo" })).toBe("2026-06-06");
-    expect(hourOf(lateUtc.date, { timeZone: "Asia/Tokyo" })).toBe("08");
+    expect(byHour([lateUtc], { timeZone: "Asia/Tokyo" }).map((h) => h.key)).toEqual(["08"]);
   });
 
-  it("eventsInDailyWindow uses the selected analysis time zone", () => {
-    const tokyoDailyWindow = eventsInDailyWindow(b, "2026-06-06", { timeZone: "Asia/Tokyo" });
-    expect(tokyoDailyWindow).toHaveLength(1);
-    expect(tokyoDailyWindow[0]!.date.toISOString()).toBe("2026-06-05T23:59:59.000Z");
-  });
-
-  it("daily windows can start after midnight", () => {
-    const earlyTokyo = event({ date: new Date("2026-06-05T19:30:00Z") }); // 04:30 JST
-    const morningTokyo = event({ date: new Date("2026-06-05T20:30:00Z") }); // 05:30 JST
-
-    expect(dailyWindowKeyOf(earlyTokyo.date, { timeZone: "Asia/Tokyo", startHour: 5 })).toBe(
-      "2026-06-05",
-    );
-    expect(dailyWindowKeyOf(morningTokyo.date, { timeZone: "Asia/Tokyo", startHour: 5 })).toBe(
-      "2026-06-06",
-    );
-    expect(
-      latestDailyWindowKey([earlyTokyo, morningTokyo], { timeZone: "Asia/Tokyo", startHour: 5 }),
-    ).toBe("2026-06-06");
-    expect(orderedHours({ startHour: 5 }).slice(0, 5)).toEqual(["05", "06", "07", "08", "09"]);
-    expect(orderedHours({ startHour: 5 }).slice(-5)).toEqual(["00", "01", "02", "03", "04"]);
+  it("topEvents returns the full set when the limit exceeds the length", () => {
+    expect(topEvents(b, 10)).toHaveLength(3);
+    expect(topEvents([], 5)).toEqual([]);
   });
 });
