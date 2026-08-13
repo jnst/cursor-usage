@@ -23,17 +23,10 @@ import {
   summarize,
   topEvents,
 } from "../../src/core/aggregate.ts";
+import { formatDateTime, formatTime, formatTokens, formatUsd } from "../../src/core/format.ts";
 import { ModelCell } from "./ModelCell.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
-import {
-  COLORS,
-  BAR_SIZE,
-  formatDateTime,
-  formatTokens,
-  formatUsd,
-  modelFamilyColors,
-  tooltipStyle,
-} from "./shared.ts";
+import { BAR_SIZE, COLORS, modelFamilyColors, tooltipStyle } from "./shared.ts";
 
 export { formatTokens, formatUsd };
 

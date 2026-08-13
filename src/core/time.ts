@@ -56,13 +56,24 @@ function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     hourCycle: "h23",
   });
   dateTimeFormatters.set(timeZone, formatter);
   return formatter;
 }
 
-function dateTimeParts(date: Date, timeZone: string): Map<Intl.DateTimeFormatPartTypes, string> {
+/**
+ * Returns cached `Intl` date-time parts for an absolute timestamp.
+ *
+ * Display formatters and Daily Window keying share this cache so a timestamp
+ * is not formatted repeatedly per field.
+ */
+export function dateTimeParts(
+  date: Date,
+  timeZone: string,
+): Map<Intl.DateTimeFormatPartTypes, string> {
   return new Map(
     dateTimeFormatter(timeZone)
       .formatToParts(date)

@@ -13,17 +13,11 @@ import {
 } from "recharts";
 
 import { byDailyWindow, byHour, byKind, byUser, summarize } from "../../src/core/aggregate.ts";
+import { formatTime, formatTokens, formatUsd } from "../../src/core/format.ts";
 import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
 import { ModelCell } from "./ModelCell.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
-import {
-  BAR_SIZE,
-  formatTime,
-  formatTokens,
-  formatUsd,
-  modelFamilyColors,
-  tooltipStyle,
-} from "./shared.ts";
+import { BAR_SIZE, modelFamilyColors, tooltipStyle } from "./shared.ts";
 
 interface Props {
   events: UsageEvent[];

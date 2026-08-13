@@ -10,6 +10,7 @@ import {
   summarize,
   topEvents,
 } from "../core/aggregate.ts";
+import { formatTime, formatTokens, formatUsd } from "../core/format.ts";
 import { eventsInDailyWindow, orderedHours } from "../core/time.ts";
 
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -21,29 +22,6 @@ export const dim = ansi("2");
 export const cyan = ansi("36");
 export const green = ansi("32");
 export const yellow = ansi("33");
-
-/**
- * Formats Cost for terminal output.
- *
- * Terminal tables preserve cents because Cost comes from the Usage Export and
- * should not be visually rounded away in textual summaries.
- */
-export function formatUsd(value: number): string {
-  return `$${value.toFixed(2)}`;
-}
-
-/**
- * Formats token counts for compact human-readable terminal output.
- *
- * This is a display helper only. Machine-readable JSON output should keep the
- * original numeric token counts.
- */
-export function formatTokens(value: number): string {
-  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return String(value);
-}
 
 /**
  * Renders a horizontal terminal bar with 1/8-block resolution.
@@ -62,32 +40,6 @@ export function bar(value: number, max: number, width: number): string {
 
 function padEndDisplay(s: string, width: number): string {
   return s.length >= width ? s : s + " ".repeat(width - s.length);
-}
-
-function dateTimePart(
-  date: Date,
-  timeZone: string,
-  part: "year" | "month" | "day" | "hour" | "minute" | "second",
-): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  return parts.find((p) => p.type === part)?.value ?? "";
-}
-
-function formatTime(date: Date, timeZone: string): string {
-  return [
-    dateTimePart(date, timeZone, "hour"),
-    dateTimePart(date, timeZone, "minute"),
-    dateTimePart(date, timeZone, "second"),
-  ].join(":");
 }
 
 function renderSummaryBlock(
