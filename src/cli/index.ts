@@ -8,6 +8,7 @@ import { billable, eventsInModelFamily } from "../core/aggregate.ts";
 import { parseUsageCsv } from "../core/parse.ts";
 import {
   defaultAnalysisTimeZone,
+  isValidDailyWindowKey,
   isValidStartHour,
   isValidTimeZone,
   latestDailyWindowKey,
@@ -142,7 +143,7 @@ async function runStats(args: string[]): Promise<void> {
   }
 
   const dailyWindow = values["daily-window"];
-  if (dailyWindow !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(dailyWindow)) {
+  if (dailyWindow !== undefined && !isValidDailyWindowKey(dailyWindow)) {
     fail(`invalid --daily-window value: ${dailyWindow} (expected YYYY-MM-DD)`);
   }
 
@@ -192,7 +193,7 @@ async function runScreenshot(args: string[]): Promise<void> {
 
   const ctx = parseAnalysisContext(values.timezone, values["start-hour"]);
   const dailyWindow = values["daily-window"];
-  if (dailyWindow !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(dailyWindow)) {
+  if (dailyWindow !== undefined && !isValidDailyWindowKey(dailyWindow)) {
     fail(`invalid --daily-window value: ${dailyWindow} (expected YYYY-MM-DD)`);
   }
   const eventLimit = parseEventLimit(values["event-limit"]);

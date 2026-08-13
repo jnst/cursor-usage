@@ -5,12 +5,15 @@ import { createRoot } from "react-dom/client";
 
 import { billable } from "../src/core/aggregate.ts";
 import { parseUsageCsv } from "../src/core/parse.ts";
-import { defaultAnalysisTimeZone, isValidStartHour, isValidTimeZone } from "../src/core/time.ts";
-import { DailyWindowView } from "./components/DayView.tsx";
+import {
+  defaultAnalysisTimeZone,
+  isValidDailyWindowKey,
+  isValidStartHour,
+  isValidTimeZone,
+} from "../src/core/time.ts";
+import { DailyWindowView } from "./components/DailyWindowView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
 import { Overview } from "./components/Overview.tsx";
-
-const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 type SerializedUsageEvent = Omit<UsageEvent, "date"> & { date: string };
 
@@ -40,7 +43,7 @@ function routeFromHash(defaultTimeZone: string): {
   const startHour = Number(params.get("start-hour") ?? 0);
   const eventLimit = Number(params.get("event-limit"));
   return {
-    dailyWindow: dailyWindow && DAY_PATTERN.test(dailyWindow) ? dailyWindow : null,
+    dailyWindow: dailyWindow && isValidDailyWindowKey(dailyWindow) ? dailyWindow : null,
     user: user || null,
     ctx: {
       timeZone: timeZone && isValidTimeZone(timeZone) ? timeZone : defaultTimeZone,

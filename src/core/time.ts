@@ -88,6 +88,15 @@ export function isValidStartHour(startHour: number): boolean {
   return Number.isInteger(startHour) && startHour >= 0 && startHour <= 23;
 }
 
+const DAILY_WINDOW_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Checks whether a string is a `YYYY-MM-DD` Daily Window Key.
+ */
+export function isValidDailyWindowKey(value: string): boolean {
+  return DAILY_WINDOW_KEY_PATTERN.test(value);
+}
+
 function assertStartHour(startHour: number): void {
   if (!isValidStartHour(startHour)) {
     throw new Error(`Invalid Daily Window start hour: ${startHour}`);
