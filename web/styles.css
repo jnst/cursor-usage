@@ -45,6 +45,14 @@ body {
   flex-wrap: wrap;
 }
 
+.header-identity,
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .header h1 {
   font-size: 20px;
   margin: 0;
@@ -84,7 +92,6 @@ body {
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .metric-toggle button {
@@ -333,6 +340,12 @@ th {
 td.num,
 th.num {
   text-align: right;
+}
+
+th.num.sorted,
+td.num.sorted {
+  color: var(--text);
+  font-weight: 700;
 }
 
 tr:last-child td {

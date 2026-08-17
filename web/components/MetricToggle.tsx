@@ -8,8 +8,8 @@ const OPTIONS: { value: Metric; label: string }[] = [
 /**
  * Header control for the selected analysis Metric.
  *
- * One control drives ranking, bars, pies, tables, and summaries in both the
- * Overview and Daily Window views.
+ * One control next to the page title, because Metric is an analysis choice
+ * for the whole view (like Time Zone), not a per-chart or file-loading control.
  */
 export function MetricToggle({
   metric,

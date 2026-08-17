@@ -156,28 +156,32 @@ function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1
-          className={events && showControls ? "clickable-title" : undefined}
-          onClick={clearDailyWindow}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") clearDailyWindow();
-          }}
-          role={events && showControls ? "button" : undefined}
-          tabIndex={events && showControls ? 0 : undefined}
-        >
-          Cursor Usage
-        </h1>
-        {events && (
-          <>
-            <span className="meta">
-              {events.length} 課金イベント
-              {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
-            </span>
+        <div className="header-identity">
+          <h1
+            className={events && showControls ? "clickable-title" : undefined}
+            onClick={clearDailyWindow}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") clearDailyWindow();
+            }}
+            role={events && showControls ? "button" : undefined}
+            tabIndex={events && showControls ? 0 : undefined}
+          >
+            Cursor Usage
+          </h1>
+          {events && (
             <MetricToggle
               metric={metric}
               onChange={showControls ? setMetric : undefined}
               disabled={!showControls}
             />
+          )}
+        </div>
+        {events && (
+          <div className="header-actions">
+            <span className="meta">
+              {events.length} 課金イベント
+              {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
+            </span>
             {showControls && (
               <button
                 type="button"
@@ -192,7 +196,7 @@ function App() {
                 別のCSVを読み込む
               </button>
             )}
-          </>
+          </div>
         )}
       </div>
       {events ? (

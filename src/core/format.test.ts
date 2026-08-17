@@ -7,6 +7,7 @@ import {
   formatTokens,
   formatUsd,
   formatUsdPerMTok,
+  highEventsHeading,
 } from "./format.ts";
 
 describe("formatUsd", () => {
@@ -48,6 +49,14 @@ describe("formatMetric", () => {
   it("formats Cost as USD and Token Count compactly", () => {
     expect(formatMetric(180, "cost", { trimZeroCents: true })).toBe("$180");
     expect(formatMetric(1_500_000, "tokens")).toBe("1.5M");
+  });
+});
+
+describe("highEventsHeading", () => {
+  it("names the table after the selected Metric", () => {
+    expect(highEventsHeading("cost", 20)).toBe("高コストイベント Top 20");
+    expect(highEventsHeading("tokens", 20)).toBe("高トークンイベント Top 20");
+    expect(highEventsHeading("tokens")).toBe("高トークンイベント");
   });
 });
 

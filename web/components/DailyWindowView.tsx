@@ -25,6 +25,7 @@ import {
   formatTokens,
   formatUsd,
   formatUsdPerMTok,
+  highEventsHeading,
   metricLabel,
 } from "../../src/core/format.ts";
 import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
@@ -273,11 +274,10 @@ export function DailyWindowView({
     const sorted = topEvents(dailyWindowEvents, dailyWindowEvents.length, metric);
     return eventLimit === undefined ? sorted : sorted.slice(0, eventLimit);
   }, [dailyWindowEvents, eventLimit, metric]);
-  const orderLabel = metric === "tokens" ? "トークン降順" : "コスト降順";
   const eventTitle =
     eventLimit === undefined
-      ? `この Daily Window のイベント (${eventRows.length}件・${orderLabel})`
-      : `この Daily Window のイベント Top ${eventLimit} (${eventRows.length} of ${dailyWindowEvents.length}件・${orderLabel})`;
+      ? `${highEventsHeading(metric)} (${eventRows.length}件)`
+      : `${highEventsHeading(metric, eventLimit)} (${eventRows.length} of ${dailyWindowEvents.length}件)`;
   const idx = dailyWindows.indexOf(dailyWindow);
   const prevDailyWindow = idx > 0 ? dailyWindows[idx - 1] : undefined;
   const nextDailyWindow =
@@ -363,6 +363,7 @@ export function DailyWindowView({
               title={eventTitle}
               timeHeader={`時刻 (${ctx.timeZone})`}
               formatTimestamp={formatTime}
+              metric={metric}
               wrapClassName="table-wrap scroll"
             />
           </div>

@@ -57,6 +57,14 @@ export function metricLabel(metric: Metric): string {
 }
 
 /**
+ * Dashboard heading for the high-Metric event table.
+ */
+export function highEventsHeading(metric: Metric, limit?: number): string {
+  const noun = metric === "tokens" ? "高トークンイベント" : "高コストイベント";
+  return limit === undefined ? noun : `${noun} Top ${limit}`;
+}
+
+/**
  * Formats an event timestamp in the selected Analysis Time Zone.
  *
  * The input Date is an absolute timestamp; the time zone controls the calendar

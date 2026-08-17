@@ -29,6 +29,7 @@ import {
   formatTokens,
   formatUsd,
   formatUsdPerMTok,
+  highEventsHeading,
   metricLabel,
 } from "../../src/core/format.ts";
 import { EventsTable } from "./EventsTable.tsx";
@@ -304,7 +305,6 @@ export function Overview({
 }) {
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
   const top = useMemo(() => topEvents(events, 20, metric), [events, metric]);
-  const eventTitle = metric === "tokens" ? "高トークンイベント Top 20" : "高コストイベント Top 20";
   return (
     <>
       <OverviewSummary events={events} ctx={ctx} metric={metric} />
@@ -334,9 +334,10 @@ export function Overview({
         <EventsTable
           events={top}
           timeZone={ctx.timeZone}
-          title={eventTitle}
+          title={highEventsHeading(metric, 20)}
           timeHeader={`日時 (${ctx.timeZone})`}
           formatTimestamp={formatDateTime}
+          metric={metric}
         />
       </div>
     </>
