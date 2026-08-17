@@ -1,39 +1,42 @@
-import type { UsageEvent } from "../../src/core/types.ts";
+import type { DisplayMetric, UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo, useState } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { byModel, byModelFamily, eventsInModelFamily } from "../../src/core/aggregate.ts";
-import { formatUsd } from "../../src/core/format.ts";
+import { formatMetric, formatTokens, formatUsd, formatUsdPerMTok } from "../../src/core/format.ts";
 import { COLORS, tooltipStyle } from "./shared.ts";
 
 /**
- * Model Family cost pie with a Model-level drilldown.
+ * Model Family pie with a Model-level drilldown.
  *
- * The pie groups costs by Model Family (Auto is one Router-level slice).
- * Clicking a slice swaps the pie for a table of the Models inside that
- * family — for Auto this reveals the actual Models the Router selected.
+ * The pie follows the selected Display Metric. The drilldown table always
+ * shows Cost, Tokens, and Effective Rate so the mix stays readable.
  */
 export function ModelFamilyPanel({
   events,
   familyColors,
+  metric,
   showControls,
   height = 280,
 }: {
   events: UsageEvent[];
   familyColors: Map<string, string>;
+  metric: DisplayMetric;
   showControls: boolean;
   height?: number;
 }) {
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
-  const families = useMemo(() => byModelFamily(events), [events]);
+  const families = useMemo(() => byModelFamily(events, metric), [events, metric]);
   const models = useMemo(
-    () => (selectedFamily ? byModel(eventsInModelFamily(events, selectedFamily)) : []),
-    [events, selectedFamily],
+    () => (selectedFamily ? byModel(eventsInModelFamily(events, selectedFamily), metric) : []),
+    [events, selectedFamily, metric],
   );
+  const pieKey = metric === "tokens" ? "totalTokens" : "cost";
 
   if (selectedFamily) {
     const familyCost = models.reduce((sum, m) => sum + m.cost, 0);
+    const familyTokens = models.reduce((sum, m) => sum + m.totalTokens, 0);
     const maxCost = Math.max(...models.map((m) => m.cost), 0);
     return (
       <div className="panel">
@@ -48,8 +51,8 @@ export function ModelFamilyPanel({
           </button>
           {selectedFamily} の内訳
           <span className="hint">
-            {formatUsd(familyCost)} ・ モデル別
-            {selectedFamily === "Auto" ? " (Auto の実モデル)" : ""}
+            {formatUsd(familyCost)} · {formatTokens(familyTokens)}
+            {selectedFamily === "Auto" ? " · Auto の実モデル" : ""}
           </span>
         </h3>
         <div className="table-wrap scroll">
@@ -58,13 +61,15 @@ export function ModelFamilyPanel({
               <tr>
                 <th>モデル</th>
                 <th className="num">イベント</th>
+                <th className="num">Tokens</th>
+                <th className="num">$/MTok</th>
                 <th className="num">Cost</th>
               </tr>
             </thead>
             <tbody>
               {models.length === 0 ? (
                 <tr>
-                  <td colSpan={3}>この分類のイベントはありません。</td>
+                  <td colSpan={5}>この分類のイベントはありません。</td>
                 </tr>
               ) : (
                 models.map((m) => (
@@ -73,6 +78,8 @@ export function ModelFamilyPanel({
                       <span className="badge">{m.key}</span>
                     </td>
                     <td className="num">{m.eventCount}</td>
+                    <td className="num">{formatTokens(m.totalTokens)}</td>
+                    <td className="num">{formatUsdPerMTok(m.cost, m.totalTokens)}</td>
                     <td className="num">
                       <span
                         className="cost-bar"
@@ -96,14 +103,14 @@ export function ModelFamilyPanel({
   return (
     <div className="panel">
       <h3>
-        モデル分類別コスト
+        {metric === "cost" ? "モデル分類別コスト" : "モデル分類別トークン"}
         {showControls && <span className="hint">クリックで実モデルの内訳へ</span>}
       </h3>
       <ResponsiveContainer width="100%" height={height}>
         <PieChart>
           <Pie
             data={families}
-            dataKey="cost"
+            dataKey={pieKey}
             nameKey="key"
             innerRadius={height >= 280 ? 55 : 50}
             outerRadius={height >= 280 ? 95 : 90}
@@ -124,7 +131,10 @@ export function ModelFamilyPanel({
               />
             ))}
           </Pie>
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            formatter={(value) => formatMetric(Number(value), metric)}
+          />
           <Legend wrapperStyle={{ fontSize: 12 }} />
         </PieChart>
       </ResponsiveContainer>

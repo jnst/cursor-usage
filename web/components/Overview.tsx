@@ -1,4 +1,4 @@
-import type { AnalysisContext, UsageEvent } from "../../src/core/types.ts";
+import type { AnalysisContext, DisplayMetric, UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo } from "react";
 import {
@@ -8,6 +8,7 @@ import {
   DefaultTooltipContent,
   Legend,
   Line,
+  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -18,11 +19,22 @@ import {
 import {
   byDailyWindowAndModelFamily,
   byModelFamily,
+  dailyWindowMetricByKey,
+  dailyWindowMetricTotal,
+  fillDailyWindowStats,
   summarize,
   topEvents,
 } from "../../src/core/aggregate.ts";
-import { formatDateTime, formatTokens, formatUsd } from "../../src/core/format.ts";
+import {
+  formatDateTime,
+  formatMetric,
+  formatTokens,
+  formatUsd,
+  formatUsdPerMTok,
+} from "../../src/core/format.ts";
+import { isWeekendDailyWindowKey } from "../../src/core/time.ts";
 import { EventsTable } from "./EventsTable.tsx";
+import { MetricToggle } from "./MetricToggle.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
 import { BAR_SIZE, COLORS, modelFamilyColors, tooltipStyle } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
@@ -31,23 +43,30 @@ import { UserChart } from "./UserChart.tsx";
 const CUMULATIVE_KEY = "cumulative";
 
 /**
- * Daily cost tooltip: model breakdown → daily total → cumulative.
- * Order follows aggregation granularity (fine → coarse).
+ * Daily tooltip: model breakdown → selected total → other metric → rate → cumulative.
+ * Order follows aggregation granularity (fine → coarse), then the contrast metric.
  */
-function DailyCostTooltip(props: TooltipContentProps) {
+function DailyMetricTooltip({ metric, ...props }: TooltipContentProps & { metric: DisplayMetric }) {
   const { active, payload } = props;
   if (!active || !payload?.length) return null;
 
   const modelItems = payload.filter((item) => item.dataKey !== CUMULATIVE_KEY);
   const cumulativeItem = payload.find((item) => item.dataKey === CUMULATIVE_KEY);
-  const row = payload[0]?.payload as { total?: number } | undefined;
+  const row = payload[0]?.payload as
+    | { total?: number; totalCost?: number; totalTokens?: number }
+    | undefined;
   const total =
     typeof row?.total === "number"
       ? row.total
       : modelItems.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
+  const totalCost = row?.totalCost ?? 0;
+  const totalTokens = row?.totalTokens ?? 0;
 
   const template = modelItems[0] ?? cumulativeItem;
   if (!template) return null;
+
+  const otherMetric: DisplayMetric = metric === "cost" ? "tokens" : "cost";
+  const otherTotal = metric === "cost" ? totalTokens : totalCost;
 
   const orderedPayload = [
     ...modelItems,
@@ -59,6 +78,22 @@ function DailyCostTooltip(props: TooltipContentProps) {
       color: "#e6edf3",
       fill: "#e6edf3",
     },
+    {
+      ...template,
+      dataKey: "other",
+      name: otherMetric === "cost" ? "Cost" : "Tokens",
+      value: otherTotal,
+      color: "#8b949e",
+      fill: "#8b949e",
+    },
+    {
+      ...template,
+      dataKey: "rate",
+      name: "$/MTok",
+      value: formatUsdPerMTok(totalCost, totalTokens),
+      color: "#8b949e",
+      fill: "#8b949e",
+    },
     ...(cumulativeItem ? [cumulativeItem] : []),
   ];
 
@@ -66,7 +101,12 @@ function DailyCostTooltip(props: TooltipContentProps) {
     <DefaultTooltipContent
       {...props}
       payload={orderedPayload}
-      formatter={(value) => formatUsd(Number(value))}
+      formatter={(value, name, item) => {
+        const key = String(item?.dataKey ?? name);
+        if (key === "rate") return String(value);
+        if (key === "other") return formatMetric(Number(value), otherMetric);
+        return formatMetric(Number(value), metric);
+      }}
       itemSorter={undefined}
     />
   );
@@ -83,16 +123,20 @@ function OverviewSummary({ events, ctx }: { events: UsageEvent[]; ctx: AnalysisC
           sub: `${s.firstDailyWindow} – ${s.lastDailyWindow}`,
         },
         {
-          label: "Avg Cost / Active Daily Window",
-          value: formatUsd(s.avgCostPerActiveDailyWindow),
-          sub: `${s.dailyWindowCount} active windows`,
-        },
-        {
           label: "Total Tokens",
           value: formatTokens(s.totalTokens),
           sub: `${s.eventCount} events`,
         },
-        { label: "Max Mode", value: `${Math.round(s.maxModeRatio * 100)}%`, sub: "of events" },
+        {
+          label: "Effective Rate",
+          value: formatUsdPerMTok(s.totalCost, s.totalTokens),
+          sub: "Cost / million tokens",
+        },
+        {
+          label: "Avg Cost / Active Daily Window",
+          value: formatUsd(s.avgCostPerActiveDailyWindow),
+          sub: `${s.dailyWindowCount} active windows`,
+        },
         {
           label: "Users / Models",
           value: `${s.userCount} / ${s.modelCount}`,
@@ -108,6 +152,8 @@ function DailyChart({
   scaleEvents,
   ctx,
   familyColors,
+  metric,
+  onMetricChange,
   showControls,
   onSelectDailyWindow,
 }: {
@@ -115,70 +161,102 @@ function DailyChart({
   scaleEvents: UsageEvent[];
   ctx: AnalysisContext;
   familyColors: Map<string, string>;
+  metric: DisplayMetric;
+  onMetricChange?: (metric: DisplayMetric) => void;
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
 }) {
   const families = useMemo(() => byModelFamily(events).map((f) => f.key), [events]);
+  const scaleRange = useMemo(() => {
+    const filled = fillDailyWindowStats(byDailyWindowAndModelFamily(scaleEvents, ctx));
+    return {
+      first: filled[0]?.dailyWindow,
+      last: filled.at(-1)?.dailyWindow,
+      maxDaily: Math.max(...filled.map((d) => dailyWindowMetricTotal(d, metric)), 0),
+      total: filled.reduce((sum, d) => sum + dailyWindowMetricTotal(d, metric), 0),
+    };
+  }, [scaleEvents, ctx, metric]);
   const data = useMemo(() => {
+    const range =
+      scaleRange.first && scaleRange.last
+        ? { first: scaleRange.first, last: scaleRange.last }
+        : undefined;
     let cumulative = 0;
-    return byDailyWindowAndModelFamily(events, ctx).map((d) => {
-      cumulative += d.totalCost;
+    return fillDailyWindowStats(byDailyWindowAndModelFamily(events, ctx), range).map((d) => {
+      const total = dailyWindowMetricTotal(d, metric);
+      cumulative += total;
       return {
         dailyWindow: d.dailyWindow,
         label: d.dailyWindow.slice(5),
-        ...d.costByKey,
-        total: d.totalCost,
+        weekend: isWeekendDailyWindowKey(d.dailyWindow),
+        ...dailyWindowMetricByKey(d, metric),
+        total,
+        totalCost: d.totalCost,
+        totalTokens: d.totalTokens,
         cumulative,
       };
     });
-  }, [events, ctx]);
-  const scale = useMemo(() => {
-    const dailyWindows = byDailyWindowAndModelFamily(scaleEvents, ctx);
-    return {
-      maxDailyCost: Math.max(...dailyWindows.map((d) => d.totalCost), 0),
-      totalCost: dailyWindows.reduce((sum, d) => sum + d.totalCost, 0),
-    };
-  }, [scaleEvents, ctx]);
+  }, [events, ctx, metric, scaleRange.first, scaleRange.last]);
 
   const handleClick = (payload: { dailyWindow?: string } | undefined) => {
     if (payload?.dailyWindow) onSelectDailyWindow?.(payload.dailyWindow);
   };
 
+  const title = metric === "cost" ? "日別コスト推移" : "日別トークン推移";
+
   return (
     <div className="panel wide">
-      <h3>
-        日別コスト推移(モデル分類別積み上げ + 累積)
-        {showControls && onSelectDailyWindow && (
-          <span className="hint">バーをクリックで詳細へ</span>
-        )}
-      </h3>
+      <div className="panel-header">
+        <h3>
+          {title}(モデル分類別積み上げ + 累積)
+          {showControls && onSelectDailyWindow && (
+            <span className="hint">バーをクリックで詳細へ</span>
+          )}
+        </h3>
+        <MetricToggle metric={metric} onChange={onMetricChange} disabled={!showControls} />
+      </div>
       <ResponsiveContainer width="100%" height={320}>
         <ComposedChart data={data}>
           <CartesianGrid stroke="#21262d" vertical={false} />
+          {data
+            .filter((row) => row.weekend)
+            .map((row) => (
+              <ReferenceArea
+                key={row.dailyWindow}
+                x1={row.label}
+                x2={row.label}
+                fill="#8b949e"
+                fillOpacity={0.08}
+                ifOverflow="visible"
+              />
+            ))}
           <XAxis dataKey="label" stroke="#8b949e" fontSize={12} />
           <YAxis
-            yAxisId="cost"
-            domain={[0, scale.maxDailyCost]}
+            yAxisId="primary"
+            domain={[0, scaleRange.maxDaily]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
+            tickFormatter={(value) => formatMetric(Number(value), metric, { trimZeroCents: true })}
           />
           <YAxis
             yAxisId="cumulative"
-            domain={[0, scale.totalCost]}
+            domain={[0, scaleRange.total]}
             orientation="right"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
+            tickFormatter={(value) => formatMetric(Number(value), metric, { trimZeroCents: true })}
           />
-          <Tooltip content={DailyCostTooltip} contentStyle={tooltipStyle} />
+          <Tooltip
+            content={(props) => <DailyMetricTooltip {...props} metric={metric} />}
+            contentStyle={tooltipStyle}
+          />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {families.map((family, i) => (
             <Bar
               key={family}
-              yAxisId="cost"
+              yAxisId="primary"
               dataKey={family}
-              stackId="cost"
+              stackId="metric"
               fill={familyColors.get(family) ?? COLORS[i % COLORS.length]}
               cursor={showControls && onSelectDailyWindow ? "pointer" : undefined}
               onClick={(payload) => handleClick(payload as { dailyWindow?: string } | undefined)}
@@ -207,12 +285,15 @@ function DailyChart({
  *
  * `events` is the currently filtered analysis set. `userEvents` keeps the
  * unfiltered User comparison set so the User chart can show selected and
- * unselected users together.
+ * unselected users together. `metric` is the Cost / Tokens display scale
+ * shared with the Daily Window view.
  */
 export function Overview({
   events,
   userEvents,
   ctx,
+  metric,
+  onMetricChange,
   showControls,
   onSelectDailyWindow,
   onSelectUser,
@@ -221,6 +302,8 @@ export function Overview({
   events: UsageEvent[];
   userEvents: UsageEvent[];
   ctx: AnalysisContext;
+  metric: DisplayMetric;
+  onMetricChange?: (metric: DisplayMetric) => void;
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
   onSelectUser?: (user: string) => void;
@@ -237,13 +320,21 @@ export function Overview({
           scaleEvents={userEvents}
           ctx={ctx}
           familyColors={familyColors}
+          metric={metric}
+          onMetricChange={onMetricChange}
           showControls={showControls}
           onSelectDailyWindow={onSelectDailyWindow}
         />
-        <ModelFamilyPanel events={events} familyColors={familyColors} showControls={showControls} />
+        <ModelFamilyPanel
+          events={events}
+          familyColors={familyColors}
+          metric={metric}
+          showControls={showControls}
+        />
         <UserChart
           events={userEvents}
           selectedUser={selectedUser}
+          metric={metric}
           showControls={showControls}
           onSelectUser={onSelectUser}
         />

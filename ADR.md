@@ -24,7 +24,7 @@ This keeps the product boundary focused: the tool helps users notice expensive d
 
 ## ADR-004: Treat URLs as View State, Not Data Sharing
 
-The dashboard may encode the selected view in the URL, such as a selected Daily Window, User, Analysis Time Zone, and Daily Window start hour, but it must not encode or upload the Usage Export itself. A shared URL can reopen the same view state only after the recipient loads the same Usage Export locally.
+The dashboard may encode the selected view in the URL, such as a selected Daily Window, User, Display Metric, Analysis Time Zone, and Daily Window start hour, but it must not encode or upload the Usage Export itself. A shared URL can reopen the same view state only after the recipient loads the same Usage Export locally.
 
 When a URL includes a Daily Window, that Daily Window Key is interpreted in the selected Analysis Time Zone and start hour, not as a UTC date. This keeps shared detail views aligned with the same window boundaries users see in the dashboard.
 
@@ -57,3 +57,13 @@ Unit tests live next to the module they cover, using the `*.test.ts` suffix (`sr
 A top-level `tests/` directory is reserved for tests that span multiple modules or entry points, such as CLI or dashboard flows. There are none yet.
 
 This rejects keeping all tests in `tests/` by default. `bun test` already discovers `*.test.ts` recursively, and the published package only ships `dist/`, so colocated tests are not included in the npm tarball.
+
+## ADR-009: Contrast Cost and Token Count with a Display Metric Toggle
+
+Cost-only charts cannot tell unused Daily Windows from cheap-model or low-reported-cost usage. We will keep a single stacked Daily Window chart and switch its Display Metric between Cost and Token Count, reusing the same columns, Model Family colors, and geometry. Switching twice compares the two shapes by visual memory. Tooltips and summary cards still show the other metric and Effective Rate so one scale is never fully hidden.
+
+This rejects overlaying Cost and Token Count on dual Y axes, and rejects small-multiples (two stacked charts). Dual axes already served daily Cost versus cumulative Cost; a third incommensurable scale would mislead. Two charts would double legend, axis, and hover complexity.
+
+The dashboard does not detect free-tier remaining quota, plan names, or holidays. Those are not in the Usage Export (ADR-003). Weekend shading uses the civil weekday of the Daily Window Key only. Effective Rate is a diagnostic, not a reconstructed price list.
+
+Display Metric is view state in the URL hash (`metric=cost|tokens`, default Cost). Filling Inactive Daily Windows on the web time series is a chart-layout affordance and does not change CLI bucket lists (ADR-005).

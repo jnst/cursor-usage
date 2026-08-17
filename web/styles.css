@@ -179,6 +179,49 @@ body {
   padding: 16px;
 }
 
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.panel-header h3 {
+  margin: 0;
+}
+
+.metric-toggle {
+  display: inline-flex;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.metric-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.metric-toggle button[aria-checked="true"] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.metric-toggle button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.metric-toggle button:disabled {
+  cursor: default;
+}
+
 .panel h3 {
   margin: 0 0 12px;
   font-size: 14px;

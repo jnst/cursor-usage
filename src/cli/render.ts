@@ -2,6 +2,7 @@ import type { AnalysisContext, BucketStat, Summary, UsageEvent } from "../core/t
 
 import {
   byDailyWindow,
+  byDailyWindowAndModelFamily,
   byHour,
   byKind,
   byModel,
@@ -10,7 +11,7 @@ import {
   summarize,
   topEvents,
 } from "../core/aggregate.ts";
-import { formatTime, formatTokens, formatUsd } from "../core/format.ts";
+import { formatTime, formatTokens, formatUsd, formatUsdPerMTok } from "../core/format.ts";
 import { eventsInDailyWindow, orderedHours } from "../core/time.ts";
 
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -63,8 +64,9 @@ function renderSummaryBlock(
     `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dailyWindowCount} daily windows, ${scope})`)}`,
     "",
     `  ${label("Total Cost")}${value(formatUsd(summary.totalCost))}  ${label("Total Tokens")}${value(formatTokens(summary.totalTokens))}`,
-    `  ${label("Avg/Active")}${value(formatUsd(summary.avgCostPerActiveDailyWindow))}  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}`,
+    `  ${label("Effective")}${value(formatUsdPerMTok(summary.totalCost, summary.totalTokens))}  ${label("Avg/Active")}${value(formatUsd(summary.avgCostPerActiveDailyWindow))}`,
     `  ${label("Users")}${value(String(summary.userCount))}  ${label("Models")}${value(String(summary.modelCount))}`,
+    `  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}`,
   ];
 }
 
@@ -84,7 +86,7 @@ function renderBucketChart(
   for (const b of rows) {
     const share = totalCost > 0 ? ` ${dim(`${Math.round((b.cost / totalCost) * 100)}%`)}` : "";
     lines.push(
-      `  ${padEndDisplay(b.key, keyWidth)}  ${padEndDisplay(formatUsd(b.cost), 8)} ${cyan(padEndDisplay(bar(b.cost, maxCost, barWidth), barWidth))}${share} ${dim(`${formatTokens(b.totalTokens)} tok, ${b.eventCount} ev`)}`,
+      `  ${padEndDisplay(b.key, keyWidth)}  ${padEndDisplay(formatUsd(b.cost), 8)} ${cyan(padEndDisplay(bar(b.cost, maxCost, barWidth), barWidth))}${share} ${dim(`${formatTokens(b.totalTokens)} tok, ${formatUsdPerMTok(b.cost, b.totalTokens)}, ${b.eventCount} ev`)}`,
     );
   }
   if (buckets.length > maxRows) {
@@ -167,6 +169,7 @@ export function statsJson(
       filters: { user: user ?? null, modelFamily: modelFamily ?? null },
       summary: summarize(events, ctx),
       byDailyWindow: byDailyWindow(events, ctx),
+      byDailyWindowAndModelFamily: byDailyWindowAndModelFamily(events, ctx),
       byModelFamily: byModelFamily(events),
       byModel: byModel(events),
       byUser: byUser(events),
@@ -192,8 +195,9 @@ function renderDailyWindowSummaryBlock(
     `${bold(`Daily Window ${dailyWindow}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dailyWindowCount} by cost, ${ctx.timeZone}, start ${ctx.startHour}:00)`)}`,
     "",
     `  ${label("Cost")}${value(formatUsd(s.totalCost))}  ${label("of period")}${value(`${share}%`)}`,
-    `  ${label("Total Tokens")}${value(formatTokens(s.totalTokens))}  ${label("Max Mode")}${value(`${Math.round(s.maxModeRatio * 100)}%`)}`,
+    `  ${label("Total Tokens")}${value(formatTokens(s.totalTokens))}  ${label("Effective")}${value(formatUsdPerMTok(s.totalCost, s.totalTokens))}`,
     `  ${label("Users")}${value(String(s.userCount))}  ${label("Models")}${value(String(s.modelCount))}`,
+    `  ${label("Max Mode")}${value(`${Math.round(s.maxModeRatio * 100)}%`)}`,
   ];
 }
 
@@ -205,7 +209,8 @@ function renderHourlyChart(dailyWindowEvents: UsageEvent[], ctx: AnalysisContext
     const b = byHourMap.get(key);
     const cost = b?.cost ?? 0;
     const events = b?.eventCount ?? 0;
-    const meta = events > 0 ? dim(` ${events} ev`) : "";
+    const tokens = b?.totalTokens ?? 0;
+    const meta = events > 0 ? dim(` ${events} ev, ${formatTokens(tokens)} tok`) : "";
     lines.push(
       `  ${key}  ${padEndDisplay(cost > 0 ? formatUsd(cost) : "", 8)} ${cyan(padEndDisplay(bar(cost, maxCost, 24), 24))}${meta}`,
     );

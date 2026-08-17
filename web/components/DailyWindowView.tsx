@@ -1,4 +1,4 @@
-import type { AnalysisContext, UsageEvent } from "../../src/core/types.ts";
+import type { AnalysisContext, DisplayMetric, UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo } from "react";
 import {
@@ -12,9 +12,16 @@ import {
 } from "recharts";
 
 import { byDailyWindow, byHour, byKind, summarize } from "../../src/core/aggregate.ts";
-import { formatTime, formatTokens, formatUsd } from "../../src/core/format.ts";
+import {
+  formatMetric,
+  formatTime,
+  formatTokens,
+  formatUsd,
+  formatUsdPerMTok,
+} from "../../src/core/format.ts";
 import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
 import { EventsTable } from "./EventsTable.tsx";
+import { MetricToggle } from "./MetricToggle.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
 import { modelFamilyColors, tooltipStyle } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
@@ -25,6 +32,8 @@ interface Props {
   userEvents: UsageEvent[];
   dailyWindow: string;
   ctx: AnalysisContext;
+  metric: DisplayMetric;
+  onMetricChange?: (metric: DisplayMetric) => void;
   eventLimit?: number;
   showControls: boolean;
   selectedUser: string | null;
@@ -37,27 +46,37 @@ function DailyWindowSummaryCards({
   dailyWindowEvents,
   ctx,
   totalCost,
-  rank,
+  costRank,
+  tokenRank,
   dailyWindowCount,
 }: {
   dailyWindowEvents: UsageEvent[];
   ctx: AnalysisContext;
   totalCost: number;
-  rank: number;
+  costRank: number;
+  tokenRank: number;
   dailyWindowCount: number;
 }) {
   const s = useMemo(() => summarize(dailyWindowEvents, ctx), [dailyWindowEvents, ctx]);
   const share = totalCost > 0 ? Math.round((s.totalCost / totalCost) * 100) : 0;
   const cards = [
     { label: "Cost", value: formatUsd(s.totalCost), sub: `期間全体の ${share}%` },
+    { label: "Tokens", value: formatTokens(s.totalTokens), sub: "this window" },
+    {
+      label: "Effective Rate",
+      value: formatUsdPerMTok(s.totalCost, s.totalTokens),
+      sub: "Cost / million tokens",
+    },
     {
       label: "Events",
       value: String(s.eventCount),
       sub: `Max Mode ${Math.round(s.maxModeRatio * 100)}%`,
     },
-    { label: "Tokens", value: formatTokens(s.totalTokens), sub: "this window" },
-    { label: "Users / Models", value: `${s.userCount} / ${s.modelCount}`, sub: "active window" },
-    { label: "コスト順位", value: `${rank} / ${dailyWindowCount}`, sub: "Daily Windowランキング" },
+    {
+      label: "順位",
+      value: `${costRank} / ${dailyWindowCount}`,
+      sub: `Cost · Tokens ${tokenRank} / ${dailyWindowCount}`,
+    },
   ];
   return <SummaryCards cards={cards} />;
 }
@@ -66,10 +85,16 @@ function HourlyChart({
   dailyWindowEvents,
   scaleDayEvents,
   ctx,
+  metric,
+  onMetricChange,
+  showControls,
 }: {
   dailyWindowEvents: UsageEvent[];
   scaleDayEvents: UsageEvent[];
   ctx: AnalysisContext;
+  metric: DisplayMetric;
+  onMetricChange?: (metric: DisplayMetric) => void;
+  showControls: boolean;
 }) {
   const data = useMemo(() => {
     const byHourMap = new Map(byHour(dailyWindowEvents, ctx).map((b) => [b.key, b]));
@@ -78,36 +103,51 @@ function HourlyChart({
       return {
         hour: key,
         cost: b?.cost ?? 0,
+        totalTokens: b?.totalTokens ?? 0,
         eventCount: b?.eventCount ?? 0,
       };
     });
   }, [dailyWindowEvents, ctx]);
-  const maxHourlyCost = useMemo(
-    () => Math.max(...byHour(scaleDayEvents, ctx).map((b) => b.cost), 0),
-    [scaleDayEvents, ctx],
-  );
+  const maxHourly = useMemo(() => {
+    const hours = byHour(scaleDayEvents, ctx);
+    return Math.max(...hours.map((b) => (metric === "tokens" ? b.totalTokens : b.cost)), 0);
+  }, [scaleDayEvents, ctx, metric]);
+  const dataKey = metric === "tokens" ? "totalTokens" : "cost";
 
   return (
     <div className="panel wide">
-      <h3>時間帯別コスト ({ctx.timeZone})</h3>
+      <div className="panel-header">
+        <h3>
+          {metric === "cost" ? "時間帯別コスト" : "時間帯別トークン"} ({ctx.timeZone})
+        </h3>
+        <MetricToggle metric={metric} onChange={onMetricChange} disabled={!showControls} />
+      </div>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
           <CartesianGrid stroke="#21262d" vertical={false} />
           <XAxis dataKey="hour" stroke="#8b949e" fontSize={12} />
           <YAxis
-            domain={[0, maxHourlyCost]}
+            domain={[0, maxHourly]}
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
+            tickFormatter={(value) => formatMetric(Number(value), metric, { trimZeroCents: true })}
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            formatter={(value) => [formatUsd(Number(value)), "Cost"]}
+            formatter={(_value, _name, item) => {
+              const row = item?.payload as { cost?: number; totalTokens?: number } | undefined;
+              const cost = row?.cost ?? 0;
+              const tokens = row?.totalTokens ?? 0;
+              return [
+                `${formatMetric(metric === "cost" ? cost : tokens, metric)} · ${formatUsdPerMTok(cost, tokens)}`,
+                metric === "cost" ? "Cost" : "Tokens",
+              ];
+            }}
             labelFormatter={(h) => `${h}:00 ${ctx.timeZone}`}
           />
           <Bar
-            dataKey="cost"
-            name="Cost"
+            dataKey={dataKey}
+            name={metric === "cost" ? "Cost" : "Tokens"}
             fill="#58a6ff"
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
@@ -130,6 +170,7 @@ function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] 
             <tr>
               <th>種別</th>
               <th className="num">イベント</th>
+              <th className="num">Tokens</th>
               <th className="num">Cost</th>
             </tr>
           </thead>
@@ -138,6 +179,7 @@ function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] 
               <tr key={d.key}>
                 <td>{d.key}</td>
                 <td className="num">{d.eventCount}</td>
+                <td className="num">{formatTokens(d.totalTokens)}</td>
                 <td className="num">
                   <span
                     className="cost-bar"
@@ -168,6 +210,8 @@ export function DailyWindowView({
   userEvents,
   dailyWindow,
   ctx,
+  metric,
+  onMetricChange,
   eventLimit,
   showControls,
   selectedUser,
@@ -185,9 +229,14 @@ export function DailyWindowView({
     [userEvents, dailyWindow, ctx],
   );
   const totalCost = useMemo(() => events.reduce((sum, e) => sum + e.cost, 0), [events]);
-  const costRank = useMemo(() => {
-    const sorted = byDailyWindow(events, ctx).sort((a, b) => b.cost - a.cost);
-    return sorted.findIndex((d) => d.key === dailyWindow) + 1;
+  const ranked = useMemo(() => {
+    const windows = byDailyWindow(events, ctx);
+    const byCost = [...windows].sort((a, b) => b.cost - a.cost);
+    const byTokens = [...windows].sort((a, b) => b.totalTokens - a.totalTokens);
+    return {
+      costRank: byCost.findIndex((d) => d.key === dailyWindow) + 1,
+      tokenRank: byTokens.findIndex((d) => d.key === dailyWindow) + 1,
+    };
   }, [events, dailyWindow, ctx]);
 
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
@@ -250,7 +299,8 @@ export function DailyWindowView({
             dailyWindowEvents={dailyWindowEvents}
             ctx={ctx}
             totalCost={totalCost}
-            rank={costRank}
+            costRank={ranked.costRank}
+            tokenRank={ranked.tokenRank}
             dailyWindowCount={dailyWindows.length}
           />
           <div className="grid">
@@ -258,16 +308,21 @@ export function DailyWindowView({
               dailyWindowEvents={dailyWindowEvents}
               scaleDayEvents={dailyWindowUserEvents}
               ctx={ctx}
+              metric={metric}
+              onMetricChange={onMetricChange}
+              showControls={showControls}
             />
             <ModelFamilyPanel
               events={dailyWindowEvents}
               familyColors={familyColors}
+              metric={metric}
               showControls={showControls}
               height={260}
             />
             <UserChart
               events={dailyWindowUserEvents}
               selectedUser={selectedUser}
+              metric={metric}
               showControls={showControls}
               onSelectUser={onSelectUser}
               height={260}

@@ -4,14 +4,17 @@ import { describe, expect, it } from "bun:test";
 
 import {
   dailyWindowKeyOf,
+  dailyWindowKeysInRange,
   eventsInDailyWindow,
   hourOf,
   isValidDailyWindowKey,
   isValidStartHour,
   isValidTimeZone,
+  isWeekendDailyWindowKey,
   latestDailyWindowKey,
   orderedHours,
   resolveAnalysisContext,
+  weekdayOfDailyWindowKey,
 } from "./time.ts";
 
 function event(overrides: Partial<UsageEvent>): UsageEvent {
@@ -160,5 +163,27 @@ describe("dailyWindowKeyOf", () => {
 describe("latestDailyWindowKey", () => {
   it("returns null for an empty analysis set", () => {
     expect(latestDailyWindowKey([])).toBeNull();
+  });
+});
+
+describe("dailyWindowKeysInRange", () => {
+  it("enumerates inclusive calendar keys", () => {
+    expect(dailyWindowKeysInRange("2026-06-04", "2026-06-06")).toEqual([
+      "2026-06-04",
+      "2026-06-05",
+      "2026-06-06",
+    ]);
+    expect(dailyWindowKeysInRange("2026-06-05", "2026-06-05")).toEqual(["2026-06-05"]);
+    expect(dailyWindowKeysInRange("2026-06-06", "2026-06-05")).toEqual([]);
+  });
+});
+
+describe("weekend Daily Window Keys", () => {
+  it("treats Saturday and Sunday as weekend", () => {
+    expect(weekdayOfDailyWindowKey("2026-06-06")).toBe(6);
+    expect(weekdayOfDailyWindowKey("2026-06-07")).toBe(0);
+    expect(isWeekendDailyWindowKey("2026-06-06")).toBe(true);
+    expect(isWeekendDailyWindowKey("2026-06-07")).toBe(true);
+    expect(isWeekendDailyWindowKey("2026-06-05")).toBe(false);
   });
 });

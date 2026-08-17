@@ -1,9 +1,10 @@
 import { modelFamilyOf } from "./model.ts";
-import { dailyWindowKeyOf, hourOf } from "./time.ts";
+import { dailyWindowKeyOf, dailyWindowKeysInRange, hourOf } from "./time.ts";
 import {
   type AnalysisContext,
   type BucketStat,
-  type DailyWindowCostStat,
+  type DailyWindowStat,
+  type DisplayMetric,
   NO_CHARGE_KIND,
   type Summary,
   type UsageEvent,
@@ -104,6 +105,14 @@ function bucketBy(events: UsageEvent[], keyFn: (e: UsageEvent) => string): Bucke
   return [...buckets.values()];
 }
 
+function metricValue(bucket: BucketStat, metric: DisplayMetric): number {
+  return metric === "tokens" ? bucket.totalTokens : bucket.cost;
+}
+
+function sortByMetric(buckets: BucketStat[], metric: DisplayMetric): BucketStat[] {
+  return buckets.sort((a, b) => metricValue(b, metric) - metricValue(a, metric));
+}
+
 /**
  * Groups events by Daily Window in the selected Analysis Time Zone.
  *
@@ -120,35 +129,44 @@ export function byDailyWindow(
 }
 
 /**
- * Groups events by User, ordered by Cost descending.
+ * Groups events by User, ordered by the selected Display Metric descending.
  *
  * User keys are the identifiers reported by the Usage Export; this function
  * does not normalize or map them to account records.
  */
-export function byUser(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.user).sort((a, b) => b.cost - a.cost);
+export function byUser(events: UsageEvent[], metric: DisplayMetric = "cost"): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => e.user),
+    metric,
+  );
 }
 
 /**
- * Groups events by Model, ordered by Cost descending.
+ * Groups events by Model, ordered by the selected Display Metric descending.
  *
  * Model keys are the identifiers reported by the Usage Export. Use
  * `byModelFamily` for the coarse Model Family view and this function for the
  * Model-level detail inside one Model Family.
  */
-export function byModel(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.model).sort((a, b) => b.cost - a.cost);
+export function byModel(events: UsageEvent[], metric: DisplayMetric = "cost"): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => e.model),
+    metric,
+  );
 }
 
 /**
- * Groups events by Model Family, ordered by Cost descending.
+ * Groups events by Model Family, ordered by the selected Display Metric descending.
  *
  * Model Families collapse variant attributes (reasoning effort, thinking,
  * fast mode) and group Auto (Cursor Router) usage under one `Auto` key, so
  * charts stay readable when exports contain many Model variants.
  */
-export function byModelFamily(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => modelFamilyOf(e.model)).sort((a, b) => b.cost - a.cost);
+export function byModelFamily(events: UsageEvent[], metric: DisplayMetric = "cost"): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => modelFamilyOf(e.model)),
+    metric,
+  );
 }
 
 /**
@@ -181,36 +199,81 @@ export function byHour(events: UsageEvent[], ctx: Partial<AnalysisContext> = {})
   return bucketBy(events, (e) => hourOf(e.date, ctx)).sort((a, b) => a.key.localeCompare(b.key));
 }
 
+function emptyDailyWindowStat(dailyWindow: string): DailyWindowStat {
+  return { dailyWindow, costByKey: {}, tokensByKey: {}, totalCost: 0, totalTokens: 0 };
+}
+
 function byDailyWindowAndKey(
   events: UsageEvent[],
   keyOf: (e: UsageEvent) => string,
   ctx: Partial<AnalysisContext> = {},
-): DailyWindowCostStat[] {
-  const dailyWindows = new Map<string, DailyWindowCostStat>();
+): DailyWindowStat[] {
+  const dailyWindows = new Map<string, DailyWindowStat>();
   for (const e of events) {
     const dailyWindow = dailyWindowKeyOf(e.date, ctx);
     let d = dailyWindows.get(dailyWindow);
     if (!d) {
-      d = { dailyWindow, costByKey: {}, totalCost: 0 };
+      d = emptyDailyWindowStat(dailyWindow);
       dailyWindows.set(dailyWindow, d);
     }
     const key = keyOf(e);
     d.costByKey[key] = (d.costByKey[key] ?? 0) + e.cost;
+    d.tokensByKey[key] = (d.tokensByKey[key] ?? 0) + e.totalTokens;
     d.totalCost += e.cost;
+    d.totalTokens += e.totalTokens;
   }
   return [...dailyWindows.values()].sort((a, b) => a.dailyWindow.localeCompare(b.dailyWindow));
 }
 
 /**
- * Builds Daily-Window-by-Model-Family cost buckets for stacked charts.
+ * Inserts empty Daily Windows between the first and last keys so time-series
+ * charts keep calendar gaps visible.
  *
- * `costByKey` is keyed by Model Family so stacked Daily Window charts stay readable.
+ * When `range` is omitted, the span comes from the first and last rows. The
+ * CLI leaves gaps unfilled; web charts pass a range so a User filter still
+ * shows the full Daily Window Range as zeros.
+ */
+export function fillDailyWindowStats(
+  rows: DailyWindowStat[],
+  range?: { first: string; last: string },
+): DailyWindowStat[] {
+  const first = range?.first ?? rows[0]?.dailyWindow;
+  const last = range?.last ?? rows.at(-1)?.dailyWindow;
+  if (!first || !last) return rows;
+  const byKey = new Map(rows.map((row) => [row.dailyWindow, row]));
+  return dailyWindowKeysInRange(first, last).map(
+    (dailyWindow) => byKey.get(dailyWindow) ?? emptyDailyWindowStat(dailyWindow),
+  );
+}
+
+/**
+ * Builds Daily-Window-by-Model-Family buckets for stacked charts.
+ *
+ * `costByKey` and `tokensByKey` are keyed by Model Family so stacked Daily
+ * Window charts stay readable when toggling Display Metric.
  */
 export function byDailyWindowAndModelFamily(
   events: UsageEvent[],
   ctx: Partial<AnalysisContext> = {},
-): DailyWindowCostStat[] {
+): DailyWindowStat[] {
   return byDailyWindowAndKey(events, (e) => modelFamilyOf(e.model), ctx);
+}
+
+/**
+ * Returns the Daily Window total for the selected Display Metric.
+ */
+export function dailyWindowMetricTotal(row: DailyWindowStat, metric: DisplayMetric): number {
+  return metric === "tokens" ? row.totalTokens : row.totalCost;
+}
+
+/**
+ * Returns the per-key stacked values for the selected Display Metric.
+ */
+export function dailyWindowMetricByKey(
+  row: DailyWindowStat,
+  metric: DisplayMetric,
+): Record<string, number> {
+  return metric === "tokens" ? row.tokensByKey : row.costByKey;
 }
 
 /**

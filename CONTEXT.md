@@ -42,6 +42,10 @@ _Avoid_: Active Day
 The range from the first Active Daily Window to the last Active Daily Window in the analysis set.
 _Avoid_: Calendar Range
 
+**Inactive Daily Window**:
+A Daily Window inside the Daily Window Range that has no Billable Events. Web time-series charts fill these as zero Cost and zero Token Count so calendar gaps stay visible. Terminal stats omit them.
+_Avoid_: Missing Day, Holiday
+
 **Hour**:
 An hour of a Daily Window in the Analysis Time Zone.
 
@@ -49,8 +53,12 @@ An hour of a Daily Window in the Analysis Time Zone.
 A dimension used to group Usage Events for analysis, such as Daily Window, Hour, User, Model, or Kind.
 
 **Metric**:
-An analysis value obtained from or calculated over Usage Events, such as Cost, Token Count, Event Count, or Max Mode Ratio.
+An analysis value obtained from or calculated over Usage Events, such as Cost, Token Count, Event Count, Effective Rate, or Max Mode Ratio.
 _Avoid_: Summary, Bucket
+
+**Display Metric**:
+The dashboard chart scale, either Cost or Token Count. The same Daily Window columns, Model Family colors, and chart geometry are reused; only the encoded value changes. The selected Display Metric is view state (`metric=cost|tokens` in the URL hash) and defaults to Cost.
+_Avoid_: Dual-axis overlay, small-multiples Cost and Token charts
 
 **Max Mode**:
 The Cursor usage mode reported by the `Max Mode` column in Cursor's usage-events CSV export.
@@ -71,7 +79,11 @@ A relative description for Daily Windows or Billable Events with large Cost with
 _Avoid_: Fixed Cost Threshold
 
 **Token Count**:
-A usage volume measure reported by the token columns in Cursor's usage-events CSV export. Token Counts explain usage shape but are not the source of truth for Cost.
+A usage volume measure reported by the token columns in Cursor's usage-events CSV export. Token Counts explain usage shape and are the contrast axis for Cost. They are not the source of truth for Cost.
+
+**Effective Rate**:
+Reported Cost per million tokens (`Cost / Token Count * 1,000,000`) over the current analysis set or Daily Window. Effective Rate is a display diagnostic for cheap versus expensive usage, not a reconstructed model price. When Token Count is 0, Effective Rate is undefined and renders as an em dash.
+_Avoid_: Unit Price, Model Price, Free Tier
 
 **User**:
 The user identifier reported by the `User` column in Cursor's usage-events CSV export.

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "bun:test";
 
-import { formatDateTime, formatTime, formatTokens, formatUsd } from "./format.ts";
+import {
+  formatDateTime,
+  formatMetric,
+  formatTime,
+  formatTokens,
+  formatUsd,
+  formatUsdPerMTok,
+} from "./format.ts";
 
 describe("formatUsd", () => {
   it("keeps cents by default", () => {
@@ -23,6 +30,24 @@ describe("formatTokens", () => {
     expect(formatTokens(1500)).toBe("1.5K");
     expect(formatTokens(999)).toBe("999");
     expect(formatTokens(0)).toBe("0");
+  });
+});
+
+describe("formatUsdPerMTok", () => {
+  it("formats cost per million tokens", () => {
+    expect(formatUsdPerMTok(2, 1_000_000)).toBe("$2.00 / MTok");
+    expect(formatUsdPerMTok(0, 500_000)).toBe("$0.00 / MTok");
+  });
+
+  it("returns an em dash when token count is 0", () => {
+    expect(formatUsdPerMTok(1.5, 0)).toBe("—");
+  });
+});
+
+describe("formatMetric", () => {
+  it("formats Cost as USD and Token Count compactly", () => {
+    expect(formatMetric(180, "cost", { trimZeroCents: true })).toBe("$180");
+    expect(formatMetric(1_500_000, "tokens")).toBe("1.5M");
   });
 });
 

@@ -1,4 +1,4 @@
-import type { UsageEvent } from "../../src/core/types.ts";
+import type { DisplayMetric, UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo } from "react";
 import {
@@ -13,18 +13,20 @@ import {
 } from "recharts";
 
 import { byUser } from "../../src/core/aggregate.ts";
-import { formatUsd } from "../../src/core/format.ts";
+import { formatMetric, formatUsdPerMTok } from "../../src/core/format.ts";
 import { BAR_SIZE, tooltipStyle } from "./shared.ts";
 
 /**
- * Top-10 User cost bars with optional click-to-filter.
+ * Top-10 User bars with optional click-to-filter.
  *
- * Unselected users stay visible at reduced opacity so a User filter can be
- * compared against the rest of the analysis set.
+ * Bars follow the selected Display Metric. Unselected users stay visible at
+ * reduced opacity so a User filter can be compared against the rest of the
+ * analysis set.
  */
 export function UserChart({
   events,
   selectedUser,
+  metric,
   showControls,
   onSelectUser,
   height = 280,
@@ -32,18 +34,20 @@ export function UserChart({
 }: {
   events: UsageEvent[];
   selectedUser: string | null;
+  metric: DisplayMetric;
   showControls: boolean;
   onSelectUser?: (user: string) => void;
   height?: number;
   barFill?: string;
 }) {
-  const data = useMemo(() => byUser(events).slice(0, 10), [events]);
+  const data = useMemo(() => byUser(events, metric).slice(0, 10), [events, metric]);
   const isSelected = (user: string) => !selectedUser || selectedUser === user;
   const selectable = showControls && onSelectUser;
+  const dataKey = metric === "tokens" ? "totalTokens" : "cost";
   return (
     <div className="panel">
       <h3>
-        ユーザー別コスト (Top 10)
+        {metric === "cost" ? "ユーザー別コスト" : "ユーザー別トークン"} (Top 10)
         {selectable && <span className="hint">バーをクリックでユーザー選択/解除</span>}
       </h3>
       <ResponsiveContainer width="100%" height={height}>
@@ -53,13 +57,24 @@ export function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
+            tickFormatter={(value) => formatMetric(Number(value), metric, { trimZeroCents: true })}
           />
           <YAxis type="category" dataKey="key" stroke="#8b949e" fontSize={12} width={160} />
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            formatter={(value, _name, item) => {
+              const row = item?.payload as { cost?: number; totalTokens?: number } | undefined;
+              const cost = row?.cost ?? 0;
+              const tokens = row?.totalTokens ?? 0;
+              return [
+                `${formatMetric(Number(value), metric)} · ${formatUsdPerMTok(cost, tokens)}`,
+                metric === "cost" ? "Cost" : "Tokens",
+              ];
+            }}
+          />
           <Bar
-            dataKey="cost"
-            name="Cost"
+            dataKey={dataKey}
+            name={metric === "cost" ? "Cost" : "Tokens"}
             radius={[0, 4, 4, 0]}
             cursor={selectable ? "pointer" : undefined}
             onClick={(payload) => {

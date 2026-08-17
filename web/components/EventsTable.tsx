@@ -1,6 +1,6 @@
 import type { UsageEvent } from "../../src/core/types.ts";
 
-import { formatTokens, formatUsd } from "../../src/core/format.ts";
+import { formatTokens, formatUsd, formatUsdPerMTok } from "../../src/core/format.ts";
 import { ModelCell } from "./ModelCell.tsx";
 
 function eventRowKey(event: UsageEvent): string {
@@ -50,6 +50,7 @@ export function EventsTable({
               <th className="num">Cache Read</th>
               <th className="num">Output</th>
               <th className="num">Total</th>
+              <th className="num">$/MTok</th>
               <th className="num">Cost</th>
             </tr>
           </thead>
@@ -68,6 +69,7 @@ export function EventsTable({
                 <td className="num">{formatTokens(e.cacheRead)}</td>
                 <td className="num">{formatTokens(e.outputTokens)}</td>
                 <td className="num">{formatTokens(e.totalTokens)}</td>
+                <td className="num">{formatUsdPerMTok(e.cost, e.totalTokens)}</td>
                 <td className="num">{formatUsd(e.cost)}</td>
               </tr>
             ))}

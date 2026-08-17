@@ -12,6 +12,7 @@ import {
   byModelFamily,
   byUser,
   eventsInModelFamily,
+  fillDailyWindowStats,
   filterEvents,
   summarize,
   topEvents,
@@ -133,6 +134,12 @@ describe("buckets", () => {
     expect(users[0]!.cost).toBeCloseTo(0.4);
   });
 
+  it("byUser can sort by tokens", () => {
+    const cheapVolume = event({ user: "volume@example.com", cost: 0.01, totalTokens: 50_000 });
+    const users = byUser([cheapVolume, ...b], "tokens");
+    expect(users[0]!.key).toBe("volume@example.com");
+  });
+
   it("byModel aggregates tokens", () => {
     const models = byModel(b);
     expect(models[0]!.key).toBe("claude-opus");
@@ -177,14 +184,41 @@ describe("buckets", () => {
     ]);
   });
 
-  it("byDailyWindowAndModelFamily stacks costs by family", () => {
+  it("byDailyWindowAndModelFamily stacks costs and tokens by family", () => {
     const stacked = byDailyWindowAndModelFamily([
-      event({ model: "claude-fable-5-thinking-high", cost: 0.25 }),
-      event({ model: "claude-fable-5-high", cost: 0.25 }),
-      event({ model: "Opus 5 (Auto Balanced)", cost: 0.5 }),
+      event({ model: "claude-fable-5-thinking-high", cost: 0.25, totalTokens: 100 }),
+      event({ model: "claude-fable-5-high", cost: 0.25, totalTokens: 200 }),
+      event({ model: "Opus 5 (Auto Balanced)", cost: 0.5, totalTokens: 50 }),
     ]);
     expect(stacked[0]!.costByKey).toEqual({ "Fable 5": 0.5, Auto: 0.5 });
+    expect(stacked[0]!.tokensByKey).toEqual({ "Fable 5": 300, Auto: 50 });
     expect(stacked[0]!.totalCost).toBeCloseTo(1.0);
+    expect(stacked[0]!.totalTokens).toBe(350);
+  });
+
+  it("fillDailyWindowStats inserts empty windows in calendar gaps", () => {
+    const stacked = byDailyWindowAndModelFamily([
+      event({ date: new Date("2026-06-04T10:00:00Z"), cost: 0.1, totalTokens: 10 }),
+      event({ date: new Date("2026-06-06T10:00:00Z"), cost: 0.2, totalTokens: 20 }),
+    ]);
+    const filled = fillDailyWindowStats(stacked);
+    expect(filled.map((d) => d.dailyWindow)).toEqual(["2026-06-04", "2026-06-05", "2026-06-06"]);
+    expect(filled[1]).toEqual({
+      dailyWindow: "2026-06-05",
+      costByKey: {},
+      tokensByKey: {},
+      totalCost: 0,
+      totalTokens: 0,
+    });
+  });
+
+  it("fillDailyWindowStats can span an explicit range", () => {
+    const stacked = byDailyWindowAndModelFamily([
+      event({ date: new Date("2026-06-05T10:00:00Z"), cost: 0.2, totalTokens: 20 }),
+    ]);
+    const filled = fillDailyWindowStats(stacked, { first: "2026-06-04", last: "2026-06-06" });
+    expect(filled.map((d) => d.dailyWindow)).toEqual(["2026-06-04", "2026-06-05", "2026-06-06"]);
+    expect(filled[1]!.totalCost).toBeCloseTo(0.2);
   });
 
   it("topEvents returns most expensive first", () => {

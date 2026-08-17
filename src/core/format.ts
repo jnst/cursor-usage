@@ -1,3 +1,5 @@
+import type { DisplayMetric } from "./types.ts";
+
 import { dateTimeParts } from "./time.ts";
 
 /**
@@ -26,6 +28,37 @@ export function formatTokens(value: number): string {
   if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
   if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
   return String(value);
+}
+
+/**
+ * Returns reported Cost per million tokens, or null when Token Count is 0.
+ *
+ * This is a display diagnostic, not a reconstructed model price. A null result
+ * should render as an em dash rather than `$0.00 / MTok`.
+ */
+export function costPerMillionTokens(cost: number, tokens: number): number | null {
+  if (tokens <= 0) return null;
+  return (cost / tokens) * 1_000_000;
+}
+
+/**
+ * Formats Effective Rate as `$x.xx / MTok`, or `—` when Token Count is 0.
+ */
+export function formatUsdPerMTok(cost: number, tokens: number): string {
+  const rate = costPerMillionTokens(cost, tokens);
+  if (rate === null) return "—";
+  return `${formatUsd(rate)} / MTok`;
+}
+
+/**
+ * Formats a Display Metric value as USD or compact Token Count.
+ */
+export function formatMetric(
+  value: number,
+  metric: DisplayMetric,
+  options: { trimZeroCents?: boolean } = {},
+): string {
+  return metric === "tokens" ? formatTokens(value) : formatUsd(value, options);
 }
 
 /**

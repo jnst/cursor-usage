@@ -12,11 +12,11 @@ Runs on Node.js 20+ (`npx`) or [Bun](https://bun.sh) (`bunx`).
 ## Features
 
 - **Local-only analysis** — drag & drop a Usage Export; data stays in the browser and is never sent anywhere
-- **Daily Window cost trends** — stacked bars by Model Family plus a cumulative line, with click-through to a per-window detail view
+- **Daily Window cost and token trends** — stacked bars by Model Family plus a cumulative line, with a Cost / Tokens toggle and click-through to a per-window detail view
 - **Model Family grouping** — reasoning effort / thinking / fast variants are collapsed, and Auto (Cursor Router) is one slice; click it to see the actual Models the Router selected
 - **User breakdown & filter** — Top 10 costs per User; click a bar to focus the whole analysis on one User
 - **High Cost events** — the most expensive events at a glance, with Cloud Agent / Automation / Max Mode marks
-- **Daily Window detail** — hourly cost, Kind breakdown, and every event in the window
+- **Daily Window detail** — hourly Cost or Tokens, Kind breakdown, and every event in the window
 - **CLI parity** — the same breakdowns in the terminal, or as JSON for scripting
 - **Screenshots & daily report** — capture the Overview or a shareable Daily Window PNG
 
@@ -30,7 +30,7 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
 
-Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model-family / per-user / per-kind costs, and every event in the window). Cost charts group Models by Model Family — variant suffixes such as reasoning effort and fast mode are collapsed, and usage routed through Auto (Cursor Router) is shown as one `Auto` slice. Click a slice in the Model Family pie to see the Models inside it; for `Auto` this reveals the actual Models the Router selected. Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
+Click any bar in the Daily Window chart to drill into that window (hourly breakdown, per-model-family / per-user / per-kind costs, and every event in the window). Use the Cost / Tokens toggle to compare reported spend with usage volume on the same columns and Model Family colors; tooltips also show the other metric and cost per million tokens. Cost charts group Models by Model Family — variant suffixes such as reasoning effort and fast mode are collapsed, and usage routed through Auto (Cursor Router) is shown as one `Auto` slice. Click a slice in the Model Family pie to see the Models inside it; for `Auto` this reveals the actual Models the Router selected. Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, Display Metric, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo&metric=tokens`), so the browser back button and shareable links work after loading the same CSV.
 
 The default port is 4321; if it is already in use, a free port is picked automatically. When `--port` is specified explicitly, that port is used as-is.
 
@@ -48,12 +48,13 @@ npx @jnst/cursor-usage stats team-usage-events.csv
 Cursor Usage  2026-06-01 – 2026-06-10  (610 events, 10 daily windows)
 
   Total Cost    $1446.69      Total Tokens  1.1B
-  Avg/Active    $144.67       Max Mode      96%
+  Effective     $1.31 / MTok  Avg/Active    $144.67
   Users         4             Models        8
+  Max Mode      96%
 
 Daily Window Cost
-  2026-06-01  $147.44  ████████████████▊            10% 102.9M tok, 68 ev
-  2026-06-02  $246.57  ████████████████████████████ 17% 180.0M tok, 79 ev
+  2026-06-01  $147.44  ████████████████▊            10% 102.9M tok, $1.43 / MTok, 68 ev
+  2026-06-02  $246.57  ████████████████████████████ 17% 180.0M tok, $1.37 / MTok, 79 ev
   ...
 
 By Model Family

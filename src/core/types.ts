@@ -52,10 +52,23 @@ export interface BucketStat {
   eventCount: number;
 }
 
-/** Daily Window cost stacked by a grouping key (Model or Model Family). */
-export interface DailyWindowCostStat {
+/** Chart display scale: reported Cost or Token Count. */
+export type DisplayMetric = "cost" | "tokens";
+
+/** Daily Window totals stacked by a grouping key (Model or Model Family). */
+export interface DailyWindowStat {
   dailyWindow: string;
   /** grouping key (Model or Model Family) -> cost */
   costByKey: Record<string, number>;
+  /** grouping key (Model or Model Family) -> token count */
+  tokensByKey: Record<string, number>;
   totalCost: number;
+  totalTokens: number;
+}
+
+/**
+ * Returns true when a URL or UI value is a supported Display Metric.
+ */
+export function isDisplayMetric(value: string | null | undefined): value is DisplayMetric {
+  return value === "cost" || value === "tokens";
 }

@@ -129,6 +129,42 @@ function addDays(dateKey: string, days: number): string {
 }
 
 /**
+ * Enumerates inclusive Daily Window Keys from first to last in calendar order.
+ *
+ * Keys are treated as civil `YYYY-MM-DD` dates. Callers should pass keys that
+ * already came from Daily Window grouping rather than arbitrary strings.
+ */
+export function dailyWindowKeysInRange(first: string, last: string): string[] {
+  if (first > last) return [];
+  const keys = [first];
+  let current = first;
+  while (current < last) {
+    current = addDays(current, 1);
+    keys.push(current);
+  }
+  return keys;
+}
+
+/**
+ * Returns the civil weekday of a Daily Window Key (0 = Sunday, 6 = Saturday).
+ *
+ * The key is a calendar date, so the weekday does not depend on the Analysis
+ * Time Zone. Use this for weekend shading on time-series charts.
+ */
+export function weekdayOfDailyWindowKey(dailyWindow: string): number {
+  const { year, month, date } = dateParts(dailyWindow);
+  return new Date(Date.UTC(year, month - 1, date)).getUTCDay();
+}
+
+/**
+ * Returns true when a Daily Window Key falls on Saturday or Sunday.
+ */
+export function isWeekendDailyWindowKey(dailyWindow: string): boolean {
+  const weekday = weekdayOfDailyWindowKey(dailyWindow);
+  return weekday === 0 || weekday === 6;
+}
+
+/**
  * Returns the Daily Window Key for an absolute timestamp.
  *
  * The key is based on the local date at the start of the Daily Window. A
