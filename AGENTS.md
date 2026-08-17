@@ -1,5 +1,10 @@
 # Agent Notes
 
+Required context:
+
+@CONTEXT.md
+@ADR.md
+
 - After editing files, project Cursor hooks run `bun run fix` to apply Vite+ formatting and import sorting.
 - Do not fight formatter output. If formatting changes are broad, keep them separate from behavioral changes when practical.
 - Use `bun run fix` for formatting and import-order fixes.
