@@ -46,4 +46,7 @@ export const tooltipStyle = {
   border: "1px solid #21262d",
   borderRadius: 8,
   fontSize: 12,
+  color: "#e6edf3",
 } as const;
+
+export const tooltipTextStyle = { color: "#e6edf3" } as const;

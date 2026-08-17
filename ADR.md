@@ -24,17 +24,19 @@ This keeps the product boundary focused: the tool helps users notice expensive d
 
 ## ADR-004: Treat URLs as View State, Not Data Sharing
 
-The dashboard may encode the selected view in the URL, such as a selected Daily Window, User, Analysis Time Zone, and Daily Window start hour, but it must not encode or upload the Usage Export itself. A shared URL can reopen the same view state only after the recipient loads the same Usage Export locally.
+The dashboard may encode the selected view in the URL, such as a selected Daily Window, User, Analysis Time Zone, Daily Window start hour, and selected Metric (`metric=cost|tokens`), but it must not encode or upload the Usage Export itself. A shared URL can reopen the same view state only after the recipient loads the same Usage Export locally.
 
 When a URL includes a Daily Window, that Daily Window Key is interpreted in the selected Analysis Time Zone and start hour, not as a UTC date. This keeps shared detail views aligned with the same window boundaries users see in the dashboard.
 
 Daily Window URLs should include the selected Daily Window, Analysis Time Zone, and start hour when the start hour is not midnight. Omitting the Analysis Time Zone or non-default start hour makes the same URL resolve to different event ranges for users in different environments.
 
+`metric=cost|tokens` in the URL hash reproduces the selected Metric the same way `timezone` reproduces the Analysis Time Zone. It does not change Daily Window boundaries; it changes ranking and which quantity is displayed.
+
 ## ADR-005: Ground Analysis Features in the CLI
 
 Every analysis capability should be available from the CLI before or alongside the web UI. The web dashboard may provide richer interactions and charts, but those interactions should correspond to CLI options so the same analysis can be reproduced in scripts, terminals, CI logs, and support conversations.
 
-Purely browser-specific affordances, such as drag-and-drop file loading or chart layout, do not require CLI equivalents. Analysis choices such as Daily Window, User, Analysis Time Zone, Daily Window start hour, and whether No Charge Events are included do require CLI support.
+Purely browser-specific affordances, such as drag-and-drop file loading or chart layout, do not require CLI equivalents. Analysis choices such as Daily Window, User, Analysis Time Zone, Daily Window start hour, selected Metric, and whether No Charge Events are included do require CLI support.
 
 ## ADR-006: Use Daily Windows Instead of Calendar Days
 
@@ -54,6 +56,12 @@ This partially revises the earlier stance that Model Family aggregation is inten
 
 Unit tests live next to the module they cover, using the `*.test.ts` suffix (`src/core/parse.ts` and `src/core/parse.test.ts`). This keeps the test for a module visible when that module changes.
 
-A top-level `tests/` directory is reserved for tests that span multiple modules or entry points, such as CLI or dashboard flows. There are none yet.
+A top-level `tests/` directory is reserved for tests that span multiple modules or entry points, such as CLI or dashboard flows.
 
 This rejects keeping all tests in `tests/` by default. `bun test` already discovers `*.test.ts` recursively, and the published package only ships `dist/`, so colocated tests are not included in the npm tarball.
+
+## ADR-009: Switch Cost and Token Count on One Stacked Chart
+
+Each analysis selects Cost or Token Count as the primary Metric. We will keep a single stacked Daily Window chart and switch the encoded quantity, reusing the same Daily Window columns and Model Family colors. Ranking, bars, pies, tables, and summaries follow that same selection in the CLI and the dashboard.
+
+This rejects overlaying Cost and Token Count on dual Y axes, and rejects two stacked charts one above the other. Those layouts put incommensurable units on the axes at the same time and duplicate legend, axis, and hover. Daily totals versus cumulative totals may still share a chart when both use the selected Metric.

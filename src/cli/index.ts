@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import type { AnalysisContext } from "../core/types.ts";
+import type { AnalysisContext, Metric } from "../core/types.ts";
 
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
@@ -13,6 +13,7 @@ import {
   isValidTimeZone,
   latestDailyWindowKey,
 } from "../core/time.ts";
+import { DEFAULT_METRIC, isMetric } from "../core/types.ts";
 import { serve } from "../server/index.ts";
 import {
   dailyWindowViewJson,
@@ -40,6 +41,7 @@ Stats options:
   --model-family <name>           Filter analysis to a single Model Family
                                   (e.g. "Auto", "Opus 4.8", "Fable 5")
   --timezone <iana-tz>            Analysis time zone (default: current environment)
+  --metric <cost|tokens>          Primary analysis metric (default: cost)
   --json                          Output aggregated stats as JSON
   --include-no-charge             Include "Errored, No Charge" events
 
@@ -50,6 +52,7 @@ Screenshot options:
   --out <path>                    Output path
   --user <identifier>             Filter screenshot to a single User
   --timezone <iana-tz>            Analysis time zone (default: current environment)
+  --metric <cost|tokens>          Primary analysis metric (default: cost)
   --include-no-charge             Include "Errored, No Charge" events
 
 Serve options:
@@ -87,11 +90,20 @@ function parseStartHour(value: string | undefined, defaultValue: number): number
   return startHour;
 }
 
+function parseMetric(value: string | undefined): Metric {
+  const metric = value ?? DEFAULT_METRIC;
+  if (!isMetric(metric)) {
+    fail(`invalid --metric value: ${value} (expected cost or tokens)`);
+  }
+  return metric;
+}
+
 const SHARED_ANALYSIS_OPTIONS = {
   "daily-window": { type: "string" },
   "start-hour": { type: "string" },
   user: { type: "string" },
   timezone: { type: "string" },
+  metric: { type: "string" },
   "include-no-charge": { type: "boolean", default: false },
 } as const;
 
@@ -152,6 +164,7 @@ async function runStats(args: string[]): Promise<void> {
 
   const dailyWindow = parseDailyWindow(values["daily-window"]);
   const ctx = parseAnalysisContext(values.timezone, values["start-hour"]);
+  const metric = parseMetric(values.metric);
   const user = values.user;
   const modelFamily = values["model-family"];
   const events = await readUsageEvents(
@@ -165,16 +178,16 @@ async function runStats(args: string[]): Promise<void> {
   if (dailyWindow) {
     console.log(
       values.json
-        ? dailyWindowViewJson(events, dailyWindow, ctx, user, modelFamily)
-        : renderDailyWindowView(events, dailyWindow, ctx, user, modelFamily),
+        ? dailyWindowViewJson(events, dailyWindow, ctx, user, modelFamily, metric)
+        : renderDailyWindowView(events, dailyWindow, ctx, user, modelFamily, metric),
     );
     return;
   }
 
   console.log(
     values.json
-      ? statsJson(events, ctx, user, modelFamily)
-      : renderStats(events, axis, ctx, user, modelFamily),
+      ? statsJson(events, ctx, user, modelFamily, metric)
+      : renderStats(events, axis, ctx, user, modelFamily, metric),
   );
 }
 
@@ -193,6 +206,7 @@ async function runScreenshot(args: string[]): Promise<void> {
   if (!csvPath) fail("screenshot requires a path to a CSV file");
 
   const ctx = parseAnalysisContext(values.timezone, values["start-hour"]);
+  const metric = parseMetric(values.metric);
   const dailyWindow = parseDailyWindow(values["daily-window"]);
   const eventLimit = parseEventLimit(values["event-limit"]);
 
@@ -204,6 +218,7 @@ async function runScreenshot(args: string[]): Promise<void> {
     csvPath,
     events,
     ctx,
+    metric,
     dailyWindow,
     eventLimit,
     dailyReport: false,

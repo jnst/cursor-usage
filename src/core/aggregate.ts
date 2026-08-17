@@ -4,6 +4,8 @@ import {
   type AnalysisContext,
   type BucketStat,
   type DailyWindowCostStat,
+  DEFAULT_METRIC,
+  type Metric,
   NO_CHARGE_KIND,
   type Summary,
   type UsageEvent,
@@ -105,6 +107,24 @@ function bucketBy(events: UsageEvent[], keyFn: (e: UsageEvent) => string): Bucke
 }
 
 /**
+ * Returns the selected Metric value for a Usage Event or bucket.
+ *
+ * Cost and Token Count are stored side by side; this picks the quantity used
+ * for ranking and chart encoding without changing the event set.
+ */
+export function metricValue(
+  item: { totalTokens: number; cost?: number; totalCost?: number },
+  metric: Metric = DEFAULT_METRIC,
+): number {
+  if (metric === "tokens") return item.totalTokens;
+  return item.cost ?? item.totalCost ?? 0;
+}
+
+function sortByMetric(buckets: BucketStat[], metric: Metric): BucketStat[] {
+  return buckets.sort((a, b) => metricValue(b, metric) - metricValue(a, metric));
+}
+
+/**
  * Groups events by Daily Window in the selected Analysis Time Zone.
  *
  * Returned buckets are chronological so they can be used directly for time
@@ -120,35 +140,44 @@ export function byDailyWindow(
 }
 
 /**
- * Groups events by User, ordered by Cost descending.
+ * Groups events by User, ordered by the selected Metric descending.
  *
  * User keys are the identifiers reported by the Usage Export; this function
  * does not normalize or map them to account records.
  */
-export function byUser(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.user).sort((a, b) => b.cost - a.cost);
+export function byUser(events: UsageEvent[], metric: Metric = DEFAULT_METRIC): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => e.user),
+    metric,
+  );
 }
 
 /**
- * Groups events by Model, ordered by Cost descending.
+ * Groups events by Model, ordered by the selected Metric descending.
  *
  * Model keys are the identifiers reported by the Usage Export. Use
  * `byModelFamily` for the coarse Model Family view and this function for the
  * Model-level detail inside one Model Family.
  */
-export function byModel(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.model).sort((a, b) => b.cost - a.cost);
+export function byModel(events: UsageEvent[], metric: Metric = DEFAULT_METRIC): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => e.model),
+    metric,
+  );
 }
 
 /**
- * Groups events by Model Family, ordered by Cost descending.
+ * Groups events by Model Family, ordered by the selected Metric descending.
  *
  * Model Families collapse variant attributes (reasoning effort, thinking,
  * fast mode) and group Auto (Cursor Router) usage under one `Auto` key, so
  * charts stay readable when exports contain many Model variants.
  */
-export function byModelFamily(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => modelFamilyOf(e.model)).sort((a, b) => b.cost - a.cost);
+export function byModelFamily(events: UsageEvent[], metric: Metric = DEFAULT_METRIC): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => modelFamilyOf(e.model)),
+    metric,
+  );
 }
 
 /**
@@ -162,13 +191,16 @@ export function eventsInModelFamily(events: UsageEvent[], family: string): Usage
 }
 
 /**
- * Groups events by Kind, ordered by Cost descending.
+ * Groups events by Kind, ordered by the selected Metric descending.
  *
- * Kind is treated as a cost analysis axis, so its default ordering matches the
- * other cost-focused breakdowns.
+ * Kind is an analysis axis; its ordering matches the other selected-Metric
+ * breakdowns.
  */
-export function byKind(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.kind).sort((a, b) => b.cost - a.cost);
+export function byKind(events: UsageEvent[], metric: Metric = DEFAULT_METRIC): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => e.kind),
+    metric,
+  );
 }
 
 /**
@@ -191,20 +223,24 @@ function byDailyWindowAndKey(
     const dailyWindow = dailyWindowKeyOf(e.date, ctx);
     let d = dailyWindows.get(dailyWindow);
     if (!d) {
-      d = { dailyWindow, costByKey: {}, totalCost: 0 };
+      d = { dailyWindow, costByKey: {}, tokensByKey: {}, totalCost: 0, totalTokens: 0 };
       dailyWindows.set(dailyWindow, d);
     }
     const key = keyOf(e);
     d.costByKey[key] = (d.costByKey[key] ?? 0) + e.cost;
+    d.tokensByKey[key] = (d.tokensByKey[key] ?? 0) + e.totalTokens;
     d.totalCost += e.cost;
+    d.totalTokens += e.totalTokens;
   }
   return [...dailyWindows.values()].sort((a, b) => a.dailyWindow.localeCompare(b.dailyWindow));
 }
 
 /**
- * Builds Daily-Window-by-Model-Family cost buckets for stacked charts.
+ * Builds Daily-Window-by-Model-Family buckets for stacked charts.
  *
- * `costByKey` is keyed by Model Family so stacked Daily Window charts stay readable.
+ * `costByKey` and `tokensByKey` are keyed by Model Family so one stacked
+ * Daily Window chart can switch the encoded quantity without changing columns
+ * or colors.
  */
 export function byDailyWindowAndModelFamily(
   events: UsageEvent[],
@@ -214,11 +250,34 @@ export function byDailyWindowAndModelFamily(
 }
 
 /**
- * Returns the highest-cost Usage Events.
- *
- * This is a relative High Cost view over the caller's current analysis set,
- * not a fixed cost threshold.
+ * Returns the Daily Window total for the selected Metric.
  */
-export function topEvents(events: UsageEvent[], limit: number): UsageEvent[] {
-  return [...events].sort((a, b) => b.cost - a.cost).slice(0, limit);
+export function dailyWindowMetricTotal(row: DailyWindowCostStat, metric: Metric): number {
+  return metricValue(row, metric);
+}
+
+/**
+ * Returns the per-key stacked values for the selected Metric.
+ */
+export function dailyWindowMetricByKey(
+  row: DailyWindowCostStat,
+  metric: Metric,
+): Record<string, number> {
+  return metric === "tokens" ? row.tokensByKey : row.costByKey;
+}
+
+/**
+ * Returns the highest-Metric Usage Events.
+ *
+ * This is a relative High Cost or high Token Count view over the caller's
+ * current analysis set, not a fixed threshold.
+ */
+export function topEvents(
+  events: UsageEvent[],
+  limit: number,
+  metric: Metric = DEFAULT_METRIC,
+): UsageEvent[] {
+  return [...events]
+    .sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
+    .slice(0, limit);
 }

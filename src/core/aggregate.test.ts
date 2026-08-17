@@ -133,6 +133,12 @@ describe("buckets", () => {
     expect(users[0]!.cost).toBeCloseTo(0.4);
   });
 
+  it("byUser can sort by tokens", () => {
+    const cheapVolume = event({ user: "volume@example.com", cost: 0.01, totalTokens: 50_000 });
+    const users = byUser([cheapVolume, ...b], "tokens");
+    expect(users[0]!.key).toBe("volume@example.com");
+  });
+
   it("byModel aggregates tokens", () => {
     const models = byModel(b);
     expect(models[0]!.key).toBe("claude-opus");
@@ -148,6 +154,17 @@ describe("buckets", () => {
       event({ kind: "Low Cost", cost: 0.1 }),
     ]);
     expect(kinds.map((k) => k.key)).toEqual(["High Cost", "Low Cost"]);
+  });
+
+  it("byKind can sort by tokens", () => {
+    const kinds = byKind(
+      [
+        event({ kind: "Cheap Volume", cost: 0.01, totalTokens: 50_000 }),
+        event({ kind: "Expensive", cost: 0.4, totalTokens: 10 }),
+      ],
+      "tokens",
+    );
+    expect(kinds.map((k) => k.key)).toEqual(["Cheap Volume", "Expensive"]);
   });
 
   it("byModelFamily collapses variants and Auto routing into families", () => {
@@ -177,19 +194,27 @@ describe("buckets", () => {
     ]);
   });
 
-  it("byDailyWindowAndModelFamily stacks costs by family", () => {
+  it("byDailyWindowAndModelFamily stacks costs and tokens by family", () => {
     const stacked = byDailyWindowAndModelFamily([
-      event({ model: "claude-fable-5-thinking-high", cost: 0.25 }),
-      event({ model: "claude-fable-5-high", cost: 0.25 }),
-      event({ model: "Opus 5 (Auto Balanced)", cost: 0.5 }),
+      event({ model: "claude-fable-5-thinking-high", cost: 0.25, totalTokens: 100 }),
+      event({ model: "claude-fable-5-high", cost: 0.25, totalTokens: 200 }),
+      event({ model: "Opus 5 (Auto Balanced)", cost: 0.5, totalTokens: 50 }),
     ]);
     expect(stacked[0]!.costByKey).toEqual({ "Fable 5": 0.5, Auto: 0.5 });
+    expect(stacked[0]!.tokensByKey).toEqual({ "Fable 5": 300, Auto: 50 });
     expect(stacked[0]!.totalCost).toBeCloseTo(1.0);
+    expect(stacked[0]!.totalTokens).toBe(350);
   });
 
   it("topEvents returns most expensive first", () => {
     const top = topEvents(b, 2);
     expect(top.map((e) => e.cost)).toEqual([0.4, 0.2]);
+  });
+
+  it("topEvents can sort by tokens", () => {
+    const cheapVolume = event({ cost: 0.01, totalTokens: 50_000 });
+    const top = topEvents([cheapVolume, ...b], 1, "tokens");
+    expect(top[0]!.totalTokens).toBe(50_000);
   });
 
   it("byHour buckets by UTC hour, chronological", () => {

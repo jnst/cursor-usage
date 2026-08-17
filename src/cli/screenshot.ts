@@ -1,14 +1,16 @@
-import type { AnalysisContext, UsageEvent } from "../core/types.ts";
+import type { AnalysisContext, Metric, UsageEvent } from "../core/types.ts";
 
 import { basename, dirname, extname, join } from "node:path";
 
 import { eventsInDailyWindow } from "../core/time.ts";
+import { DEFAULT_METRIC } from "../core/types.ts";
 import { startServer } from "../server/index.ts";
 
 interface ScreenshotOptions {
   csvPath: string;
   events: UsageEvent[];
   ctx: AnalysisContext;
+  metric?: Metric;
   dailyWindow?: string;
   eventLimit?: number;
   dailyReport: boolean;
@@ -65,6 +67,28 @@ function serializeEvents(events: UsageEvent[]) {
 }
 
 /**
+ * Builds the dashboard URL hash for a screenshot so the captured view uses the
+ * same analysis selection as the CLI, including selected Metric.
+ */
+export function screenshotViewHash(options: {
+  ctx: AnalysisContext;
+  metric?: Metric;
+  dailyWindow?: string;
+  eventLimit?: number;
+  user?: string;
+}): string {
+  const metric = options.metric ?? DEFAULT_METRIC;
+  return new URLSearchParams({
+    timezone: options.ctx.timeZone,
+    metric,
+    ...(options.user ? { user: options.user } : {}),
+    ...(options.dailyWindow ? { "daily-window": options.dailyWindow } : {}),
+    ...(options.ctx.startHour !== 0 ? { "start-hour": String(options.ctx.startHour) } : {}),
+    ...(options.eventLimit !== undefined ? { "event-limit": String(options.eventLimit) } : {}),
+  }).toString();
+}
+
+/**
  * Captures the real dashboard UI as a PNG using a headless browser.
  *
  * This keeps screenshot output aligned with the web dashboard. Playwright is
@@ -115,13 +139,7 @@ export async function writeScreenshot(options: ScreenshotOptions): Promise<strin
     });
 
     const url = new URL(runningServer.url);
-    url.hash = new URLSearchParams({
-      timezone: options.ctx.timeZone,
-      ...(options.user ? { user: options.user } : {}),
-      ...(options.dailyWindow ? { "daily-window": options.dailyWindow } : {}),
-      ...(options.ctx.startHour !== 0 ? { "start-hour": String(options.ctx.startHour) } : {}),
-      ...(options.eventLimit !== undefined ? { "event-limit": String(options.eventLimit) } : {}),
-    }).toString();
+    url.hash = screenshotViewHash(options);
 
     await page.goto(url.href, { waitUntil: "networkidle" });
     await page.waitForSelector(".grid", { timeout: 10_000 });

@@ -1,3 +1,5 @@
+import type { Metric } from "./types.ts";
+
 import { dateTimeParts } from "./time.ts";
 
 /**
@@ -26,6 +28,32 @@ export function formatTokens(value: number): string {
   if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
   if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
   return String(value);
+}
+
+/**
+ * Formats the selected Metric as USD or compact Token Count.
+ */
+export function formatMetric(
+  value: number,
+  metric: Metric,
+  options: { trimZeroCents?: boolean } = {},
+): string {
+  return metric === "tokens" ? formatTokens(value) : formatUsd(value, options);
+}
+
+/**
+ * Formats Effective Rate as `$x.xx / MTok`, or `—` when Token Count is 0.
+ */
+export function formatUsdPerMTok(cost: number, tokenCount: number): string {
+  if (tokenCount <= 0) return "—";
+  return `${formatUsd((cost / tokenCount) * 1_000_000)} / MTok`;
+}
+
+/**
+ * English name for the selected Metric, used in CLI headings and chart series.
+ */
+export function metricLabel(metric: Metric): string {
+  return metric === "tokens" ? "Token Count" : "Cost";
 }
 
 /**
