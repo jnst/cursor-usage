@@ -1,11 +1,31 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { screenshotViewHash } from "../src/cli/screenshot.ts";
 
 const root = join(import.meta.dir, "..");
 const cli = join(root, "src/cli/index.ts");
-const fixture = join(import.meta.dir, "fixtures/metric-order.csv");
+
+const CSV = [
+  "Date,User,Cloud Agent ID,Automation ID,Kind,Model,Max Mode,Input (w/ Cache Write),Input (w/o Cache Write),Cache Read,Output Tokens,Total Tokens,Cost",
+  '"2026-06-01T10:00:00.000Z","volume@example.com","","","On-Demand","voluminous","No","0","0","0","0","1000000","0.10"',
+  '"2026-06-01T11:00:00.000Z","pricey@example.com","","","On-Demand","expensive","No","0","0","0","0","1000","5.00"',
+].join("\n");
+
+let fixtureDir: string;
+let fixture: string;
+
+beforeAll(async () => {
+  fixtureDir = await mkdtemp(join(tmpdir(), "cursor-usage-metric-"));
+  fixture = join(fixtureDir, "metric-order.csv");
+  await writeFile(fixture, CSV);
+});
+
+afterAll(async () => {
+  await rm(fixtureDir, { recursive: true, force: true });
+});
 
 async function runStats(args: string[]): Promise<{
   stdout: string;
