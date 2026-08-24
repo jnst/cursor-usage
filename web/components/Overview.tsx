@@ -159,8 +159,13 @@ function OverviewSummary({
           sub: `${s.dailyWindowCount} active windows`,
         },
         {
-          label: "Users / Models",
-          value: `${s.userCount} / ${s.modelCount}`,
+          label: "Models",
+          value: String(s.modelCount),
+          sub: "in this export",
+        },
+        {
+          label: "Users",
+          value: String(s.userCount),
           sub: "in this export",
         },
       ]}

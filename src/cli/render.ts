@@ -92,7 +92,7 @@ function renderSummaryBlock(
     "",
     `  ${label(primary.name)}${value(primary.value)}  ${label(secondary.name)}${value(secondary.value)}`,
     `  ${label("Effective")}${value(formatUsdPerMTok(summary.totalCost, summary.totalTokens))}  ${label("Avg Daily")}${value(avg)}`,
-    `  ${label("Users / Models")}${value(`${summary.userCount} / ${summary.modelCount}`)}`,
+    `  ${label("Models")}${value(String(summary.modelCount))}  ${label("Users")}${value(String(summary.userCount))}`,
   ];
 }
 
@@ -235,7 +235,7 @@ function renderDailyWindowSummaryBlock(
     "",
     `  ${label(primary.name)}${value(primary.value)}  ${label("of period")}${value(`${share}%`)}`,
     `  ${label(secondary.name)}${value(secondary.value)}  ${label("Effective")}${value(formatUsdPerMTok(s.totalCost, s.totalTokens))}`,
-    `  ${label("Users / Models")}${value(`${s.userCount} / ${s.modelCount}`)}`,
+    `  ${label("Models")}${value(String(s.modelCount))}  ${label("Users")}${value(String(s.userCount))}`,
   ];
 }
 

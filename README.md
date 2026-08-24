@@ -48,7 +48,8 @@ npx @jnst/cursor-usage stats team-usage-events.csv
 Cursor Usage  2026-06-01 – 2026-06-10  (610 events, 10 daily windows)
 
   Total Cost    $1446.69      Total Tokens  1.1B
-  Avg Daily     $144.67       Users / Models  4 / 8
+  Avg Daily     $144.67
+  Models        8             Users         4
 
 Daily Window Cost
   2026-06-01  $147.44  ████████████████▊            10% 102.9M tok, 68 ev

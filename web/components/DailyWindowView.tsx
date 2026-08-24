@@ -92,7 +92,7 @@ function DailyWindowSummaryCards({
     {
       label: "Events",
       value: String(s.eventCount),
-      sub: `${s.userCount} users / ${s.modelCount} models`,
+      sub: `${s.modelCount} models, ${s.userCount} users`,
     },
     {
       label: `${metricLabel(metric)}順位`,
