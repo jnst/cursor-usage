@@ -105,7 +105,7 @@ _Avoid_: Account, Member
 **Variant Attribute**:
 A Model identifier suffix that does not change the Model Family. There are exactly three axes:
 
-1. **Reasoning effort** — `high`, `medium`, `low`, or `max`
+1. **Reasoning effort** — `high`, `xhigh`, `medium`, `low`, or `max`
 2. **Thinking** — present or absent (`thinking`)
 3. **Fast mode** — present or absent (`fast`)
 

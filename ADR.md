@@ -44,7 +44,7 @@ This replaces Day as the domain concept for one-day grouping. Public CLI options
 
 ## ADR-007: Group Model Charts by Model Family, with Auto as One Router-Level Family
 
-Usage Exports report Models at variant granularity: one underlying model appears as many identifiers that differ only by reasoning effort (`high`, `medium`, `low`, `max`), thinking, fast mode, and Auto routing display names such as `Opus 5 (Auto Balanced)`. Real exports contain 40+ Model identifiers, which makes stacked charts and pie legends unreadable. We will group cost charts by Model Family: the Model with variant attributes collapsed.
+Usage Exports report Models at variant granularity: one underlying model appears as many identifiers that differ only by reasoning effort (`high`, `xhigh`, `medium`, `low`, `max`), thinking, fast mode, and Auto routing display names such as `Opus 5 (Auto Balanced)`. Real exports contain 40+ Model identifiers, which makes stacked charts and pie legends unreadable. We will group cost charts by Model Family: the Model with variant attributes collapsed.
 
 Usage routed through Auto (Cursor Router) is grouped into a single `Auto` Model Family regardless of Router mode (Intelligence, Balance, Cost) or routed Model, because the routing decision — not the user's model choice — drove the cost. The Models that Auto actually selected stay visible one level down: the web dashboard drills from the Model Family pie into a Model-level breakdown, and the CLI accepts a Model Family filter (`--model-family Auto`) that shows the same Model-level detail.
 

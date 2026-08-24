@@ -27,6 +27,10 @@ describe("modelFamilyOf", () => {
     expect(modelFamilyOf("claude-fable-5-thinking-high")).toBe("Fable 5");
     expect(modelFamilyOf("claude-fable-5-high")).toBe("Fable 5");
     expect(modelFamilyOf("gpt-5.6-luna-max-fast")).toBe("GPT-5.6 Luna");
+    expect(modelFamilyOf("gpt-5.6-luna-xhigh")).toBe("GPT-5.6 Luna");
+    expect(modelFamilyOf("gpt-5.6-sol-xhigh")).toBe("GPT-5.6 Sol");
+    expect(modelFamilyOf("cursor-grok-4.6-xhigh")).toBe("Grok 4.6");
+    expect(modelFamilyOf("cursor-grok-4.6")).toBe("Grok 4.6");
     expect(modelFamilyOf("kimi-k3-max")).toBe("Kimi K3");
     expect(modelFamilyOf("gpt-5.5-high")).toBe("GPT-5.5");
   });
