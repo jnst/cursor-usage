@@ -126,7 +126,6 @@ function OverviewSummary({
           value: formatMetric(avg, metric),
           sub: `${s.dailyWindowCount} active windows`,
         },
-        { label: "Max Mode", value: `${Math.round(s.maxModeRatio * 100)}%`, sub: "of events" },
         {
           label: "Users / Models",
           value: `${s.userCount} / ${s.modelCount}`,

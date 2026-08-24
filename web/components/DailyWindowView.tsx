@@ -83,7 +83,7 @@ function DailyWindowSummaryCards({
     {
       label: "Events",
       value: String(s.eventCount),
-      sub: `Max Mode ${Math.round(s.maxModeRatio * 100)}%`,
+      sub: `${s.userCount} users / ${s.modelCount} models`,
     },
     {
       label: `${metricLabel(metric)}順位`,

@@ -92,7 +92,7 @@ function renderSummaryBlock(
     "",
     `  ${label(primary.name)}${value(primary.value)}  ${label(secondary.name)}${value(secondary.value)}`,
     `  ${label("Effective")}${value(formatUsdPerMTok(summary.totalCost, summary.totalTokens))}  ${label("Avg/Active")}${value(avg)}`,
-    `  ${label("Max Mode")}${value(`${Math.round(summary.maxModeRatio * 100)}%`)}  ${label("Users / Models")}${value(`${summary.userCount} / ${summary.modelCount}`)}`,
+    `  ${label("Users / Models")}${value(`${summary.userCount} / ${summary.modelCount}`)}`,
   ];
 }
 
@@ -235,7 +235,7 @@ function renderDailyWindowSummaryBlock(
     "",
     `  ${label(primary.name)}${value(primary.value)}  ${label("of period")}${value(`${share}%`)}`,
     `  ${label(secondary.name)}${value(secondary.value)}  ${label("Effective")}${value(formatUsdPerMTok(s.totalCost, s.totalTokens))}`,
-    `  ${label("Max Mode")}${value(`${Math.round(s.maxModeRatio * 100)}%`)}  ${label("Users / Models")}${value(`${s.userCount} / ${s.modelCount}`)}`,
+    `  ${label("Users / Models")}${value(`${s.userCount} / ${s.modelCount}`)}`,
   ];
 }
 
