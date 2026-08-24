@@ -49,7 +49,7 @@ An hour of a Daily Window in the Analysis Time Zone.
 A dimension used to group Usage Events for analysis, such as Daily Window, Hour, User, Model, or Kind.
 
 **Metric**:
-An analysis value obtained from or calculated over Usage Events, such as Cost, Token Count, Event Count, Effective Rate, or Max Mode Ratio.
+An analysis value obtained from or calculated over Usage Events, such as Cost, Token Count, Event Count, or Effective Rate.
 _Avoid_: Summary, Bucket
 
 **Selected Metric**:
@@ -65,11 +65,8 @@ A compact display unit meaning one million tokens. Used when showing Effective R
 _Avoid_: MT, M tokens
 
 **Max Mode**:
-The Cursor usage mode reported by the `Max Mode` column in Cursor's usage-events CSV export.
-_Avoid_: High-Cost Mode
-
-**Max Mode Ratio**:
-The share of analyzed Billable Events where Max Mode is enabled.
+A legacy `Max Mode` column in older usage-events CSV exports. Current Usage Exports typically do not populate it, so Max Mode is not an analysis Metric and is not shown in summaries. The column is still parsed when present.
+_Avoid_: High-Cost Mode, Max Mode Ratio
 
 **Cost**:
 The USD amount reported by the `Cost` column in Cursor's usage-events CSV export. Cost is not recalculated from token counts and model prices.
@@ -104,7 +101,7 @@ A Model identifier suffix that does not change the Model Family. There are exact
 2. **Thinking** — present or absent (`thinking`)
 3. **Fast mode** — present or absent (`fast`)
 
-Suffix order varies between Usage Exports (`-thinking-high` vs `-high-thinking`); all three axes may combine on one Model. Variant Attributes are distinct from Auto (Cursor Router) naming and from Max Mode, which is a separate CSV column.
+Suffix order varies between Usage Exports (`-thinking-high` vs `-high-thinking`); all three axes may combine on one Model. Variant Attributes are distinct from Auto (Cursor Router) naming. The `max` reasoning-effort suffix is a Variant Attribute, not the legacy Max Mode column.
 _Avoid_: Model Variant as a separate analysis axis
 
 **Auto (Cursor Router)**:
