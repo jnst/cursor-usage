@@ -46,7 +46,7 @@ The `YYYY-MM-DD` label for a Daily Window, based on the local date at the window
 _Avoid_: Day
 
 **Daily Window Range**:
-The range from the first Active Daily Window to the last Active Daily Window in the analysis set.
+The range from the first Active Daily Window to the last Active Daily Window in the analysis set. Period charts render every Daily Window in this range; Daily Windows with no Usage Export rows display as zero. Rankings, summaries, and averages still use Active Daily Windows only.
 _Avoid_: Calendar Range
 
 **Effective Rate**:

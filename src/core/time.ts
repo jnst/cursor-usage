@@ -129,6 +129,21 @@ function addDays(dateKey: string, days: number): string {
 }
 
 /**
+ * Lists Daily Window Keys from `first` through `last`, inclusive.
+ *
+ * Use this to fill empty calendar days on a chart without treating those days
+ * as Active Daily Windows. Keys are calendar dates, so this walks UTC dates.
+ */
+export function dailyWindowKeysInRange(first: string, last: string): string[] {
+  if (first > last) return [];
+  const keys: string[] = [];
+  for (let key = first; key <= last; key = addDays(key, 1)) {
+    keys.push(key);
+  }
+  return keys;
+}
+
+/**
  * Returns the Daily Window Key for an absolute timestamp.
  *
  * The key is based on the local date at the start of the Daily Window. A

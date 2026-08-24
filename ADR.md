@@ -65,3 +65,13 @@ Cost-only analysis cannot tell unused Daily Windows from cheap-model or low-repo
 This rejects overlaying Cost and Token Count on dual Y axes, and rejects small-multiples (two stacked charts). Dual axes already served daily Cost versus cumulative Cost; a third incommensurable scale would mislead. Two charts would double legend, axis, and hover complexity.
 
 The CLI accepts `--metric cost|tokens` so the same analysis can be reproduced outside the dashboard (ADR-005). The dashboard stores the choice in the URL hash as `metric=cost|tokens` (ADR-004).
+
+## ADR-010: Period Charts Show Missing Daily Windows as Zero
+
+A Daily Window Range is a continuous period. Usage Exports omit days with no events, so aggregating only present rows drops idle days (often Sundays) and makes the series look like consecutive workdays.
+
+Period displays — the stacked Daily Window chart, the CLI Daily Window series, and Hourly charts inside a Daily Window — must include every Daily Window Key or Hour in the displayed span. Missing CSV rows render as Cost 0, Token Count 0, and Event Count 0.
+
+This does not change Active Daily Window. Rankings, summaries, and Avg Daily Cost / Avg Daily Token Count still divide by windows that have at least one Billable Event. Category breakdowns (User, Model, Model Family, Kind) stay sparse: they are not a time period.
+
+This rejects skipping empty days on a period axis. An empty Sunday is information: usage was zero that window, not that the window did not exist.

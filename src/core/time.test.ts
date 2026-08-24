@@ -4,6 +4,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   dailyWindowKeyOf,
+  dailyWindowKeysInRange,
   eventsInDailyWindow,
   hourOf,
   isValidDailyWindowKey,
@@ -146,6 +147,20 @@ describe("orderedHours", () => {
   it("throws on an invalid start hour", () => {
     expect(() => orderedHours({ startHour: 24 })).toThrow(/Invalid Daily Window start hour: 24/);
     expect(() => orderedHours({ startHour: -1 })).toThrow(/Invalid Daily Window start hour: -1/);
+  });
+});
+
+describe("dailyWindowKeysInRange", () => {
+  it("includes empty calendar days between the first and last key", () => {
+    expect(dailyWindowKeysInRange("2026-08-01", "2026-08-03")).toEqual([
+      "2026-08-01",
+      "2026-08-02",
+      "2026-08-03",
+    ]);
+  });
+
+  it("returns an empty list when last is before first", () => {
+    expect(dailyWindowKeysInRange("2026-08-03", "2026-08-01")).toEqual([]);
   });
 });
 

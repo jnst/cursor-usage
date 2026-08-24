@@ -9,6 +9,7 @@ import {
   byModelFamily,
   byUser,
   eventMetric,
+  includeEmptyDailyWindows,
   summarize,
   topEvents,
 } from "../core/aggregate.ts";
@@ -147,10 +148,15 @@ export function renderStats(
 
   const charts: Record<StatsAxis, () => string[]> = {
     "daily-window": () =>
-      renderBucketChart(`Daily Window ${metricName}`, byDailyWindow(events, ctx), metric, {
-        total,
-        maxRows: 31,
-      }),
+      renderBucketChart(
+        `Daily Window ${metricName}`,
+        includeEmptyDailyWindows(byDailyWindow(events, ctx)),
+        metric,
+        {
+          total,
+          maxRows: 31,
+        },
+      ),
     model: () =>
       renderBucketChart("By Model", byModel(events, metric), metric, {
         total,
@@ -198,7 +204,7 @@ export function statsJson(
       metric,
       filters: { user: user ?? null, modelFamily: modelFamily ?? null },
       summary: summarize(events, ctx),
-      byDailyWindow: byDailyWindow(events, ctx),
+      byDailyWindow: includeEmptyDailyWindows(byDailyWindow(events, ctx)),
       byModelFamily: byModelFamily(events, metric),
       byModel: byModel(events, metric),
       byUser: byUser(events, metric),

@@ -65,6 +65,23 @@ export function formatMetric(
   return metric === "tokens" ? formatTokens(value) : formatUsd(value, options);
 }
 
+const WEEKDAYS_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
+
+/**
+ * Formats a Daily Window Key for a dense chart axis.
+ *
+ * The axis shows `8/14` (no leading zeros) plus a Japanese weekday. The Daily
+ * Window Key is already a calendar date, so the weekday is that date's
+ * weekday — not a time-zone conversion of an instant. Hover and titles keep
+ * the full `YYYY-MM-DD` key.
+ */
+export function formatDailyWindowAxis(dailyWindowKey: string): { date: string; weekday: string } {
+  const [year, month, day] = dailyWindowKey.split("-").map(Number);
+  if (!year || !month || !day) return { date: dailyWindowKey, weekday: "" };
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return { date: `${month}/${day}`, weekday: WEEKDAYS_JA[weekday] ?? "" };
+}
+
 /**
  * Formats Effective Rate as `$x.xx / MTok`, or `—` when Token Count is 0.
  */

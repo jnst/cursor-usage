@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
   type TooltipContentProps,
+  type XAxisTickContentProps,
 } from "recharts";
 
 import {
@@ -19,10 +20,12 @@ import {
   byModelFamily,
   dailyWindowMetricByKey,
   dailyWindowMetricTotal,
+  includeEmptyDailyWindowCosts,
   summarize,
   topEvents,
 } from "../../src/core/aggregate.ts";
 import {
+  formatDailyWindowAxis,
   formatDateTime,
   formatMetric,
   formatTokens,
@@ -42,6 +45,20 @@ import { SummaryCards } from "./SummaryCards.tsx";
 import { UserChart } from "./UserChart.tsx";
 
 const CUMULATIVE_KEY = "cumulative";
+
+function DailyWindowAxisTick({ x, y, payload, fill }: XAxisTickContentProps) {
+  const { date, weekday } = formatDailyWindowAxis(String(payload.value));
+  return (
+    <text x={x} y={y} textAnchor="middle" fill={fill} fontSize={12}>
+      <tspan x={x} dy={12}>
+        {date}
+      </tspan>
+      <tspan x={x} dy={14} fontSize={10}>
+        {weekday}
+      </tspan>
+    </text>
+  );
+}
 
 /**
  * Daily tooltip: stacked families (bar bottom → top), then the day-level
@@ -63,7 +80,7 @@ function DailyMetricTooltip({
     .toReversed();
   const cumulativeItem = payload.find((item) => item.dataKey === CUMULATIVE_KEY);
   const row = payload[0]?.payload as
-    | { total?: number; totalCost?: number; totalTokens?: number }
+    | { dailyWindow?: string; total?: number; totalCost?: number; totalTokens?: number }
     | undefined;
   const total =
     typeof row?.total === "number"
@@ -76,7 +93,7 @@ function DailyMetricTooltip({
 
   return (
     <div className="chart-tooltip">
-      <div className="chart-tooltip-label">{label}</div>
+      <div className="chart-tooltip-label">{row?.dailyWindow ?? label}</div>
       {modelItems.length > 0 && (
         <ul className="chart-tooltip-models">
           {modelItems.map((item) => (
@@ -193,12 +210,11 @@ function DailyChart({
   const families = useMemo(() => byModelFamily(events, metric).map((f) => f.key), [events, metric]);
   const data = useMemo(() => {
     let cumulative = 0;
-    return byDailyWindowAndModelFamily(events, ctx).map((d) => {
+    return includeEmptyDailyWindowCosts(byDailyWindowAndModelFamily(events, ctx)).map((d) => {
       const total = dailyWindowMetricTotal(d, metric);
       cumulative += total;
       return {
         dailyWindow: d.dailyWindow,
-        label: d.dailyWindow.slice(5),
         ...dailyWindowMetricByKey(d, metric),
         total,
         totalCost: d.totalCost,
@@ -231,7 +247,14 @@ function DailyChart({
       <ResponsiveContainer width="100%" height={320}>
         <ComposedChart data={data}>
           <CartesianGrid stroke="#21262d" vertical={false} />
-          <XAxis dataKey="label" stroke="#8b949e" fontSize={12} />
+          <XAxis
+            dataKey="dailyWindow"
+            stroke="#8b949e"
+            height={40}
+            interval={0}
+            minTickGap={0}
+            tick={DailyWindowAxisTick}
+          />
           <YAxis
             yAxisId="metric"
             domain={[0, scale.maxDaily]}

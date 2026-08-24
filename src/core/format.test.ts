@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+  formatDailyWindowAxis,
   formatDateTime,
   formatMetric,
   formatTime,
@@ -48,6 +49,13 @@ describe("formatMetric", () => {
   it("formats Cost as USD and Token Count compactly", () => {
     expect(formatMetric(12.5, "cost")).toBe("$12.50");
     expect(formatMetric(1_500_000, "tokens")).toBe("1.5M");
+  });
+});
+
+describe("formatDailyWindowAxis", () => {
+  it("drops leading zeros and names the Japanese weekday", () => {
+    expect(formatDailyWindowAxis("2026-08-14")).toEqual({ date: "8/14", weekday: "金" });
+    expect(formatDailyWindowAxis("2026-01-01")).toEqual({ date: "1/1", weekday: "木" });
   });
 });
 

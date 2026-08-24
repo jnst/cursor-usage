@@ -1,5 +1,5 @@
 import { modelFamilyOf } from "./model.ts";
-import { dailyWindowKeyOf, hourOf } from "./time.ts";
+import { dailyWindowKeyOf, dailyWindowKeysInRange, hourOf } from "./time.ts";
 import {
   type AnalysisContext,
   type BucketStat,
@@ -120,8 +120,9 @@ function sortByMetric(buckets: BucketStat[], metric: Metric): BucketStat[] {
 /**
  * Groups events by Daily Window in the selected Analysis Time Zone.
  *
- * Returned buckets are chronological so they can be used directly for time
- * series charts and terminal output.
+ * Returned buckets are chronological and include only Active Daily Windows.
+ * Period charts should pass the result through `includeEmptyDailyWindows` so
+ * idle days in the Daily Window Range still render as zero (ADR-010).
  */
 export function byDailyWindow(
   events: UsageEvent[],
@@ -199,8 +200,9 @@ export function byKind(events: UsageEvent[], metric: Metric = "cost"): BucketSta
 /**
  * Groups events by Hour in the selected Analysis Time Zone.
  *
- * Only hours that contain activity are returned. Callers that need a complete
- * 24-hour chart should fill missing hours explicitly.
+ * Only hours that contain activity are returned. Period charts should fill
+ * missing hours as zero (ADR-010), the same way Daily Window period charts
+ * fill idle days.
  */
 export function byHour(events: UsageEvent[], ctx: Partial<AnalysisContext> = {}): BucketStat[] {
   return bucketBy(events, (e) => hourOf(e.date, ctx)).sort((a, b) => a.key.localeCompare(b.key));
@@ -238,6 +240,55 @@ export function byDailyWindowAndModelFamily(
   ctx: Partial<AnalysisContext> = {},
 ): DailyWindowCostStat[] {
   return byDailyWindowAndKey(events, (e) => modelFamilyOf(e.model), ctx);
+}
+
+function emptyBucket(key: string): BucketStat {
+  return {
+    key,
+    cost: 0,
+    totalTokens: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheRead: 0,
+    eventCount: 0,
+  };
+}
+
+function emptyDailyWindowCost(dailyWindow: string): DailyWindowCostStat {
+  return {
+    dailyWindow,
+    costByKey: {},
+    tokensByKey: {},
+    totalCost: 0,
+    totalTokens: 0,
+  };
+}
+
+/**
+ * Fills missing Daily Window Keys in a chronological bucket series with zeros.
+ *
+ * The span is the Daily Window Range. Summaries, rankings, and Active Daily
+ * Window counts must keep using the sparse series from `byDailyWindow`.
+ */
+export function includeEmptyDailyWindows(buckets: BucketStat[]): BucketStat[] {
+  if (buckets.length === 0) return [];
+  const byKey = new Map(buckets.map((b) => [b.key, b]));
+  const first = buckets[0]!.key;
+  const last = buckets[buckets.length - 1]!.key;
+  return dailyWindowKeysInRange(first, last).map((key) => byKey.get(key) ?? emptyBucket(key));
+}
+
+/**
+ * Fills missing Daily Window Keys in a stacked Daily Window series with zeros.
+ */
+export function includeEmptyDailyWindowCosts(rows: DailyWindowCostStat[]): DailyWindowCostStat[] {
+  if (rows.length === 0) return [];
+  const byKey = new Map(rows.map((row) => [row.dailyWindow, row]));
+  const first = rows[0]!.dailyWindow;
+  const last = rows[rows.length - 1]!.dailyWindow;
+  return dailyWindowKeysInRange(first, last).map(
+    (key) => byKey.get(key) ?? emptyDailyWindowCost(key),
+  );
 }
 
 /**
