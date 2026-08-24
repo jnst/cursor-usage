@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   formatDailyWindowAxis,
+  formatDailyWindowRange,
   formatDateTime,
   formatMetric,
   formatTime,
@@ -56,6 +57,13 @@ describe("formatDailyWindowAxis", () => {
   it("drops leading zeros and names the Japanese weekday", () => {
     expect(formatDailyWindowAxis("2026-08-14")).toEqual({ date: "8/14", weekday: "金" });
     expect(formatDailyWindowAxis("2026-01-01")).toEqual({ date: "1/1", weekday: "木" });
+  });
+});
+
+describe("formatDailyWindowRange", () => {
+  it("uses compact month/day bounds without year", () => {
+    expect(formatDailyWindowRange("2026-07-29", "2026-08-24")).toBe("7/29 - 8/24");
+    expect(formatDailyWindowRange("2026-08-14", "2026-08-14")).toBe("8/14");
   });
 });
 

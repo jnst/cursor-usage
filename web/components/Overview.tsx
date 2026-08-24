@@ -26,6 +26,7 @@ import {
 } from "../../src/core/aggregate.ts";
 import {
   formatDailyWindowAxis,
+  formatDailyWindowRange,
   formatDateTime,
   formatMetric,
   formatTokens,
@@ -158,7 +159,7 @@ function OverviewSummary({
         {
           label: metric === "tokens" ? "Total Tokens" : "Total Cost",
           value: formatMetric(primaryValue, metric),
-          sub: `${s.firstDailyWindow} – ${s.lastDailyWindow}`,
+          sub: formatDailyWindowRange(s.firstDailyWindow, s.lastDailyWindow),
         },
         {
           label: metric === "tokens" ? "Total Cost" : "Total Tokens",

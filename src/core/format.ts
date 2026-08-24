@@ -83,6 +83,19 @@ export function formatDailyWindowAxis(dailyWindowKey: string): { date: string; w
 }
 
 /**
+ * Formats a Daily Window Range for dense summary cards: `7/29 - 8/24`.
+ *
+ * Year is omitted because the card already sits in a loaded export; the full
+ * `YYYY-MM-DD` keys remain on chart hover. A single-window range is `7/29`.
+ */
+export function formatDailyWindowRange(first: string | null, last: string | null): string {
+  if (!first || !last) return "";
+  const start = formatDailyWindowAxis(first).date;
+  const end = formatDailyWindowAxis(last).date;
+  return start === end ? start : `${start} - ${end}`;
+}
+
+/**
  * Formats Effective Rate as `$x.xx / MTok`, or `—` when Token Count is 0.
  */
 export function formatUsdPerMTok(cost: number, tokens: number): string {
