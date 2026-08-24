@@ -36,7 +36,6 @@ import {
   COLORS,
   EFFECTIVE_RATE_HOVER_LABEL,
   metricHoverLabel,
-  metricLabel,
   modelFamilyColors,
 } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
@@ -155,7 +154,7 @@ function OverviewSummary({
           sub: "$ / MTok",
         },
         {
-          label: `Avg ${metricLabel(metric)} / Active Daily Window`,
+          label: metric === "tokens" ? "Avg Daily Token Count" : "Avg Daily Cost",
           value: formatMetric(avg, metric),
           sub: `${s.dailyWindowCount} active windows`,
         },

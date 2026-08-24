@@ -18,9 +18,13 @@ The time zone used to group Usage Events into Daily Windows and Hours for analys
 Cursor's model router. Usage Exports report Auto usage in three shapes: an `auto` Model identifier, an `auto-smart` Model identifier (the Router's internal model id, recorded for Auto usage via the SDK/API and JetBrains ACP sessions), or a routed display name such as `Opus 5 (Auto Balanced)`, where the parenthesized part names the Router mode and the leading part names the routed Model. All three shapes belong to the `Auto` Model Family.
 _Avoid_: Auto Mode Family per Router mode
 
-**Avg Cost / Active Daily Window**:
-Total Cost divided by the number of Active Daily Windows in the analysis set.
-_Avoid_: Avg Cost / Active Day, Avg Cost / Day
+**Avg Daily Cost**:
+Total Cost divided by the number of Active Daily Windows in the analysis set. "Daily" here means Daily Window, not a calendar day.
+_Avoid_: Avg Cost / Active Daily Window, Avg Cost / Active Day, Avg Cost / Day
+
+**Avg Daily Token Count**:
+Total Token Count divided by the number of Active Daily Windows in the analysis set. Shown when Selected Metric is Token Count.
+_Avoid_: Avg Token Count / Active Daily Window, Avg Token Count / Day
 
 **Billable Event**:
 A Usage Event that is included in normal cost and usage analysis. Billable Events exclude No Charge Events.

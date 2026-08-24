@@ -91,7 +91,7 @@ function renderSummaryBlock(
     `${bold("Cursor Usage")}  ${period}  ${dim(`(${summary.eventCount} events, ${summary.dailyWindowCount} daily windows, ${scope})`)}`,
     "",
     `  ${label(primary.name)}${value(primary.value)}  ${label(secondary.name)}${value(secondary.value)}`,
-    `  ${label("Effective")}${value(formatUsdPerMTok(summary.totalCost, summary.totalTokens))}  ${label("Avg/Active")}${value(avg)}`,
+    `  ${label("Effective")}${value(formatUsdPerMTok(summary.totalCost, summary.totalTokens))}  ${label("Avg Daily")}${value(avg)}`,
     `  ${label("Users / Models")}${value(`${summary.userCount} / ${summary.modelCount}`)}`,
   ];
 }
