@@ -38,7 +38,7 @@ body {
 
 .header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 20px;
@@ -76,6 +76,32 @@ body {
 
 .reload-button:hover {
   border-color: var(--accent);
+}
+
+.metric-toggle {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.metric-toggle button {
+  background: var(--panel);
+  border: none;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.metric-toggle button.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.metric-toggle button:hover {
+  color: var(--text);
 }
 
 /* Drop zone */

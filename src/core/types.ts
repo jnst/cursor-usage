@@ -28,6 +28,13 @@ export interface AnalysisContext {
   startHour: number;
 }
 
+/** Selected Metric for ranking and display: reported Cost or Token Count. */
+export type Metric = "cost" | "tokens";
+
+export function isMetric(value: string | null | undefined): value is Metric {
+  return value === "cost" || value === "tokens";
+}
+
 export interface Summary {
   totalCost: number;
   totalTokens: number;
@@ -52,10 +59,13 @@ export interface BucketStat {
   eventCount: number;
 }
 
-/** Daily Window cost stacked by a grouping key (Model or Model Family). */
+/** Daily Window totals stacked by a grouping key (Model or Model Family). */
 export interface DailyWindowCostStat {
   dailyWindow: string;
   /** grouping key (Model or Model Family) -> cost */
   costByKey: Record<string, number>;
+  /** grouping key (Model or Model Family) -> token count */
+  tokensByKey: Record<string, number>;
   totalCost: number;
+  totalTokens: number;
 }

@@ -49,8 +49,20 @@ An hour of a Daily Window in the Analysis Time Zone.
 A dimension used to group Usage Events for analysis, such as Daily Window, Hour, User, Model, or Kind.
 
 **Metric**:
-An analysis value obtained from or calculated over Usage Events, such as Cost, Token Count, Event Count, or Max Mode Ratio.
+An analysis value obtained from or calculated over Usage Events, such as Cost, Token Count, Event Count, Effective Rate, or Max Mode Ratio.
 _Avoid_: Summary, Bucket
+
+**Selected Metric**:
+The Metric this analysis ranks and displays as its primary value, either Cost or Token Count. The default is Cost. Selected Metric is an analysis choice, like Analysis Time Zone and Daily Window start hour: it does not change which Usage Events are included.
+_Avoid_: Chart scale, Display Metric
+
+**Effective Rate**:
+Reported Cost per million tokens (`Cost / Token Count * 1,000,000`) over the current analysis set or Daily Window. Displayed as `$x.xx / MTok`. Effective Rate is a diagnostic for cheap versus expensive usage, not a reconstructed model price. When Token Count is 0, Effective Rate is undefined and renders as an em dash.
+_Avoid_: Unit Price, Model Price, Free Tier
+
+**MTok**:
+A compact display unit meaning one million tokens. Used when showing Effective Rate (`$ / MTok`).
+_Avoid_: MT, M tokens
 
 **Max Mode**:
 The Cursor usage mode reported by the `Max Mode` column in Cursor's usage-events CSV export.

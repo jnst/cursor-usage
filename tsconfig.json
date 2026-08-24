@@ -14,5 +14,5 @@
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "web", "build.ts"]
+  "include": ["src", "web", "tests", "build.ts"]
 }

@@ -72,6 +72,7 @@ Options:
 | `--user <identifier>`                            | Filter analysis to a single User                               |
 | `--model-family <name>`                          | Filter analysis to a single Model Family (e.g. `Auto`)         |
 | `--timezone <iana-tz>`                           | Group Daily Windows and hours in a specific analysis time zone |
+| `--metric <cost\|tokens>`                        | Selected Metric for ranking and display (default: `cost`)      |
 | `--json`                                         | Output aggregated stats as JSON (pipe to jq etc.)              |
 | `--include-no-charge`                            | Include "Errored, No Charge" events                            |
 
@@ -87,6 +88,9 @@ npx @jnst/cursor-usage stats usage.csv --user jnst@example.jp
 
 # See the Models inside one Model Family (e.g. what Auto routed to)
 npx @jnst/cursor-usage stats usage.csv --model-family Auto --by model
+
+# Rank and display by Token Count instead of Cost
+npx @jnst/cursor-usage stats usage.csv --metric tokens
 ```
 
 Or install globally to use the short `cursor-usage` command:
@@ -141,6 +145,7 @@ can also be filtered the same way as terminal stats:
 
 ```bash
 npx @jnst/cursor-usage screenshot usage.csv --daily-window 2026-06-14 --user jnst@example.jp --timezone Asia/Tokyo
+npx @jnst/cursor-usage screenshot usage.csv --metric tokens --out dashboard-tokens.png
 npx @jnst/cursor-usage screenshot usage.csv --out dashboard.png
 ```
 

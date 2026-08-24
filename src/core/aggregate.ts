@@ -4,6 +4,7 @@ import {
   type AnalysisContext,
   type BucketStat,
   type DailyWindowCostStat,
+  type Metric,
   NO_CHARGE_KIND,
   type Summary,
   type UsageEvent,
@@ -104,6 +105,18 @@ function bucketBy(events: UsageEvent[], keyFn: (e: UsageEvent) => string): Bucke
   return [...buckets.values()];
 }
 
+export function bucketMetric(bucket: BucketStat, metric: Metric): number {
+  return metric === "tokens" ? bucket.totalTokens : bucket.cost;
+}
+
+export function eventMetric(event: UsageEvent, metric: Metric): number {
+  return metric === "tokens" ? event.totalTokens : event.cost;
+}
+
+function sortByMetric(buckets: BucketStat[], metric: Metric): BucketStat[] {
+  return buckets.sort((a, b) => bucketMetric(b, metric) - bucketMetric(a, metric));
+}
+
 /**
  * Groups events by Daily Window in the selected Analysis Time Zone.
  *
@@ -120,35 +133,44 @@ export function byDailyWindow(
 }
 
 /**
- * Groups events by User, ordered by Cost descending.
+ * Groups events by User, ordered by the Selected Metric descending.
  *
  * User keys are the identifiers reported by the Usage Export; this function
  * does not normalize or map them to account records.
  */
-export function byUser(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.user).sort((a, b) => b.cost - a.cost);
+export function byUser(events: UsageEvent[], metric: Metric = "cost"): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => e.user),
+    metric,
+  );
 }
 
 /**
- * Groups events by Model, ordered by Cost descending.
+ * Groups events by Model, ordered by the Selected Metric descending.
  *
  * Model keys are the identifiers reported by the Usage Export. Use
  * `byModelFamily` for the coarse Model Family view and this function for the
  * Model-level detail inside one Model Family.
  */
-export function byModel(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.model).sort((a, b) => b.cost - a.cost);
+export function byModel(events: UsageEvent[], metric: Metric = "cost"): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => e.model),
+    metric,
+  );
 }
 
 /**
- * Groups events by Model Family, ordered by Cost descending.
+ * Groups events by Model Family, ordered by the Selected Metric descending.
  *
  * Model Families collapse variant attributes (reasoning effort, thinking,
  * fast mode) and group Auto (Cursor Router) usage under one `Auto` key, so
  * charts stay readable when exports contain many Model variants.
  */
-export function byModelFamily(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => modelFamilyOf(e.model)).sort((a, b) => b.cost - a.cost);
+export function byModelFamily(events: UsageEvent[], metric: Metric = "cost"): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => modelFamilyOf(e.model)),
+    metric,
+  );
 }
 
 /**
@@ -162,13 +184,16 @@ export function eventsInModelFamily(events: UsageEvent[], family: string): Usage
 }
 
 /**
- * Groups events by Kind, ordered by Cost descending.
+ * Groups events by Kind, ordered by the Selected Metric descending.
  *
- * Kind is treated as a cost analysis axis, so its default ordering matches the
- * other cost-focused breakdowns.
+ * Kind is treated as an analysis axis, so its default ordering matches the
+ * other breakdowns.
  */
-export function byKind(events: UsageEvent[]): BucketStat[] {
-  return bucketBy(events, (e) => e.kind).sort((a, b) => b.cost - a.cost);
+export function byKind(events: UsageEvent[], metric: Metric = "cost"): BucketStat[] {
+  return sortByMetric(
+    bucketBy(events, (e) => e.kind),
+    metric,
+  );
 }
 
 /**
@@ -191,12 +216,14 @@ function byDailyWindowAndKey(
     const dailyWindow = dailyWindowKeyOf(e.date, ctx);
     let d = dailyWindows.get(dailyWindow);
     if (!d) {
-      d = { dailyWindow, costByKey: {}, totalCost: 0 };
+      d = { dailyWindow, costByKey: {}, tokensByKey: {}, totalCost: 0, totalTokens: 0 };
       dailyWindows.set(dailyWindow, d);
     }
     const key = keyOf(e);
     d.costByKey[key] = (d.costByKey[key] ?? 0) + e.cost;
+    d.tokensByKey[key] = (d.tokensByKey[key] ?? 0) + e.totalTokens;
     d.totalCost += e.cost;
+    d.totalTokens += e.totalTokens;
   }
   return [...dailyWindows.values()].sort((a, b) => a.dailyWindow.localeCompare(b.dailyWindow));
 }
@@ -214,11 +241,34 @@ export function byDailyWindowAndModelFamily(
 }
 
 /**
- * Returns the highest-cost Usage Events.
- *
- * This is a relative High Cost view over the caller's current analysis set,
- * not a fixed cost threshold.
+ * Returns the Daily Window total for the Selected Metric.
  */
-export function topEvents(events: UsageEvent[], limit: number): UsageEvent[] {
-  return [...events].sort((a, b) => b.cost - a.cost).slice(0, limit);
+export function dailyWindowMetricTotal(row: DailyWindowCostStat, metric: Metric): number {
+  return metric === "tokens" ? row.totalTokens : row.totalCost;
+}
+
+/**
+ * Returns the per-key stacked values for the Selected Metric.
+ */
+export function dailyWindowMetricByKey(
+  row: DailyWindowCostStat,
+  metric: Metric,
+): Record<string, number> {
+  return metric === "tokens" ? row.tokensByKey : row.costByKey;
+}
+
+/**
+ * Returns the highest-Metric Usage Events.
+ *
+ * This is a relative ranking over the caller's current analysis set,
+ * not a fixed threshold.
+ */
+export function topEvents(
+  events: UsageEvent[],
+  limit: number,
+  metric: Metric = "cost",
+): UsageEvent[] {
+  return [...events]
+    .sort((a, b) => eventMetric(b, metric) - eventMetric(a, metric))
+    .slice(0, limit);
 }

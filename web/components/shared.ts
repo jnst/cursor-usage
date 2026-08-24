@@ -1,4 +1,4 @@
-import type { UsageEvent } from "../../src/core/types.ts";
+import type { Metric, UsageEvent } from "../../src/core/types.ts";
 
 import { byModelFamily } from "../../src/core/aggregate.ts";
 
@@ -41,9 +41,18 @@ export function modelFamilyColors(events: UsageEvent[]): Map<string, string> {
   return colors;
 }
 
+export const TOOLTIP_TEXT = "#e6edf3";
+
 export const tooltipStyle = {
   backgroundColor: "#161b22",
   border: "1px solid #21262d",
   borderRadius: 8,
   fontSize: 12,
+  color: TOOLTIP_TEXT,
 } as const;
+
+export const tooltipItemStyle = { color: TOOLTIP_TEXT } as const;
+
+export function metricLabel(metric: Metric): string {
+  return metric === "tokens" ? "Token Count" : "Cost";
+}

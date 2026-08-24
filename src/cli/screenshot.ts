@@ -1,4 +1,4 @@
-import type { AnalysisContext, UsageEvent } from "../core/types.ts";
+import type { AnalysisContext, Metric, UsageEvent } from "../core/types.ts";
 
 import { basename, dirname, extname, join } from "node:path";
 
@@ -14,6 +14,7 @@ interface ScreenshotOptions {
   dailyReport: boolean;
   out?: string;
   user?: string;
+  metric?: Metric;
 }
 
 interface BrowserLike {
@@ -121,6 +122,7 @@ export async function writeScreenshot(options: ScreenshotOptions): Promise<strin
       ...(options.dailyWindow ? { "daily-window": options.dailyWindow } : {}),
       ...(options.ctx.startHour !== 0 ? { "start-hour": String(options.ctx.startHour) } : {}),
       ...(options.eventLimit !== undefined ? { "event-limit": String(options.eventLimit) } : {}),
+      ...(options.metric && options.metric !== "cost" ? { metric: options.metric } : {}),
     }).toString();
 
     await page.goto(url.href, { waitUntil: "networkidle" });

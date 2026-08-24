@@ -1,3 +1,5 @@
+import type { Metric } from "./types.ts";
+
 import { dateTimeParts } from "./time.ts";
 
 /**
@@ -50,4 +52,23 @@ export function formatDateTime(date: Date, timeZone: string): string {
 export function formatTime(date: Date, timeZone: string): string {
   const parts = dateTimeParts(date, timeZone);
   return [parts.get("hour"), parts.get("minute"), parts.get("second")].join(":");
+}
+
+/**
+ * Formats a Selected Metric value as USD or compact Token Count.
+ */
+export function formatMetric(
+  value: number,
+  metric: Metric,
+  options: { trimZeroCents?: boolean } = {},
+): string {
+  return metric === "tokens" ? formatTokens(value) : formatUsd(value, options);
+}
+
+/**
+ * Formats Effective Rate as `$x.xx / MTok`, or `—` when Token Count is 0.
+ */
+export function formatUsdPerMTok(cost: number, tokens: number): string {
+  if (tokens === 0) return "—";
+  return `${formatUsd((cost / tokens) * 1_000_000)} / MTok`;
 }

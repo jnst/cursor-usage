@@ -24,7 +24,7 @@ This keeps the product boundary focused: the tool helps users notice expensive d
 
 ## ADR-004: Treat URLs as View State, Not Data Sharing
 
-The dashboard may encode the selected view in the URL, such as a selected Daily Window, User, Analysis Time Zone, and Daily Window start hour, but it must not encode or upload the Usage Export itself. A shared URL can reopen the same view state only after the recipient loads the same Usage Export locally.
+The dashboard may encode the selected view in the URL, such as a selected Daily Window, User, Selected Metric, Analysis Time Zone, and Daily Window start hour, but it must not encode or upload the Usage Export itself. A shared URL can reopen the same view state only after the recipient loads the same Usage Export locally.
 
 When a URL includes a Daily Window, that Daily Window Key is interpreted in the selected Analysis Time Zone and start hour, not as a UTC date. This keeps shared detail views aligned with the same window boundaries users see in the dashboard.
 
@@ -34,7 +34,7 @@ Daily Window URLs should include the selected Daily Window, Analysis Time Zone, 
 
 Every analysis capability should be available from the CLI before or alongside the web UI. The web dashboard may provide richer interactions and charts, but those interactions should correspond to CLI options so the same analysis can be reproduced in scripts, terminals, CI logs, and support conversations.
 
-Purely browser-specific affordances, such as drag-and-drop file loading or chart layout, do not require CLI equivalents. Analysis choices such as Daily Window, User, Analysis Time Zone, Daily Window start hour, and whether No Charge Events are included do require CLI support.
+Purely browser-specific affordances, such as drag-and-drop file loading or chart layout, do not require CLI equivalents. Analysis choices such as Daily Window, User, Analysis Time Zone, Daily Window start hour, Selected Metric, and whether No Charge Events are included do require CLI support.
 
 ## ADR-006: Use Daily Windows Instead of Calendar Days
 
@@ -57,3 +57,11 @@ Unit tests live next to the module they cover, using the `*.test.ts` suffix (`sr
 A top-level `tests/` directory is reserved for tests that span multiple modules or entry points, such as CLI or dashboard flows. There are none yet.
 
 This rejects keeping all tests in `tests/` by default. `bun test` already discovers `*.test.ts` recursively, and the published package only ships `dist/`, so colocated tests are not included in the npm tarball.
+
+## ADR-009: Rank and Display Analysis by a Selected Metric
+
+Cost-only analysis cannot tell unused Daily Windows from cheap-model or low-reported-cost usage. We will let the analysis choose a Selected Metric of Cost or Token Count (default Cost). Rankings, summaries, event tables, and the single stacked Daily Window chart all use that Metric. The same Daily Window columns, Model Family colors, and chart geometry are reused; only the encoded value changes. Switching twice compares the two shapes by visual memory. Effective Rate (`$ / MTok`) stays visible as a diagnostic.
+
+This rejects overlaying Cost and Token Count on dual Y axes, and rejects small-multiples (two stacked charts). Dual axes already served daily Cost versus cumulative Cost; a third incommensurable scale would mislead. Two charts would double legend, axis, and hover complexity.
+
+The CLI accepts `--metric cost|tokens` so the same analysis can be reproduced outside the dashboard (ADR-005). The dashboard stores the choice in the URL hash as `metric=cost|tokens` (ADR-004).
