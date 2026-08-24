@@ -55,7 +55,7 @@ export function UserChart({
   return (
     <div className="panel">
       <h3>
-        ユーザー別{metric === "tokens" ? "トークン" : "コスト"} (Top 10)
+        ユーザー別{metric === "tokens" ? "トークン使用量" : "コスト"} (Top 10)
         {selectable && <span className="hint">バーをクリックでユーザー選択/解除</span>}
       </h3>
       <ResponsiveContainer width="100%" height={height}>

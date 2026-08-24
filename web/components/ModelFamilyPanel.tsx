@@ -115,7 +115,7 @@ export function ModelFamilyPanel({
   return (
     <div className="panel">
       <h3>
-        モデル分類別{metric === "tokens" ? "トークン" : "コスト"}
+        モデル分類別{metric === "tokens" ? "トークン使用量" : "コスト"}
         {showControls && <span className="hint">クリックで実モデルの内訳へ</span>}
       </h3>
       <ResponsiveContainer width="100%" height={height}>

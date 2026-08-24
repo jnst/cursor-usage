@@ -5,10 +5,12 @@ import {
   Bar,
   CartesianGrid,
   ComposedChart,
+  DefaultTooltipContent,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
+  type TooltipContentProps,
 } from "recharts";
 
 import {
@@ -28,7 +30,14 @@ import {
 import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
 import { EventsTable } from "./EventsTable.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
-import { metricLabel, modelFamilyColors, tooltipItemStyle, tooltipStyle } from "./shared.ts";
+import {
+  EFFECTIVE_RATE_HOVER_LABEL,
+  metricHoverLabel,
+  metricLabel,
+  modelFamilyColors,
+  tooltipItemStyle,
+  tooltipStyle,
+} from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
 import { UserChart } from "./UserChart.tsx";
 
@@ -94,6 +103,60 @@ function DailyWindowSummaryCards({
   return <SummaryCards cards={cards} />;
 }
 
+/**
+ * Hourly tooltip: selected Metric → other Metric → 実効レート.
+ */
+function HourlyMetricTooltip({ metric, ...props }: TooltipContentProps & { metric: Metric }) {
+  const { active, payload } = props;
+  if (!active || !payload?.length) return null;
+
+  const row = payload[0]?.payload as { cost?: number; totalTokens?: number } | undefined;
+  const cost = row?.cost ?? 0;
+  const tokens = row?.totalTokens ?? 0;
+  const template = payload[0];
+  if (!template) return null;
+
+  const otherMetric: Metric = metric === "cost" ? "tokens" : "cost";
+  const orderedPayload = [
+    {
+      ...template,
+      dataKey: metric === "tokens" ? "totalTokens" : "cost",
+      name: metricHoverLabel(metric),
+      value: metric === "tokens" ? tokens : cost,
+    },
+    {
+      ...template,
+      dataKey: "other",
+      name: metricHoverLabel(otherMetric),
+      value: otherMetric === "tokens" ? tokens : cost,
+      color: "#8b949e",
+      fill: "#8b949e",
+    },
+    {
+      ...template,
+      dataKey: "rate",
+      name: EFFECTIVE_RATE_HOVER_LABEL,
+      value: formatUsdPerMTok(cost, tokens),
+      color: "#8b949e",
+      fill: "#8b949e",
+    },
+  ];
+
+  return (
+    <DefaultTooltipContent
+      {...props}
+      payload={orderedPayload}
+      formatter={(value, name, item) => {
+        const key = String(item?.dataKey ?? name);
+        if (key === "rate") return String(value);
+        if (key === "other") return formatMetric(Number(value), otherMetric);
+        return formatMetric(Number(value), metric);
+      }}
+      itemSorter={undefined}
+    />
+  );
+}
+
 function HourlyChart({
   dailyWindowEvents,
   scaleDayEvents,
@@ -111,21 +174,23 @@ function HourlyChart({
       const b = byHourMap.get(key);
       return {
         hour: key,
-        value: b ? bucketMetric(b, metric) : 0,
+        cost: b?.cost ?? 0,
+        totalTokens: b?.totalTokens ?? 0,
         eventCount: b?.eventCount ?? 0,
       };
     });
-  }, [dailyWindowEvents, ctx, metric]);
+  }, [dailyWindowEvents, ctx]);
   const maxHourly = useMemo(
     () => Math.max(...byHour(scaleDayEvents, ctx).map((b) => bucketMetric(b, metric)), 0),
     [scaleDayEvents, ctx, metric],
   );
-  const label = metricLabel(metric);
+  const dataKey = metric === "tokens" ? "totalTokens" : "cost";
+  const name = metricLabel(metric);
 
   return (
     <div className="panel wide">
       <h3>
-        時間帯別{metric === "tokens" ? "トークン" : "コスト"} ({ctx.timeZone})
+        時間帯別{metric === "tokens" ? "トークン使用量" : "コスト"} ({ctx.timeZone})
       </h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
@@ -138,15 +203,15 @@ function HourlyChart({
             tickFormatter={(value) => formatMetric(Number(value), metric, { trimZeroCents: true })}
           />
           <Tooltip
+            content={(props) => <HourlyMetricTooltip {...props} metric={metric} />}
             contentStyle={tooltipStyle}
             itemStyle={tooltipItemStyle}
             labelStyle={tooltipItemStyle}
-            formatter={(value) => [formatMetric(Number(value), metric), label]}
             labelFormatter={(h) => `${h}:00 ${ctx.timeZone}`}
           />
           <Bar
-            dataKey="value"
-            name={label}
+            dataKey={dataKey}
+            name={name}
             fill="#58a6ff"
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}

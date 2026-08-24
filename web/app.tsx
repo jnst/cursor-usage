@@ -171,7 +171,6 @@ function App() {
               {events.length} 課金イベント
               {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
             </span>
-            {showControls && <MetricToggle metric={metric} onChange={setMetric} />}
             {showControls && (
               <button
                 type="button"
@@ -189,6 +188,7 @@ function App() {
           </>
         )}
       </div>
+      {events && showControls && <MetricToggle metric={metric} onChange={setMetric} />}
       {events ? (
         selectedDailyWindow ? (
           <DailyWindowView

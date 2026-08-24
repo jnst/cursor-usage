@@ -78,29 +78,31 @@ body {
   border-color: var(--accent);
 }
 
-.metric-toggle {
-  display: inline-flex;
-  margin-left: auto;
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  overflow: hidden;
+.metric-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--panel-border);
+  margin-bottom: 16px;
 }
 
-.metric-toggle button {
-  background: var(--panel);
+.metric-tabs button {
+  background: none;
   border: none;
+  border-bottom: 2px solid transparent;
   color: var(--text-dim);
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 8px 20px;
+  font-size: 14px;
   cursor: pointer;
+  margin-bottom: -1px;
 }
 
-.metric-toggle button.active {
-  background: var(--accent-soft);
+.metric-tabs button.active {
   color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
 }
 
-.metric-toggle button:hover {
+.metric-tabs button:hover {
   color: var(--text);
 }
 
@@ -376,4 +378,60 @@ tr:last-child td {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.chart-tooltip {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text);
+  padding: 8px 10px;
+  min-width: 200px;
+}
+
+.chart-tooltip-label {
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.chart-tooltip-models,
+.chart-tooltip-summary {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chart-tooltip-models {
+  max-height: 148px;
+  overflow-y: auto;
+}
+
+.chart-tooltip-summary {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.chart-tooltip li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.chart-tooltip-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.chart-tooltip-name {
+  color: var(--text-dim);
+}
+
+.chart-tooltip-value {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
 }

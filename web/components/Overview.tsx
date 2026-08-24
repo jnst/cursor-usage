@@ -5,7 +5,6 @@ import {
   Bar,
   CartesianGrid,
   ComposedChart,
-  DefaultTooltipContent,
   Legend,
   Line,
   ResponsiveContainer,
@@ -35,10 +34,10 @@ import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
 import {
   BAR_SIZE,
   COLORS,
+  EFFECTIVE_RATE_HOVER_LABEL,
+  metricHoverLabel,
   metricLabel,
   modelFamilyColors,
-  tooltipItemStyle,
-  tooltipStyle,
 } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
 import { UserChart } from "./UserChart.tsx";
@@ -46,44 +45,78 @@ import { UserChart } from "./UserChart.tsx";
 const CUMULATIVE_KEY = "cumulative";
 
 /**
- * Daily tooltip: model breakdown → daily total → cumulative.
- * Order follows aggregation granularity (fine → coarse).
+ * Daily tooltip: stacked families (bar bottom → top), then the day-level
+ * rows. Only the family list scrolls, so 合計 / コスト or トークン / 実効レート /
+ * 累積 stay visible when many families share a day.
  */
-function DailyMetricTooltip({ metric, ...props }: TooltipContentProps & { metric: Metric }) {
-  const { active, payload } = props;
+function DailyMetricTooltip({
+  metric,
+  payload,
+  label,
+  active,
+}: TooltipContentProps & { metric: Metric }) {
   if (!active || !payload?.length) return null;
 
-  const modelItems = payload.filter((item) => item.dataKey !== CUMULATIVE_KEY);
+  // Recharts lists stacked series top-first. Reverse so the tooltip matches
+  // the bar and legend: first family is the bottom segment.
+  const modelItems = payload
+    .filter((item) => item.dataKey !== CUMULATIVE_KEY && Number(item.value) > 0)
+    .toReversed();
   const cumulativeItem = payload.find((item) => item.dataKey === CUMULATIVE_KEY);
-  const row = payload[0]?.payload as { total?: number } | undefined;
+  const row = payload[0]?.payload as
+    | { total?: number; totalCost?: number; totalTokens?: number }
+    | undefined;
   const total =
     typeof row?.total === "number"
       ? row.total
       : modelItems.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
-
-  const template = modelItems[0] ?? cumulativeItem;
-  if (!template) return null;
-
-  const orderedPayload = [
-    ...modelItems,
-    {
-      ...template,
-      dataKey: "total",
-      name: "合計",
-      value: total,
-      color: "#e6edf3",
-      fill: "#e6edf3",
-    },
-    ...(cumulativeItem ? [cumulativeItem] : []),
-  ];
+  const totalCost = row?.totalCost ?? 0;
+  const totalTokens = row?.totalTokens ?? 0;
+  const otherMetric: Metric = metric === "cost" ? "tokens" : "cost";
+  const otherTotal = metric === "cost" ? totalTokens : totalCost;
 
   return (
-    <DefaultTooltipContent
-      {...props}
-      payload={orderedPayload}
-      formatter={(value) => formatMetric(Number(value), metric)}
-      itemSorter={undefined}
-    />
+    <div className="chart-tooltip">
+      <div className="chart-tooltip-label">{label}</div>
+      {modelItems.length > 0 && (
+        <ul className="chart-tooltip-models">
+          {modelItems.map((item) => (
+            <li key={String(item.dataKey)}>
+              <span
+                className="chart-tooltip-swatch"
+                style={{ background: String(item.color ?? item.fill ?? "#8b949e") }}
+              />
+              <span className="chart-tooltip-name">{item.name}</span>
+              <span className="chart-tooltip-value">
+                {formatMetric(Number(item.value), metric)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <ul className="chart-tooltip-summary">
+        <li>
+          <span className="chart-tooltip-name">合計</span>
+          <span className="chart-tooltip-value">{formatMetric(total, metric)}</span>
+        </li>
+        <li>
+          <span className="chart-tooltip-name">{metricHoverLabel(otherMetric)}</span>
+          <span className="chart-tooltip-value">{formatMetric(otherTotal, otherMetric)}</span>
+        </li>
+        <li>
+          <span className="chart-tooltip-name">{EFFECTIVE_RATE_HOVER_LABEL}</span>
+          <span className="chart-tooltip-value">{formatUsdPerMTok(totalCost, totalTokens)}</span>
+        </li>
+        {cumulativeItem && (
+          <li>
+            <span className="chart-tooltip-name">{cumulativeItem.name}</span>
+            <span className="chart-tooltip-value">
+              {formatMetric(Number(cumulativeItem.value), metric)}
+            </span>
+          </li>
+        )}
+      </ul>
+    </div>
   );
 }
 
@@ -164,6 +197,8 @@ function DailyChart({
         label: d.dailyWindow.slice(5),
         ...dailyWindowMetricByKey(d, metric),
         total,
+        totalCost: d.totalCost,
+        totalTokens: d.totalTokens,
         cumulative,
       };
     });
@@ -210,9 +245,8 @@ function DailyChart({
           />
           <Tooltip
             content={(props) => <DailyMetricTooltip {...props} metric={metric} />}
-            contentStyle={tooltipStyle}
-            itemStyle={tooltipItemStyle}
-            labelStyle={tooltipItemStyle}
+            allowEscapeViewBox={{ x: true, y: true }}
+            wrapperStyle={{ zIndex: 20, pointerEvents: "auto" }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {families.map((family, i) => (
