@@ -13,6 +13,8 @@ import {
   byUser,
   eventsInModelFamily,
   filterEvents,
+  includeEmptyDailyWindowCosts,
+  includeEmptyDailyWindows,
   summarize,
   topEvents,
 } from "./aggregate.ts";
@@ -133,6 +135,16 @@ describe("buckets", () => {
     expect(users[0]!.cost).toBeCloseTo(0.4);
   });
 
+  it("byUser can sort by tokens", () => {
+    const cheapVolume = event({
+      user: "c@example.com",
+      cost: 0.01,
+      totalTokens: 50_000,
+    });
+    const users = byUser([cheapVolume, ...b], "tokens");
+    expect(users[0]!.key).toBe("c@example.com");
+  });
+
   it("byModel aggregates tokens", () => {
     const models = byModel(b);
     expect(models[0]!.key).toBe("claude-opus");
@@ -184,12 +196,20 @@ describe("buckets", () => {
       event({ model: "Opus 5 (Auto Balanced)", cost: 0.5 }),
     ]);
     expect(stacked[0]!.costByKey).toEqual({ "Fable 5": 0.5, Auto: 0.5 });
+    expect(stacked[0]!.tokensByKey).toEqual({ "Fable 5": 2700, Auto: 1350 });
     expect(stacked[0]!.totalCost).toBeCloseTo(1.0);
+    expect(stacked[0]!.totalTokens).toBe(4050);
   });
 
   it("topEvents returns most expensive first", () => {
     const top = topEvents(b, 2);
     expect(top.map((e) => e.cost)).toEqual([0.4, 0.2]);
+  });
+
+  it("topEvents can rank by tokens", () => {
+    const cheapVolume = event({ cost: 0.01, totalTokens: 80_000 });
+    const top = topEvents([cheapVolume, ...b], 1, "tokens");
+    expect(top[0]!.totalTokens).toBe(80_000);
   });
 
   it("byHour buckets by UTC hour, chronological", () => {
@@ -212,6 +232,23 @@ describe("buckets", () => {
   it("byHour uses the selected analysis time zone", () => {
     const lateUtc = event({ date: new Date("2026-06-05T23:59:59Z") });
     expect(byHour([lateUtc], { timeZone: "Asia/Tokyo" }).map((h) => h.key)).toEqual(["08"]);
+  });
+
+  it("includeEmptyDailyWindows fills idle days in the Daily Window Range with zeros", () => {
+    const saturday = event({ date: new Date("2026-08-01T10:00:00Z"), cost: 0.1 });
+    const monday = event({ date: new Date("2026-08-03T10:00:00Z"), cost: 0.2 });
+    const filled = includeEmptyDailyWindows(byDailyWindow([saturday, monday]));
+    expect(filled.map((d) => d.key)).toEqual(["2026-08-01", "2026-08-02", "2026-08-03"]);
+    expect(filled[1]!.cost).toBe(0);
+    expect(filled[1]!.eventCount).toBe(0);
+  });
+
+  it("includeEmptyDailyWindowCosts fills idle days in stacked Daily Window series", () => {
+    const saturday = event({ date: new Date("2026-08-01T10:00:00Z"), cost: 0.1 });
+    const monday = event({ date: new Date("2026-08-03T10:00:00Z"), cost: 0.2 });
+    const filled = includeEmptyDailyWindowCosts(byDailyWindowAndModelFamily([saturday, monday]));
+    expect(filled.map((d) => d.dailyWindow)).toEqual(["2026-08-01", "2026-08-02", "2026-08-03"]);
+    expect(filled[1]!.totalCost).toBe(0);
   });
 
   it("topEvents returns the full set when the limit exceeds the length", () => {

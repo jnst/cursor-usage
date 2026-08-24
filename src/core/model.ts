@@ -10,6 +10,7 @@ export const AUTO_MODEL_FAMILY = "Auto";
  */
 const FAMILY_LABELS: Record<string, string> = {
   "cursor-grok-4.5": "Grok 4.5",
+  "cursor-grok-4.6": "Grok 4.6",
   "claude-opus-4-8": "Opus 4.8",
   "claude-opus-5": "Opus 5",
   "claude-4.5-opus": "Opus 4.5",
@@ -30,11 +31,12 @@ const FAMILY_LABELS: Record<string, string> = {
 
 /**
  * Variant suffix tokens that distinguish Models within one Model Family:
- * reasoning effort levels, the thinking flag, and fast mode. Suffix order
- * varies between exports (`-thinking-high` vs `-high-thinking`), so tokens
- * are stripped from the end regardless of order.
+ * reasoning effort levels (`high`, `xhigh`, `medium`, `low`, `max`), the
+ * thinking flag, and fast mode. Suffix order varies between exports
+ * (`-thinking-high` vs `-high-thinking`), so tokens are stripped from the
+ * end regardless of order.
  */
-const VARIANT_TOKENS = new Set(["thinking", "high", "medium", "low", "max", "fast"]);
+const VARIANT_TOKENS = new Set(["thinking", "high", "xhigh", "medium", "low", "max", "fast"]);
 
 /** Usage Exports contain zero-width characters in some display names. */
 const INVISIBLE_CHARS = /[\u200b\u200c\u200d\ufeff]/g;

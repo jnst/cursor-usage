@@ -15,7 +15,7 @@ Runs on Node.js 20+ (`npx`) or [Bun](https://bun.sh) (`bunx`).
 - **Daily Window cost trends** — stacked bars by Model Family plus a cumulative line, with click-through to a per-window detail view
 - **Model Family grouping** — reasoning effort / thinking / fast variants are collapsed, and Auto (Cursor Router) is one slice; click it to see the actual Models the Router selected
 - **User breakdown & filter** — Top 10 costs per User; click a bar to focus the whole analysis on one User
-- **High Cost events** — the most expensive events at a glance, with Cloud Agent / Automation / Max Mode marks
+- **High Cost events** — the most expensive events at a glance, with Cloud Agent / Automation marks
 - **Daily Window detail** — hourly cost, Kind breakdown, and every event in the window
 - **CLI parity** — the same breakdowns in the terminal, or as JSON for scripting
 - **Screenshots & daily report** — capture the Overview or a shareable Daily Window PNG
@@ -48,8 +48,8 @@ npx @jnst/cursor-usage stats team-usage-events.csv
 Cursor Usage  2026-06-01 – 2026-06-10  (610 events, 10 daily windows)
 
   Total Cost    $1446.69      Total Tokens  1.1B
-  Avg/Active    $144.67       Max Mode      96%
-  Users         4             Models        8
+  Avg Daily     $144.67
+  Models        8             Users         4
 
 Daily Window Cost
   2026-06-01  $147.44  ████████████████▊            10% 102.9M tok, 68 ev
@@ -72,6 +72,7 @@ Options:
 | `--user <identifier>`                            | Filter analysis to a single User                               |
 | `--model-family <name>`                          | Filter analysis to a single Model Family (e.g. `Auto`)         |
 | `--timezone <iana-tz>`                           | Group Daily Windows and hours in a specific analysis time zone |
+| `--metric <cost\|tokens>`                        | Selected Metric for ranking and display (default: `cost`)      |
 | `--json`                                         | Output aggregated stats as JSON (pipe to jq etc.)              |
 | `--include-no-charge`                            | Include "Errored, No Charge" events                            |
 
@@ -87,6 +88,9 @@ npx @jnst/cursor-usage stats usage.csv --user jnst@example.jp
 
 # See the Models inside one Model Family (e.g. what Auto routed to)
 npx @jnst/cursor-usage stats usage.csv --model-family Auto --by model
+
+# Rank and display by Token Count instead of Cost
+npx @jnst/cursor-usage stats usage.csv --metric tokens
 ```
 
 Or install globally to use the short `cursor-usage` command:
@@ -141,6 +145,7 @@ can also be filtered the same way as terminal stats:
 
 ```bash
 npx @jnst/cursor-usage screenshot usage.csv --daily-window 2026-06-14 --user jnst@example.jp --timezone Asia/Tokyo
+npx @jnst/cursor-usage screenshot usage.csv --metric tokens --out dashboard-tokens.png
 npx @jnst/cursor-usage screenshot usage.csv --out dashboard.png
 ```
 

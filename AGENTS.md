@@ -13,3 +13,4 @@ Required context:
 - Use `bun run release` for releases instead of manually sequencing version, publish, push, and GitHub Release steps.
 - Write all commit messages in English, including the subject and body.
 - Write pull request titles and bodies in English.
+- When talking about the UI, use the visible labels. Do not use CSS class names, component names, coined terms, or English nicknames that are not on screen.

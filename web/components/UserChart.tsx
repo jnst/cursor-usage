@@ -1,4 +1,4 @@
-import type { UsageEvent } from "../../src/core/types.ts";
+import type { Metric, UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo } from "react";
 import {
@@ -13,17 +13,18 @@ import {
 } from "recharts";
 
 import { byUser } from "../../src/core/aggregate.ts";
-import { formatUsd } from "../../src/core/format.ts";
-import { BAR_SIZE, tooltipStyle } from "./shared.ts";
+import { formatMetric } from "../../src/core/format.ts";
+import { BAR_SIZE, metricLabel, tooltipItemStyle, tooltipStyle } from "./shared.ts";
 
 /**
- * Top-10 User cost bars with optional click-to-filter.
+ * Top-10 User bars with optional click-to-filter.
  *
  * Unselected users stay visible at reduced opacity so a User filter can be
- * compared against the rest of the analysis set.
+ * compared against the rest of the analysis set. Bars encode the Selected Metric.
  */
 export function UserChart({
   events,
+  metric,
   selectedUser,
   showControls,
   onSelectUser,
@@ -31,19 +32,30 @@ export function UserChart({
   barFill = "#58a6ff",
 }: {
   events: UsageEvent[];
+  metric: Metric;
   selectedUser: string | null;
   showControls: boolean;
   onSelectUser?: (user: string) => void;
   height?: number;
   barFill?: string;
 }) {
-  const data = useMemo(() => byUser(events).slice(0, 10), [events]);
+  const data = useMemo(
+    () =>
+      byUser(events, metric)
+        .slice(0, 10)
+        .map((row) => ({
+          ...row,
+          value: metric === "tokens" ? row.totalTokens : row.cost,
+        })),
+    [events, metric],
+  );
   const isSelected = (user: string) => !selectedUser || selectedUser === user;
   const selectable = showControls && onSelectUser;
+  const label = metricLabel(metric);
   return (
     <div className="panel">
       <h3>
-        ユーザー別コスト (Top 10)
+        ユーザー別{metric === "tokens" ? "トークン使用量" : "コスト"} (Top 10)
         {selectable && <span className="hint">バーをクリックでユーザー選択/解除</span>}
       </h3>
       <ResponsiveContainer width="100%" height={height}>
@@ -53,13 +65,18 @@ export function UserChart({
             type="number"
             stroke="#8b949e"
             fontSize={12}
-            tickFormatter={(value) => formatUsd(Number(value), { trimZeroCents: true })}
+            tickFormatter={(value) => formatMetric(Number(value), metric, { trimZeroCents: true })}
           />
           <YAxis type="category" dataKey="key" stroke="#8b949e" fontSize={12} width={160} />
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatUsd(Number(value))} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            itemStyle={tooltipItemStyle}
+            labelStyle={tooltipItemStyle}
+            formatter={(value) => [formatMetric(Number(value), metric), label]}
+          />
           <Bar
-            dataKey="cost"
-            name="Cost"
+            dataKey="value"
+            name={label}
             radius={[0, 4, 4, 0]}
             cursor={selectable ? "pointer" : undefined}
             onClick={(payload) => {
