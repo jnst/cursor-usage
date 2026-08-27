@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { modelFamilyOf } from "./model.ts";
+import { hasFastMode, modelFamilyOf } from "./model.ts";
 
 describe("modelFamilyOf", () => {
   it("groups Auto (Cursor Router) usage at the Router level", () => {
@@ -67,5 +67,28 @@ describe("modelFamilyOf", () => {
     expect(modelFamilyOf("  composer-2.5  ")).toBe("Composer 2.5");
     expect(modelFamilyOf("")).toBe("");
     expect(modelFamilyOf("   ")).toBe("");
+  });
+});
+
+describe("hasFastMode", () => {
+  it("matches the trailing -fast suffix seen in Usage Exports", () => {
+    expect(hasFastMode("cursor-grok-4.6-high-fast")).toBe(true);
+    expect(hasFastMode("claude-opus-5-thinking-high-fast")).toBe(true);
+    expect(hasFastMode("gpt-5.6-luna-medium-fast")).toBe(true);
+    expect(hasFastMode("composer-2.5-fast")).toBe(true);
+  });
+
+  it("does not match Models without a fast suffix token", () => {
+    expect(hasFastMode("cursor-grok-4.6-high")).toBe(false);
+    expect(hasFastMode("claude-fable-5-thinking-high")).toBe(false);
+    expect(hasFastMode("kimi-k3-max")).toBe(false);
+    expect(hasFastMode("Cursor Grok 4.6 (Auto)")).toBe(false);
+    expect(hasFastMode("Cursor Grok 4.5 Fast (Auto Balanced)")).toBe(false);
+    expect(hasFastMode("")).toBe(false);
+  });
+
+  it("still matches if a later export reorders variant suffixes", () => {
+    expect(hasFastMode("claude-opus-5-fast-thinking-high")).toBe(true);
+    expect(hasFastMode("SomeFutureModel-Fast")).toBe(true);
   });
 });
