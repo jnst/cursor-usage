@@ -2,7 +2,7 @@ import type { UsageEvent } from "../../src/core/types.ts";
 
 import { useId } from "react";
 
-import { hasFastMode } from "../../src/core/model.ts";
+import { eventModelName, hasFastMode } from "../../src/core/model.ts";
 
 type ModelEvent = Pick<UsageEvent, "model" | "cloudAgentId" | "automationId" | "maxMode">;
 
@@ -97,8 +97,9 @@ function FastIcon() {
     >
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#8fbcbb" />
-          <stop offset="100%" stopColor="#a3be8c" />
+          <stop offset="0%" stopColor="#ebcb8b" />
+          <stop offset="80%" stopColor="#d08770" />
+          <stop offset="100%" stopColor="#bf616a" />
         </linearGradient>
       </defs>
       <text
@@ -125,7 +126,7 @@ function FastIcon() {
 export function ModelCell({ event }: { event: ModelEvent }) {
   return (
     <span className="model-cell">
-      <span className="badge">{event.model}</span>
+      <span className="badge">{eventModelName(event.model)}</span>
       {event.cloudAgentId && (
         <span className="model-mark" title={`Cloud Agent: ${event.cloudAgentId}`}>
           <CloudIcon />

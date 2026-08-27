@@ -61,7 +61,7 @@ There are four Event Labels:
 1. **Cloud Agent** — when `Cloud Agent ID` is present
 2. **Automation** — when `Automation ID` is present
 3. **Max Mode** — when the legacy `Max Mode` column is `Yes`
-4. **Fast Mode** — when the Model identifier includes the `fast` suffix
+4. **Fast Mode** — when the Model identifier includes the `fast` suffix. The event table shows that suffix as this label, not as part of the Model name.
 
 _Avoid_: Model Mark, treating an Event Label as an Analysis Axis or Metric
 

@@ -61,6 +61,21 @@ export function hasFastMode(model: string): boolean {
 }
 
 /**
+ * Event-table Model text. Fast Mode is shown as an Event Label, so the
+ * visible name drops the `fast` suffix token. The underlying Model
+ * identifier used for analysis is unchanged.
+ */
+export function eventModelName(model: string): string {
+  if (!hasFastMode(model)) return model;
+  const sanitized = sanitizeModel(model);
+  const stripped = sanitized
+    .split("-")
+    .filter((token) => token.toLowerCase() !== "fast")
+    .join("-");
+  return stripped || sanitized;
+}
+
+/**
  * Display names such as `Opus 5 (Auto Balanced)` mark usage routed through
  * Cursor's Auto (Cursor Router); the parenthesized part names the Router mode.
  */

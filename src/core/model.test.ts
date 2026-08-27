@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { hasFastMode, modelFamilyOf } from "./model.ts";
+import { eventModelName, hasFastMode, modelFamilyOf } from "./model.ts";
 
 describe("modelFamilyOf", () => {
   it("groups Auto (Cursor Router) usage at the Router level", () => {
@@ -90,5 +90,23 @@ describe("hasFastMode", () => {
   it("still matches if a later export reorders variant suffixes", () => {
     expect(hasFastMode("claude-opus-5-fast-thinking-high")).toBe(true);
     expect(hasFastMode("SomeFutureModel-Fast")).toBe(true);
+  });
+});
+
+describe("eventModelName", () => {
+  it("drops the fast suffix when Fast Mode is shown as an Event Label", () => {
+    expect(eventModelName("cursor-grok-4.6-high-fast")).toBe("cursor-grok-4.6-high");
+    expect(eventModelName("claude-opus-5-thinking-high-fast")).toBe("claude-opus-5-thinking-high");
+    expect(eventModelName("gpt-5.6-luna-medium-fast")).toBe("gpt-5.6-luna-medium");
+    expect(eventModelName("composer-2.5-fast")).toBe("composer-2.5");
+    expect(eventModelName("claude-opus-5-fast-thinking-high")).toBe("claude-opus-5-thinking-high");
+  });
+
+  it("keeps identifiers without a fast suffix unchanged", () => {
+    expect(eventModelName("cursor-grok-4.6-high")).toBe("cursor-grok-4.6-high");
+    expect(eventModelName("Cursor Grok 4.6 (Auto)")).toBe("Cursor Grok 4.6 (Auto)");
+    expect(eventModelName("Cursor Grok 4.5 Fast (Auto Balanced)")).toBe(
+      "Cursor Grok 4.5 Fast (Auto Balanced)",
+    );
   });
 });
