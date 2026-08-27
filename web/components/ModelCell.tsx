@@ -2,6 +2,8 @@ import type { UsageEvent } from "../../src/core/types.ts";
 
 import { useId } from "react";
 
+import { eventModelName, hasFastMode } from "../../src/core/model.ts";
+
 type ModelEvent = Pick<UsageEvent, "model" | "cloudAgentId" | "automationId" | "maxMode">;
 
 function CloudIcon() {
@@ -81,15 +83,50 @@ function MaxIcon() {
   );
 }
 
+function FastIcon() {
+  const rawId = useId().replace(/:/g, "");
+  const gradId = `fast-grad-${rawId}`;
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="30"
+      height="12"
+      viewBox="0 0 30 12"
+      aria-hidden
+      className="model-mark-fast-svg"
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#ebcb8b" />
+          <stop offset="80%" stopColor="#d08770" />
+          <stop offset="100%" stopColor="#bf616a" />
+        </linearGradient>
+      </defs>
+      <text
+        x="15"
+        y="9.5"
+        textAnchor="middle"
+        fill={`url(#${gradId})`}
+        fontSize="10"
+        fontWeight="700"
+        fontFamily='ui-sans-serif, system-ui, "Segoe UI", sans-serif'
+        style={{ textTransform: "uppercase" }}
+      >
+        Fast
+      </text>
+    </svg>
+  );
+}
+
 /**
- * Model name with optional Cloud Agent / Automation / Max Mode marks.
+ * Model name with optional Event Labels.
  *
- * Order matches execution context then mode: cloud → automation bot → Max.
+ * Order matches CONTEXT: Cloud Agent → Automation → Max Mode → Fast Mode.
  */
 export function ModelCell({ event }: { event: ModelEvent }) {
   return (
     <span className="model-cell">
-      <span className="badge">{event.model}</span>
+      <span className="badge">{eventModelName(event.model)}</span>
       {event.cloudAgentId && (
         <span className="model-mark" title={`Cloud Agent: ${event.cloudAgentId}`}>
           <CloudIcon />
@@ -106,6 +143,12 @@ export function ModelCell({ event }: { event: ModelEvent }) {
         <span className="model-mark model-mark-max" title="Max Mode">
           <MaxIcon />
           <span className="sr-only">Max Mode</span>
+        </span>
+      )}
+      {hasFastMode(event.model) && (
+        <span className="model-mark model-mark-fast" title="Fast Mode">
+          <FastIcon />
+          <span className="sr-only">Fast Mode</span>
         </span>
       )}
     </span>

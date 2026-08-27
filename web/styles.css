@@ -363,7 +363,8 @@ tr:last-child td {
   display: block;
 }
 
-.model-mark-max-svg {
+.model-mark-max-svg,
+.model-mark-fast-svg {
   display: block;
   text-transform: uppercase;
 }

@@ -41,6 +41,40 @@ const VARIANT_TOKENS = new Set(["thinking", "high", "xhigh", "medium", "low", "m
 /** Usage Exports contain zero-width characters in some display names. */
 const INVISIBLE_CHARS = /[\u200b\u200c\u200d\ufeff]/g;
 
+function sanitizeModel(model: string): string {
+  return model.replace(INVISIBLE_CHARS, "").trim();
+}
+
+/**
+ * Whether a Model identifier carries the Fast Mode Event Label.
+ *
+ * Current Usage Exports append `-fast` as the last hyphen-delimited token
+ * (`cursor-grok-4.6-high-fast`, `claude-opus-5-thinking-high-fast`). Detection
+ * still treats `fast` as a suffix token so a later export that reorders
+ * variant suffixes still matches. Display names such as
+ * `Cursor Grok 4.5 Fast (Auto Balanced)` are not Fast Mode.
+ */
+export function hasFastMode(model: string): boolean {
+  const sanitized = sanitizeModel(model);
+  if (!sanitized) return false;
+  return sanitized.split("-").some((token) => token.toLowerCase() === "fast");
+}
+
+/**
+ * Event-table Model text. Fast Mode is shown as an Event Label, so the
+ * visible name drops the `fast` suffix token. The underlying Model
+ * identifier used for analysis is unchanged.
+ */
+export function eventModelName(model: string): string {
+  if (!hasFastMode(model)) return model;
+  const sanitized = sanitizeModel(model);
+  const stripped = sanitized
+    .split("-")
+    .filter((token) => token.toLowerCase() !== "fast")
+    .join("-");
+  return stripped || sanitized;
+}
+
 /**
  * Display names such as `Opus 5 (Auto Balanced)` mark usage routed through
  * Cursor's Auto (Cursor Router); the parenthesized part names the Router mode.
@@ -66,7 +100,7 @@ const AUTO_SLUGS = new Set(["auto", "auto-smart"]);
  * `auto-high` stay in the Auto Model Family.
  */
 export function modelFamilyOf(model: string): string {
-  const sanitized = model.replace(INVISIBLE_CHARS, "").trim();
+  const sanitized = sanitizeModel(model);
   if (AUTO_DISPLAY_NAME.test(sanitized)) return AUTO_MODEL_FAMILY;
 
   const tokens = sanitized.split("-");
