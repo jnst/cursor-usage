@@ -53,6 +53,18 @@ _Avoid_: Calendar Range
 Reported Cost per million tokens (`Cost / Token Count * 1,000,000`) over the current analysis set or Daily Window. Displayed as `$x.xx / MTok`. Effective Rate is a diagnostic for cheap versus expensive usage, not a reconstructed model price. When Token Count is 0, Effective Rate is undefined and renders as an em dash.
 _Avoid_: Unit Price, Model Price, Free Tier
 
+**Event Label**:
+A display-only annotation on a Usage Event in event tables. Event Labels are not an Analysis Axis and not a Metric.
+
+There are four Event Labels:
+
+1. **Cloud Agent** — when `Cloud Agent ID` is present
+2. **Automation** — when `Automation ID` is present
+3. **Max Mode** — when the legacy `Max Mode` column is `Yes`
+4. **Fast Mode** — when the Model identifier includes the `fast` suffix
+
+_Avoid_: Model Mark, treating an Event Label as an Analysis Axis or Metric
+
 **High Cost**:
 A relative description for Daily Windows or Billable Events with large Cost within the current analysis set.
 _Avoid_: Fixed Cost Threshold
@@ -65,7 +77,7 @@ The event classification reported by the `Kind` column in Cursor's usage-events 
 _Avoid_: Status, Type
 
 **Max Mode**:
-A legacy `Max Mode` column in older usage-events CSV exports. Current Usage Exports typically do not populate it, so Max Mode is not an analysis Metric and is not shown in summaries. The column is still parsed when present.
+A legacy `Max Mode` column in older usage-events CSV exports. Current Usage Exports typically do not populate it, so Max Mode is not an analysis Metric and is not shown in summaries. The column is still parsed when present. When the column is `Yes`, Max Mode may also appear as an Event Label.
 _Avoid_: High-Cost Mode, Max Mode Ratio
 
 **Metric**:
