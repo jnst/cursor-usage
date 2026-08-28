@@ -7,8 +7,9 @@ import { createServer, type Server } from "node:http";
 import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { dashboardBanner } from "./banner.ts";
+
 const DEFAULT_PORT = 4321;
-const USAGE_EXPORT_URL = "https://cursor.com/dashboard/usage";
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -140,18 +141,6 @@ export function packageVersion(): string {
 }
 
 /**
- * Startup banner printed when the local dashboard begins listening.
- */
-export function dashboardBanner(version: string, url: string): string {
-  return [
-    `     ▂█  cursor-usage v${version}`,
-    `   ▂▄██  dashboard · ${url}`,
-    `  ▂▄███  CSV · ${USAGE_EXPORT_URL}`,
-    "         drop the file onto the page · Ctrl+C to stop",
-  ].join("\n");
-}
-
-/**
  * Serves the bundled dashboard assets from the local machine.
  *
  * The server only serves static files; Usage Export data is loaded and analyzed
@@ -160,7 +149,7 @@ export function dashboardBanner(version: string, url: string): string {
 export function serve(options: ServeOptions): void {
   startServer({ port: options.port })
     .then(({ url }) => {
-      console.log(dashboardBanner(packageVersion(), url));
+      console.log(dashboardBanner(`v${packageVersion()}`, url));
       if (options.open) openBrowser(url);
     })
     .catch((error) => {
