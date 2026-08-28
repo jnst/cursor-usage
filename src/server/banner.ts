@@ -47,9 +47,9 @@ export function dashboardBanner(
   const gold = paint(color, FAVICON_GOLD, BAR);
 
   return [
-    `      ${gold}  cursor-usage ${label}`,
-    `   ${green} ${gold}  dashboard: ${url}`,
-    `${blue} ${green} ${gold}  csv download: ${USAGE_EXPORT_URL}`,
-    "          drop the file onto the page. Ctrl+C to stop",
+    `    ${gold}  Cursor Usage ${label}`,
+    `  ${green}${gold}  Dashboard: ${url}`,
+    `${blue}${green}${gold}  Export CSV: ${USAGE_EXPORT_URL}`,
+    "        drop the file onto the page. Ctrl+C to stop",
   ].join("\n");
 }

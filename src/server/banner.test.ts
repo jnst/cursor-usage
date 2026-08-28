@@ -6,10 +6,10 @@ describe("dashboardBanner", () => {
   it("prints a published version, dashboard URL, and the Usage Export download link", () => {
     expect(dashboardBanner("v0.10.0", "http://localhost:4321", { color: false })).toBe(
       [
-        "      ██  cursor-usage v0.10.0",
-        "   ██ ██  dashboard: http://localhost:4321",
-        "██ ██ ██  csv download: https://cursor.com/dashboard/usage",
-        "          drop the file onto the page. Ctrl+C to stop",
+        "    ██  Cursor Usage v0.10.0",
+        "  ████  Dashboard: http://localhost:4321",
+        "██████  Export CSV: https://cursor.com/dashboard/usage",
+        "        drop the file onto the page. Ctrl+C to stop",
       ].join("\n"),
     );
   });
@@ -17,10 +17,10 @@ describe("dashboardBanner", () => {
   it("prints a development marker instead of a version", () => {
     expect(dashboardBanner("(dev)", "http://localhost:61050", { color: false })).toBe(
       [
-        "      ██  cursor-usage (dev)",
-        "   ██ ██  dashboard: http://localhost:61050",
-        "██ ██ ██  csv download: https://cursor.com/dashboard/usage",
-        "          drop the file onto the page. Ctrl+C to stop",
+        "    ██  Cursor Usage (dev)",
+        "  ████  Dashboard: http://localhost:61050",
+        "██████  Export CSV: https://cursor.com/dashboard/usage",
+        "        drop the file onto the page. Ctrl+C to stop",
       ].join("\n"),
     );
   });
