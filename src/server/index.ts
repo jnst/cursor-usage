@@ -1,11 +1,13 @@
 import type { AddressInfo } from "node:net";
 
 import { spawn } from "node:child_process";
-import { createReadStream, existsSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { dashboardBanner } from "./banner.ts";
 
 const DEFAULT_PORT = 4321;
 
@@ -120,6 +122,25 @@ export function startServer(options: Pick<ServeOptions, "port"> = {}): Promise<R
 }
 
 /**
+ * Locate package.json next to the published CLI (`dist/cli.js`) or, during
+ * development, at the repository root above `src/server/`.
+ */
+export function packageVersion(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const candidates = [join(here, "../package.json"), join(here, "../../package.json")];
+  for (const path of candidates) {
+    if (!existsSync(path)) continue;
+    try {
+      const version = (JSON.parse(readFileSync(path, "utf8")) as { version?: unknown }).version;
+      if (typeof version === "string" && version.length > 0) return version;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return "unknown";
+}
+
+/**
  * Serves the bundled dashboard assets from the local machine.
  *
  * The server only serves static files; Usage Export data is loaded and analyzed
@@ -128,8 +149,7 @@ export function startServer(options: Pick<ServeOptions, "port"> = {}): Promise<R
 export function serve(options: ServeOptions): void {
   startServer({ port: options.port })
     .then(({ url }) => {
-      console.log(`cursor-usage dashboard running at ${url}`);
-      console.log("Drop a Cursor usage-events CSV onto the page. Ctrl+C to stop.");
+      console.log(dashboardBanner(`v${packageVersion()}`, url));
       if (options.open) openBrowser(url);
     })
     .catch((error) => {
