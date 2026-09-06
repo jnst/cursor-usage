@@ -11,6 +11,15 @@ describe("modelFamilyOf", () => {
     expect(modelFamilyOf("auto-smart")).toBe("Auto");
   });
 
+  it("groups standalone Auto Router mode names into Auto", () => {
+    expect(modelFamilyOf("Auto")).toBe("Auto");
+    expect(modelFamilyOf("Auto Balanced")).toBe("Auto");
+    expect(modelFamilyOf("Auto Intelligence")).toBe("Auto");
+    expect(modelFamilyOf("  auto balanced\u200b  ")).toBe("Auto");
+    expect(modelFamilyOf("AUTO INTELLIGENCE")).toBe("Auto");
+    expect(modelFamilyOf("Auto Balanced Custom")).toBe("Auto Balanced Custom");
+  });
+
   it("keeps suffixed Auto slugs in the Auto family", () => {
     expect(modelFamilyOf("auto-high")).toBe("Auto");
     expect(modelFamilyOf("auto-smart-high")).toBe("Auto");
