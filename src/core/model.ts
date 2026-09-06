@@ -84,6 +84,9 @@ const AUTO_DISPLAY_NAME = /\(Auto[^)]*\)$/;
 /** Auto slugs group into the Auto Model Family, before or after suffix stripping. */
 const AUTO_SLUGS = new Set(["auto", "auto-smart"]);
 
+/** Router mode names also appear on their own in Usage Exports. */
+const AUTO_ROUTER_NAMES = new Set(["auto balanced", "auto intelligence"]);
+
 /**
  * Returns the Model Family for a Model identifier.
  *
@@ -101,7 +104,9 @@ const AUTO_SLUGS = new Set(["auto", "auto-smart"]);
  */
 export function modelFamilyOf(model: string): string {
   const sanitized = sanitizeModel(model);
-  if (AUTO_DISPLAY_NAME.test(sanitized)) return AUTO_MODEL_FAMILY;
+  if (AUTO_DISPLAY_NAME.test(sanitized) || AUTO_ROUTER_NAMES.has(sanitized.toLowerCase())) {
+    return AUTO_MODEL_FAMILY;
+  }
 
   const tokens = sanitized.split("-");
   while (tokens.length > 1 && VARIANT_TOKENS.has(tokens[tokens.length - 1]!.toLowerCase())) {

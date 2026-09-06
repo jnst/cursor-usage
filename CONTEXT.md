@@ -15,7 +15,7 @@ A dimension used to group Usage Events for analysis, such as Daily Window, Hour,
 The time zone used to group Usage Events into Daily Windows and Hours for analysis. The default comes from the user's environment, and users may override it for a specific analysis.
 
 **Auto (Cursor Router)**:
-Cursor's model router. Usage Exports report Auto usage in three shapes: an `auto` Model identifier, an `auto-smart` Model identifier (the Router's internal model id, recorded for Auto usage via the SDK/API and JetBrains ACP sessions), or a routed display name such as `Opus 5 (Auto Balanced)`, where the parenthesized part names the Router mode and the leading part names the routed Model. All three shapes belong to the `Auto` Model Family.
+Cursor's model router. Usage Exports report Auto usage as an `auto` Model identifier, an `auto-smart` Model identifier (the Router's internal model id, recorded for Auto usage via the SDK/API and JetBrains ACP sessions), a standalone Router mode name (`Auto Balanced` or `Auto Intelligence`), or a routed display name such as `Opus 5 (Auto Balanced)`, where the parenthesized part names the Router mode and the leading part names the routed Model. All these shapes belong to the `Auto` Model Family.
 _Avoid_: Auto Mode Family per Router mode
 
 **Avg Daily Cost**:
