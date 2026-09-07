@@ -78,7 +78,7 @@ export function ModelFamilyPanel({
   );
   const label = metricLabel(metric);
   const metricToggle = showControls && (
-    <div className="model-metric-toggle" role="group" aria-label="モデル分類別の表示指標">
+    <div className="model-metric-toggle" role="group" aria-label="モデル別の表示指標">
       {(["cost", "tokens"] as const).map((value) => (
         <button
           key={value}
@@ -166,7 +166,7 @@ export function ModelFamilyPanel({
   return (
     <div className="panel model-family-panel">
       <h3>
-        モデル分類別{metric === "tokens" ? "トークン使用量" : "コスト"}
+        モデル別{metric === "tokens" ? "トークン使用量" : "コスト"}
         {showControls && <span className="hint">クリックで実モデルの内訳へ</span>}
       </h3>
       {metricToggle}

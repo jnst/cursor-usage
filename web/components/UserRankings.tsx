@@ -20,17 +20,17 @@ export function UserRankings({
   const rankings = useMemo(
     () => [
       {
-        title: "ユーザー別コスト (Top 10)",
+        title: "コスト Top 10",
         rows: byUser(events, "cost").slice(0, 10),
         metric: "cost",
       },
       {
-        title: "ユーザー別トークン使用量 (Top 10)",
+        title: "トークン使用量 Top 10",
         rows: byUser(events, "tokens").slice(0, 10),
         metric: "tokens",
       },
       {
-        title: "ユーザー別 実効単価 TOP10（低い順）",
+        title: "実行単価 Top 10",
         rows: topUsersByEffectiveRate(events),
         metric: "rate",
       },

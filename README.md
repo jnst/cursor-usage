@@ -125,7 +125,7 @@ npx @jnst/cursor-usage screenshot team-usage-events.csv
 
 Captures the dashboard as a PNG next to the CSV. The default screenshot is an
 Overview. Cost and Token Count charts are stacked vertically at full width, with User Cost, Token Count,
-and Effective Rate Top 10 rankings in the same image (1600px wide). Model Family
+and Effective Rate Top 10 rankings in the same image (1400px wide). Model Family
 breakdowns and event details are always visible. Readability takes priority over
 fitting a fixed page height:
 

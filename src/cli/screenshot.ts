@@ -107,7 +107,7 @@ export async function writeScreenshot(options: ScreenshotOptions): Promise<strin
   const output = outputPath(options);
   const runningServer = await startServer({ port: 0 });
   try {
-    const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+    const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
     await page.addInitScript({
       content: [
         `window.__CURSOR_USAGE_EVENTS__ = ${JSON.stringify(serializeEvents(options.events))};`,
