@@ -366,7 +366,7 @@ export function Overview({
           <EventsTable
             events={top}
             timeZone={ctx.timeZone}
-            title="高コスト・高トークンイベント 各 Top 20（重複を除く・コスト降順）"
+            title="高コスト・高トークンイベント 各 Top 20（重複を除く）"
             timeHeader={`日時 (${ctx.timeZone})`}
             formatTimestamp={formatDateTime}
           />
