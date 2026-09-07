@@ -33,7 +33,7 @@ Usage:
   cursor-usage daily-report <csv>                 Capture a shareable daily report PNG
 
 Stats options:
-  --by <daily-window|user|model|model-family|user-effective-rate|user-cloud-agent>
+  --by <daily-window|user|model|model-family|user-effective-rate|user-cloud-agent|cloud-agent>
                                   Show a single breakdown axis (default: all)
   --daily-window <YYYY-MM-DD>     Drill into a single Daily Window
   --start-hour <0-23>             Daily Window start hour (default: 0)
@@ -174,10 +174,11 @@ async function runStats(args: string[]): Promise<void> {
       "model-family",
       "user-effective-rate",
       "user-cloud-agent",
+      "cloud-agent",
     ].includes(axis)
   ) {
     fail(
-      `invalid --by value: ${axis} (expected daily-window, user, model, model-family, user-effective-rate or user-cloud-agent)`,
+      `invalid --by value: ${axis} (expected daily-window, user, model, model-family, user-effective-rate user-cloud-agent or cloud-agent)`,
     );
   }
 

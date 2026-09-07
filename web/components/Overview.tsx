@@ -31,6 +31,7 @@ import {
   formatUsd,
   formatUsdPerMTok,
 } from "../../src/core/format.ts";
+import { CloudAgentAnalysis } from "./CloudAgentAnalysis.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
 import { EventsTable } from "./EventsTable.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
@@ -366,6 +367,7 @@ export function Overview({
       </div>
       <div className="analysis-details">
         <div className="grid">
+          <CloudAgentAnalysis events={events} ctx={ctx} />
           <EventsTable
             events={top}
             timeZone={ctx.timeZone}

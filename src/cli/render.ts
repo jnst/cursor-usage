@@ -16,6 +16,7 @@ import {
   topUsersByCloudAgentUsage,
   type RankingOrder,
 } from "../core/aggregate.ts";
+import { analyzeCloudAgents } from "../core/cloud-agent.ts";
 import {
   formatMetric,
   formatTime,
@@ -158,7 +159,8 @@ export type StatsAxis =
   | "model"
   | "model-family"
   | "user-effective-rate"
-  | "user-cloud-agent";
+  | "user-cloud-agent"
+  | "cloud-agent";
 
 /**
  * Renders the overview analysis for terminal display.
@@ -202,6 +204,7 @@ export function renderStats(
         total,
       }),
     "user-effective-rate": () => renderEffectiveRateRanking(events, userOrder),
+    "cloud-agent": () => renderCloudAgents(events),
     "user-cloud-agent": () => renderCloudAgentRanking(events, userOrder),
     user: () =>
       renderBucketChart("By User", byUser(events, metric, userOrder), metric, {
@@ -218,6 +221,7 @@ export function renderStats(
       charts.user(),
       charts["user-effective-rate"](),
       charts["user-cloud-agent"](),
+      charts["cloud-agent"](),
     );
   }
 
@@ -245,6 +249,7 @@ export function statsJson(
       metric,
       filters: { user: user ?? null, modelFamily: modelFamily ?? null },
       summary: summarize(events, ctx),
+      cloudAgentAnalysis: analyzeCloudAgents(events),
       byDailyWindow: includeEmptyDailyWindows(byDailyWindow(events, ctx)),
       byModelFamily: byModelFamily(events, metric),
       byModel: byModel(events, metric),
@@ -399,6 +404,7 @@ export function renderDailyWindowView(
     }),
     renderEffectiveRateRanking(dailyWindowEvents, userOrder),
     renderCloudAgentRanking(dailyWindowEvents, userOrder),
+    renderCloudAgents(dailyWindowEvents),
     renderDailyWindowEvents(dailyWindowEvents, 20, ctx.timeZone, metric),
   ];
 
@@ -429,6 +435,7 @@ export function dailyWindowViewJson(
       metric,
       filters: { user: user ?? null, modelFamily: modelFamily ?? null },
       summary: summarize(dailyWindowEvents, ctx),
+      cloudAgentAnalysis: analyzeCloudAgents(dailyWindowEvents),
       byHour: byHour(dailyWindowEvents, ctx),
       byModelFamily: byModelFamily(dailyWindowEvents, metric),
       byModel: byModel(dailyWindowEvents, metric),
@@ -445,4 +452,20 @@ export function dailyWindowViewJson(
     null,
     2,
   );
+}
+
+function renderCloudAgents(events: UsageEvent[]): string[] {
+  const { agents, summary: s, byUser } = analyzeCloudAgents(events);
+  return [
+    bold("Cloud Agent ID Analysis"),
+    dim("  Billable events in the selected scope; observation times are not runtime."),
+    `  ${s.agentCount} IDs · ${s.eventCount} events · ${formatTokens(s.totalTokens)} tokens · ${formatUsd(s.totalCost)}`,
+    `  Mean ${formatUsd(s.meanCost)} · Median ${formatUsd(s.medianCost)} · Max ${formatUsd(s.maxCost)} · Top 10 cost share ${s.top10CostShare.toFixed(1)}%`,
+    ...agents.map(
+      (a) =>
+        `  ${a.key}  ${formatUsd(a.cost)}  ${formatTokens(a.totalTokens)} tokens  ${a.eventCount} events  users: ${a.users.join(", ")}  models: ${a.models.map((m) => `${m.key}: ${m.eventCount}`).join(", ")}  observed: ${a.firstObserved} – ${a.lastObserved}`,
+    ),
+    "  Unique IDs by User:",
+    ...byUser.map((u) => `    ${u.key}: ${u.agentCount}`),
+  ];
 }

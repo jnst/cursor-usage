@@ -117,3 +117,11 @@ This is a display preference, not data redaction or access control: average cost
 ## ADR-015: Keep Detail Sections Initially Open and Collapsible
 
 Event tables use native disclosure controls and start open in both overview and Daily Window views, including screenshot exports. This revises ADR-011's ban on collapsible sections: the user can now collapse detail while keeping it visible by default. Keep the existing event selection and deduplication behavior; collapsing a section does not change analysis.
+
+## ADR-016: Group Cloud Agent IDs Within the Current Analysis Scope
+
+Group Billable Events by trimmed, nonempty Cloud Agent ID within the current period and filters. Repeated IDs across Users or Daily Windows remain one group. Include zero-cost groups; exclude No Charge Events even when other CLI analyses include them. These groups do not establish task count, success, lifetime cost, or runtime. First/last observation timestamps describe only exported events in scope.
+
+Above the event table, show an initially open native disclosure with four horizontal Top 10 charts: per-ID Cost, Token Count, Event Count, and unique ID count per User. Show ID count, aggregate totals, mean/median/max per-ID Cost, and the percentage of Cloud Agent Cost from the ten highest-cost IDs. A shared ID counts once for each participating User. Detail rows retain full IDs, Users, model event counts, and observation timestamps, ordered by Cost descending. Ties use identifiers for stable ordering. Empty input yields zero summary metrics and an explicit empty state.
+
+Cost visibility applies to totals, maximum, per-ID costs, axes and tooltips; mean and median stay visible. CLI `stats --by cloud-agent` and overview/Daily Window JSON `cloudAgentAnalysis` expose the shared aggregation, including model totals. All JSON values stay numeric.

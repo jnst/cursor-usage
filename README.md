@@ -241,3 +241,11 @@ bun run release
 ## License
 
 MIT
+
+### Cloud Agent ID analysis
+
+The dashboard groups Cloud Agent IDs above the event table in a section that starts open and can be collapsed. Four charts compare Cost, Token Count, Event Count, and unique IDs per User. Summary cards show mean, median, maximum Cost and Top 10 Cost share; detail rows include Users, model event counts and first/last observations.
+
+Only Billable Events with a nonempty ID in the current period and filters are included. Observation timestamps do not measure runtime or task completion. Shared IDs count once per participating User. The cost visibility toggle masks individual and total costs while keeping mean and median visible.
+
+Use `cursor-usage stats usage.csv --by cloud-agent` for terminal analysis. Overview and Daily Window JSON include the same numeric results in `cloudAgentAnalysis`.

@@ -22,6 +22,7 @@ import {
 } from "../../src/core/aggregate.ts";
 import { formatTime, formatTokens, formatUsdPerMTok } from "../../src/core/format.ts";
 import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
+import { CloudAgentAnalysis } from "./CloudAgentAnalysis.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
 import { EventsTable } from "./EventsTable.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
@@ -371,6 +372,7 @@ export function DailyWindowView({
           <div className="analysis-details">
             <div className="grid">
               <KindBreakdown dailyWindowEvents={dailyWindowEvents} />
+              <CloudAgentAnalysis events={dailyWindowEvents} ctx={ctx} />
               <EventsTable
                 events={eventRows}
                 timeZone={ctx.timeZone}

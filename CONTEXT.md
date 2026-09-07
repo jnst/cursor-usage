@@ -34,6 +34,9 @@ Normal analysis uses Billable Events by default.
 **Cloud Agent Usage Rate**:
 The percentage of a User's Billable Events whose `Cloud Agent ID` is nonempty. Each Usage Event counts once, even when the same ID repeats. No Charge Events are excluded from numerator and denominator. This measures event share, not Cost or Token Count share.
 
+**Cloud Agent ID Group**:
+Billable Events sharing a trimmed, nonempty Cloud Agent ID within the current analysis scope. One group can span multiple Users and Daily Windows. It does not establish a completed task or agent lifetime; first and last observations are event timestamps, not runtime.
+
 **Cost**:
 The USD amount reported by the `Cost` column in Cursor's usage-events CSV export. Cost is not recalculated from token counts and model prices.
 
