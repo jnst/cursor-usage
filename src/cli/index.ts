@@ -47,6 +47,7 @@ Stats options:
   --include-no-charge             Include "Errored, No Charge" events
 
 Screenshot options:
+  --hide-costs                   Mask totals and individual costs (averages/rates stay visible)
   --daily-window <YYYY-MM-DD>     Capture a Daily Window detail view
   --start-hour <0-23>             Daily Window start hour (default: 0)
   --event-limit <n>               Limit Daily Window event table rows
@@ -216,6 +217,7 @@ async function runScreenshot(args: string[]): Promise<void> {
     options: {
       ...SHARED_ANALYSIS_OPTIONS,
       "event-limit": { type: "string" },
+      "hide-costs": { type: "boolean", default: false },
       out: { type: "string" },
     },
   });
@@ -239,6 +241,7 @@ async function runScreenshot(args: string[]): Promise<void> {
     dailyWindow,
     eventLimit,
     dailyReport: false,
+    hideCosts: values["hide-costs"],
     out: values.out,
     user: values.user,
     metric,
@@ -247,10 +250,10 @@ async function runScreenshot(args: string[]): Promise<void> {
 }
 
 async function runDailyReport(args: string[]): Promise<void> {
-  const { positionals } = parseArgs({
+  const { positionals, values } = parseArgs({
     args,
     allowPositionals: true,
-    options: {},
+    options: { "hide-costs": { type: "boolean", default: false } },
   });
 
   const csvPath = positionals[0];
@@ -273,6 +276,7 @@ async function runDailyReport(args: string[]): Promise<void> {
     dailyWindow,
     eventLimit: 10,
     dailyReport: true,
+    hideCosts: values["hide-costs"],
   });
   console.log(`wrote ${path}`);
 }

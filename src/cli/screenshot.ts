@@ -15,6 +15,7 @@ interface ScreenshotOptions {
   out?: string;
   user?: string;
   metric?: Metric;
+  hideCosts?: boolean;
 }
 
 interface BrowserLike {
@@ -112,6 +113,7 @@ export async function writeScreenshot(options: ScreenshotOptions): Promise<strin
       content: [
         `window.__CURSOR_USAGE_EVENTS__ = ${JSON.stringify(serializeEvents(options.events))};`,
         "window.__CURSOR_USAGE_SCREENSHOT__ = true;",
+        `window.__CURSOR_USAGE_HIDE_COSTS__ = ${options.hideCosts === true};`,
       ].join("\n"),
     });
 

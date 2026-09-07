@@ -1,6 +1,7 @@
 import type { UsageEvent } from "../../src/core/types.ts";
 
-import { formatTokens, formatUsd } from "../../src/core/format.ts";
+import { formatTokens } from "../../src/core/format.ts";
+import { useCostVisibility } from "./CostVisibility.tsx";
 import { ModelCell } from "./ModelCell.tsx";
 
 function eventRowKey(event: UsageEvent): string {
@@ -35,6 +36,7 @@ export function EventsTable({
   formatTimestamp: (date: Date, timeZone: string) => string;
   wrapClassName?: string;
 }) {
+  const { formatCost } = useCostVisibility();
   return (
     <div className="panel wide">
       <h3>{title}</h3>
@@ -68,7 +70,7 @@ export function EventsTable({
                 <td className="num">{formatTokens(e.cacheRead)}</td>
                 <td className="num">{formatTokens(e.outputTokens)}</td>
                 <td className="num">{formatTokens(e.totalTokens)}</td>
-                <td className="num">{formatUsd(e.cost)}</td>
+                <td className="num">{formatCost(e.cost)}</td>
               </tr>
             ))}
           </tbody>

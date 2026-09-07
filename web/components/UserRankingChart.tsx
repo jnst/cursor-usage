@@ -13,6 +13,7 @@ import {
 } from "recharts";
 
 import { formatTokens, formatUsd, formatUsdPerMTok } from "../../src/core/format.ts";
+import { useCostVisibility } from "./CostVisibility.tsx";
 import { tooltipItemStyle, tooltipStyle } from "./shared.ts";
 
 export type UserRankingMetric = "cost" | "tokens" | "rate" | "cloud";
@@ -31,6 +32,7 @@ export function UserRankingChart({
   showControls: boolean;
   onSelectUser?: (user: string) => void;
 }) {
+  const { formatCost } = useCostVisibility();
   const data = rows.map((row) => ({
     ...row,
     value:
@@ -50,7 +52,7 @@ export function UserRankingChart({
         ? `${value.toFixed(1)}%`
         : metric === "rate"
           ? `${formatUsd(value)} / MTok`
-          : formatUsd(value, { trimZeroCents: true });
+          : formatCost(value, { trimZeroCents: true });
   return (
     <div className="user-ranking-chart">
       <ResponsiveContainer width="100%" height={340}>
@@ -113,7 +115,7 @@ export function UserRankingChart({
                       ],
                     ]
                   : [
-                      ["コスト", formatUsd(row.cost)],
+                      ["コスト", formatCost(row.cost)],
                       ["トークン", formatTokens(row.totalTokens)],
                       ["実行単価", formatUsdPerMTok(row.cost, row.totalTokens)],
                     ];

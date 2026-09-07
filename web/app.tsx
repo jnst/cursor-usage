@@ -10,6 +10,7 @@ import {
   isValidTimeZone,
 } from "../src/core/time.ts";
 import { type AnalysisContext, type UsageEvent } from "../src/core/types.ts";
+import { CostVisibilityProvider, CostVisibilityToggle } from "./components/CostVisibility.tsx";
 import { DailyWindowView } from "./components/DailyWindowView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
 import { Overview } from "./components/Overview.tsx";
@@ -20,6 +21,7 @@ declare global {
   interface Window {
     __CURSOR_USAGE_EVENTS__?: SerializedUsageEvent[];
     __CURSOR_USAGE_SCREENSHOT__?: boolean;
+    __CURSOR_USAGE_HIDE_COSTS__?: boolean;
   }
 }
 
@@ -163,6 +165,7 @@ function App() {
               {events.length} 課金イベント
               {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
             </span>
+            {showControls && <CostVisibilityToggle />}
             {showControls && (
               <button
                 type="button"
@@ -214,4 +217,8 @@ function App() {
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element not found.");
-createRoot(root).render(<App />);
+createRoot(root).render(
+  <CostVisibilityProvider>
+    <App />
+  </CostVisibilityProvider>,
+);

@@ -4,7 +4,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Cell, DefaultTooltipContent, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { byModel, byModelFamily, eventsInModelFamily } from "../../src/core/aggregate.ts";
-import { formatMetric } from "../../src/core/format.ts";
+import { useCostVisibility } from "./CostVisibility.tsx";
 import { COLORS, metricHoverLabel, metricLabel, tooltipItemStyle, tooltipStyle } from "./shared.ts";
 
 /** Use the space left by the other panels without changing the donut size. */
@@ -62,6 +62,7 @@ export function ModelFamilyPanel({
   showControls: boolean;
   height?: number;
 }) {
+  const { formatValue: formatMetric } = useCostVisibility();
   const [metric, setMetric] = useState<Metric>("cost");
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const families = useMemo(

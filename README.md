@@ -135,6 +135,12 @@ with the rate as a percentage and both event counts.
 
 ### Screenshots
 
+The dashboard's `金額を隠す` button masks totals, individual costs, axes, and
+tooltip costs. Averages and Effective Rate stay visible. This is display masking,
+not data redaction; those values can sometimes be used to reconstruct totals.
+Use `screenshot usage.csv --hide-costs` or `daily-report usage.csv --hide-costs`
+to export a masked image. The interactive setting lasts for the current page.
+
 ```bash
 npx @jnst/cursor-usage screenshot team-usage-events.csv
 ```

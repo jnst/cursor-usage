@@ -77,6 +77,11 @@ body {
 .reload-button:hover {
   border-color: var(--accent);
 }
+.cost-visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
 /* Drop zone */
 .dropzone {
