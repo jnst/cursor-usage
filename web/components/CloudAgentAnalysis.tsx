@@ -1,6 +1,6 @@
 import type { AnalysisContext, UsageEvent } from "../../src/core/types.ts";
 
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { analyzeCloudAgents } from "../../src/core/cloud-agent.ts";
@@ -15,15 +15,19 @@ function Ranking({
   color,
 }: {
   title: string;
-  rows: { key: string; label: string; value: number; detail?: string }[];
+  rows: { key: string; label: string; value: number; detail?: ReactNode }[];
   format: (value: number) => string;
   color: string;
 }) {
+  const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const top = [...rows]
     .sort((a, b) => b.value - a.value || a.key.localeCompare(b.key))
     .slice(0, 10);
   return (
-    <section className="cloud-agent-chart">
+    <section
+      className="cloud-agent-chart"
+      onMouseMove={(event) => setPointer({ x: event.clientX, y: event.clientY })}
+    >
       <h3>{title}</h3>
       <div className="table-wrap">
         <div style={{ minWidth: 470 }}>
@@ -44,17 +48,27 @@ function Ranking({
               />
               <Tooltip
                 cursor={{ fill: "#8b949e", fillOpacity: 0.12 }}
-                wrapperStyle={{ zIndex: 20, pointerEvents: "none" }}
+                portal={document.body}
+                wrapperStyle={{
+                  zIndex: 100,
+                  pointerEvents: "none",
+                  position: "fixed",
+                  left: Math.max(12, Math.min(pointer.x + 16, window.innerWidth - 372)),
+                  top: Math.max(12, Math.min(pointer.y + 12, window.innerHeight - 480)),
+                }}
                 content={({ active, payload }) =>
                   active && payload?.length ? (
                     <div className="chart-tooltip cloud-agent-tooltip">
-                      <div className="chart-tooltip-label">{payload[0]?.payload.label}</div>
-                      <div>{format(Number(payload[0]?.value))}</div>
-                      {payload[0]?.payload.detail && (
-                        <div className="meta">{payload[0].payload.detail}</div>
-                      )}
-                      {payload[0]?.payload.detail && (
-                        <div className="meta">ID: {payload[0].payload.key}</div>
+                      {payload[0]?.payload.detail ?? (
+                        <>
+                          <div className="chart-tooltip-label">{payload[0]?.payload.label}</div>
+                          <dl>
+                            <div>
+                              <dt>Cloud Agent ID 数</dt>
+                              <dd>{format(Number(payload[0]?.value))}</dd>
+                            </div>
+                          </dl>
+                        </>
                       )}
                     </div>
                   ) : null
@@ -82,7 +96,63 @@ export function CloudAgentAnalysis({
     key: a.key,
     label: formatDateTime(new Date(a.firstObserved), ctx.timeZone),
     value,
-    detail: `${a.users.join(", ")} · ${a.eventCount} events · ${formatTokens(a.totalTokens)} tokens`,
+    detail: (
+      <>
+        <div className="cloud-agent-tooltip-heading">Cloud Agent</div>
+        <dl>
+          <div>
+            <dt>ユーザー</dt>
+            <dd>
+              {a.users.map((user) => (
+                <span className="cloud-agent-tooltip-user" key={user}>
+                  {user}
+                </span>
+              ))}
+            </dd>
+          </div>
+          <div>
+            <dt>コスト</dt>
+            <dd>{formatCost(a.cost)}</dd>
+          </div>
+          <div>
+            <dt>トークン</dt>
+            <dd>{formatTokens(a.totalTokens)}</dd>
+          </div>
+          <div>
+            <dt>イベント数</dt>
+            <dd>{a.eventCount.toLocaleString()}</dd>
+          </div>
+          <div>
+            <dt>最初の観測</dt>
+            <dd>{formatDateTime(new Date(a.firstObserved), ctx.timeZone)}</dd>
+          </div>
+          <div>
+            <dt>最後の観測</dt>
+            <dd>{formatDateTime(new Date(a.lastObserved), ctx.timeZone)}</dd>
+          </div>
+          <div>
+            <dt>タイムゾーン</dt>
+            <dd>{ctx.timeZone}</dd>
+          </div>
+        </dl>
+        <div className="cloud-agent-tooltip-section">モデル別イベント数</div>
+        <dl>
+          {a.models.slice(0, 4).map((model) => (
+            <div key={model.key}>
+              <dt>{model.key}</dt>
+              <dd>{model.eventCount.toLocaleString()}</dd>
+            </div>
+          ))}
+        </dl>
+        {a.models.length > 4 && (
+          <div className="cloud-agent-tooltip-more">
+            ほか {a.models.length - 4} モデル（集計一覧に表示）
+          </div>
+        )}
+        <div className="cloud-agent-tooltip-section">Cloud Agent ID</div>
+        <div className="cloud-agent-tooltip-id">{a.key}</div>
+      </>
+    ),
   });
   return (
     <details className="panel wide analysis-disclosure" open>
@@ -100,7 +170,7 @@ export function CloudAgentAnalysis({
               {
                 label: "Cloud Agent ID 数",
                 value: String(s.agentCount),
-                sub: `${s.eventCount} events · ${formatTokens(s.totalTokens)} tokens`,
+                sub: `${s.eventCount} events / ${formatTokens(s.totalTokens)} tokens`,
               },
               {
                 label: "Cloud Agent 合計コスト",
