@@ -15,7 +15,7 @@ function Ranking({
   color,
 }: {
   title: string;
-  rows: { key: string; value: number }[];
+  rows: { key: string; label: string; value: number; detail?: string }[];
   format: (value: number) => string;
   color: string;
 }) {
@@ -33,8 +33,8 @@ function Ranking({
               <XAxis type="number" stroke="#8b949e" fontSize={12} tickFormatter={format} />
               <YAxis
                 type="category"
-                dataKey="key"
-                width={160}
+                dataKey="label"
+                width={185}
                 interval={0}
                 stroke="#8b949e"
                 fontSize={11}
@@ -43,11 +43,19 @@ function Ranking({
                 }
               />
               <Tooltip
+                cursor={{ fill: "#8b949e", fillOpacity: 0.12 }}
+                wrapperStyle={{ zIndex: 20, pointerEvents: "none" }}
                 content={({ active, payload }) =>
                   active && payload?.length ? (
-                    <div className="chart-tooltip">
-                      <div className="chart-tooltip-label">{payload[0]?.payload.key}</div>
-                      {format(Number(payload[0]?.value))}
+                    <div className="chart-tooltip cloud-agent-tooltip">
+                      <div className="chart-tooltip-label">{payload[0]?.payload.label}</div>
+                      <div>{format(Number(payload[0]?.value))}</div>
+                      {payload[0]?.payload.detail && (
+                        <div className="meta">{payload[0].payload.detail}</div>
+                      )}
+                      {payload[0]?.payload.detail && (
+                        <div className="meta">ID: {payload[0].payload.key}</div>
+                      )}
                     </div>
                   ) : null
                 }
@@ -70,6 +78,12 @@ export function CloudAgentAnalysis({
 }) {
   const { agents, summary: s, byUser } = useMemo(() => analyzeCloudAgents(events), [events]);
   const { formatCost } = useCostVisibility();
+  const agentRow = (a: (typeof agents)[number], value: number) => ({
+    key: a.key,
+    label: formatDateTime(new Date(a.firstObserved), ctx.timeZone),
+    value,
+    detail: `${a.users.join(", ")} · ${a.eventCount} events · ${formatTokens(a.totalTokens)} tokens`,
+  });
   return (
     <details className="panel wide analysis-disclosure" open>
       <summary>Cloud Agent ID 別の分析</summary>
@@ -105,53 +119,61 @@ export function CloudAgentAnalysis({
               },
             ]}
           />
+          <p className="meta">
+            グラフの日時は最初の観測 ({ctx.timeZone})。ホバーでユーザーと ID を確認できます。
+          </p>
           <div className="user-rankings">
             <Ranking
               title="Cloud Agent コスト Top 10"
-              rows={agents.map((a) => ({ key: a.key, value: a.cost }))}
+              rows={agents.map((a) => agentRow(a, a.cost))}
               format={formatCost}
               color="#58a6ff"
             />
             <Ranking
               title="Cloud Agent トークン Top 10"
-              rows={agents.map((a) => ({ key: a.key, value: a.totalTokens }))}
+              rows={agents.map((a) => agentRow(a, a.totalTokens))}
               format={formatTokens}
               color="#3fb950"
             />
             <Ranking
               title="Cloud Agent イベント数 Top 10"
-              rows={agents.map((a) => ({ key: a.key, value: a.eventCount }))}
+              rows={agents.map((a) => agentRow(a, a.eventCount))}
               format={(v) => v.toLocaleString()}
               color="#d2a8ff"
             />
             <Ranking
               title="ユーザー別 Cloud Agent ID 数 Top 10"
-              rows={byUser.map((a) => ({ key: a.key, value: a.agentCount }))}
+              rows={byUser.map((a) => ({ key: a.key, label: a.key, value: a.agentCount }))}
               format={(v) => v.toLocaleString()}
               color="#f0883e"
             />
           </div>
           <p className="meta">
-            同じ ID が複数ユーザーに現れる場合、各ユーザーで 1 件と数えます。以下はコスト降順です。
+            ユーザー別の ID 数は、同じ ID が複数ユーザーに現れる場合、各ユーザーで 1 件と数えます。
+          </p>
+          <h3>Cloud Agent 集計一覧（コスト上位 20 件）</h3>
+          <p className="meta">
+            1 行は 1 つの ID の集計です。全 {agents.length} 件中 {Math.min(20, agents.length)}{" "}
+            件を表示。
           </p>
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Cloud Agent ID</th>
+                  <th>最初の観測 ({ctx.timeZone})</th>
                   <th>ユーザー</th>
                   <th>イベント数</th>
                   <th>コスト</th>
                   <th>トークン</th>
                   <th>モデル別イベント数</th>
-                  <th>最初の観測 ({ctx.timeZone})</th>
+                  <th>Cloud Agent ID</th>
                   <th>最後の観測 ({ctx.timeZone})</th>
                 </tr>
               </thead>
               <tbody>
-                {agents.map((agent) => (
+                {agents.slice(0, 20).map((agent) => (
                   <tr key={agent.key}>
-                    <td>{agent.key}</td>
+                    <td>{formatDateTime(new Date(agent.firstObserved), ctx.timeZone)}</td>
                     <td>{agent.users.join(", ")}</td>
                     <td>{agent.eventCount}</td>
                     <td>{formatCost(agent.cost)}</td>
@@ -159,7 +181,7 @@ export function CloudAgentAnalysis({
                     <td>
                       {agent.models.map((model) => `${model.key}: ${model.eventCount}`).join(", ")}
                     </td>
-                    <td>{formatDateTime(new Date(agent.firstObserved), ctx.timeZone)}</td>
+                    <td>{agent.key}</td>
                     <td>{formatDateTime(new Date(agent.lastObserved), ctx.timeZone)}</td>
                   </tr>
                 ))}

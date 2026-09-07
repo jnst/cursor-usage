@@ -589,3 +589,9 @@ button.ranking-user-label[aria-pressed="true"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.cloud-agent-tooltip {
+  max-width: 320px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
