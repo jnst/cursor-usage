@@ -414,8 +414,42 @@ tr:last-child td {
 /* Cost, tokens and effective rate remain visible together. */
 .breakdown-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
+}
+.user-rankings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.user-ranking-chart {
+  min-width: 0;
+  overflow-x: auto;
+}
+.user-ranking-chart > .recharts-responsive-container {
+  min-width: 470px;
+}
+.ranking-user-label {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  line-height: 24px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+button.ranking-user-label {
+  cursor: pointer;
+}
+button.ranking-user-label:hover,
+button.ranking-user-label[aria-pressed="true"] {
+  color: var(--accent);
 }
 .ranking-note {
   color: var(--text-dim);
@@ -443,49 +477,6 @@ tr:last-child td {
   font-size: 11px;
   white-space: nowrap;
 }
-.ranking-list {
-  margin: 0;
-  padding-left: 24px;
-  font-size: 12px;
-  line-height: 1.35;
-  font-variant-numeric: tabular-nums;
-}
-.ranking-list li {
-  padding: 3px 0;
-  border-bottom: 1px solid var(--panel-border);
-}
-.ranking-list li:last-child {
-  border: 0;
-}
-.ranking-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  justify-content: space-between;
-}
-.ranking-heading button {
-  background: none;
-  border: 0;
-  color: var(--accent);
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-.ranking-heading button,
-.ranking-heading > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.ranking-heading strong {
-  font-size: 13px;
-  white-space: nowrap;
-}
-.ranking-meta {
-  color: var(--text-dim);
-  font-size: 10px;
-  line-height: 1.2;
-}
 .family-legend {
   display: flex;
   flex-wrap: wrap;
@@ -506,13 +497,8 @@ tr:last-child td {
 .analysis-details {
   margin-top: 16px;
 }
-@media (max-width: 1200px) {
-  .breakdown-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 700px) {
-  .breakdown-grid {
+@media (max-width: 1000px) {
+  .user-rankings {
     grid-template-columns: 1fr;
   }
 }

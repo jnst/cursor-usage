@@ -18,6 +18,7 @@ import {
   summarize,
   topEvents,
   topUsersByEffectiveRate,
+  topUsersByCloudAgentUsage,
 } from "./aggregate.ts";
 import { eventsInDailyWindow } from "./time.ts";
 
@@ -255,6 +256,42 @@ describe("buckets", () => {
   it("topEvents returns the full set when the limit exceeds the length", () => {
     expect(topEvents(b, 10)).toHaveLength(3);
     expect(topEvents([], 5)).toEqual([]);
+  });
+});
+
+describe("topUsersByCloudAgentUsage", () => {
+  it("counts billable event rows rather than unique IDs, costs, or tokens", () => {
+    const input = [
+      event({ user: "a", cloudAgentId: "same-id", cost: 0, totalTokens: 0 }),
+      event({ user: "a", cloudAgentId: "same-id" }),
+      event({ user: "a", cloudAgentId: null, cost: 1000 }),
+      event({ user: "a", cloudAgentId: "ignored", kind: "Errored, No Charge" }),
+      event({ user: "b", cloudAgentId: "  " }),
+      event({ user: "b", cloudAgentId: null, automationId: "automation" }),
+      event({ user: "excluded", cloudAgentId: "ignored", kind: "Errored, No Charge" }),
+    ];
+    const rows = topUsersByCloudAgentUsage(input);
+    expect(rows.map((r) => r.key)).toEqual(["a", "b"]);
+    expect(rows[0]!.cloudAgentEventCount).toBe(2);
+    expect(rows[0]!.eventCount).toBe(3);
+    expect(rows[0]!.cloudAgentUsageRate).toBeCloseTo((100 * 2) / 3);
+    expect(rows[1]!.cloudAgentUsageRate).toBe(0);
+    expect(topUsersByCloudAgentUsage(input, 10, "asc")[0]!.key).toBe("b");
+    expect(topUsersByCloudAgentUsage([])).toEqual([]);
+  });
+
+  it("sorts every user before limiting and breaks ties by user name", () => {
+    const input = Array.from({ length: 12 }, (_, i) =>
+      event({
+        user: `user-${String(i).padStart(2, "0")}`,
+        cloudAgentId: i === 11 ? "cloud" : null,
+      }),
+    );
+    const rows = topUsersByCloudAgentUsage(input);
+    expect(rows).toHaveLength(10);
+    expect(rows[0]!.key).toBe("user-11");
+    expect(rows[1]!.key).toBe("user-00");
+    expect(topUsersByCloudAgentUsage(input, 10, "asc").map((r) => r.key)).not.toContain("user-11");
   });
 });
 

@@ -33,7 +33,7 @@ Usage:
   cursor-usage daily-report <csv>                 Capture a shareable daily report PNG
 
 Stats options:
-  --by <daily-window|user|model|model-family|user-effective-rate>
+  --by <daily-window|user|model|model-family|user-effective-rate|user-cloud-agent>
                                   Show a single breakdown axis (default: all)
   --daily-window <YYYY-MM-DD>     Drill into a single Daily Window
   --start-hour <0-23>             Daily Window start hour (default: 0)
@@ -42,7 +42,7 @@ Stats options:
                                   (e.g. "Auto", "Opus 4.8", "Fable 5")
   --timezone <iana-tz>            Analysis time zone (default: current environment)
   --metric <cost|tokens>          Selected Metric (default: cost)
-  --user-order <asc|desc>         User ranking order (default: cost/tokens desc, rate asc)
+  --user-order <asc|desc>         User ranking order (default: cost/tokens/cloud desc, rate asc)
   --json                          Output aggregated stats as JSON
   --include-no-charge             Include "Errored, No Charge" events
 
@@ -166,10 +166,17 @@ async function runStats(args: string[]): Promise<void> {
   }
   if (
     axis &&
-    !["daily-window", "user", "model", "model-family", "user-effective-rate"].includes(axis)
+    ![
+      "daily-window",
+      "user",
+      "model",
+      "model-family",
+      "user-effective-rate",
+      "user-cloud-agent",
+    ].includes(axis)
   ) {
     fail(
-      `invalid --by value: ${axis} (expected daily-window, user, model, model-family or user-effective-rate)`,
+      `invalid --by value: ${axis} (expected daily-window, user, model, model-family, user-effective-rate or user-cloud-agent)`,
     );
   }
 

@@ -88,6 +88,21 @@ describe("CLI Selected Metric", () => {
   });
 });
 
+describe("CLI Cloud Agent usage ranking", () => {
+  it("renders percentage and counts, and includes window-scoped JSON", () => {
+    const input = events.map((e, i) => ({ ...e, cloudAgentId: i === 0 ? "cloud" : null }));
+    const text = renderStats(input, "user-cloud-agent", ctx);
+    expect(text).toContain("100.0%  1 / 1 events");
+    expect(text.indexOf("alice@example.com")).toBeLessThan(text.indexOf("bob@example.com"));
+    const json = JSON.parse(statsJson(input, ctx, undefined, undefined, "cost", "asc"));
+    expect(json.topUsersByCloudAgentUsage[0].key).toBe("bob@example.com");
+    expect(json.userRankingOrder.cloudAgent).toBe("asc");
+    const daily = JSON.parse(dailyWindowViewJson(input, "2026-06-04", ctx));
+    expect(daily.topUsersByCloudAgentUsage).toHaveLength(1);
+    expect(daily.topUsersByCloudAgentUsage[0].cloudAgentUsageRate).toBe(100);
+  });
+});
+
 describe("CLI Effective Rate ranking", () => {
   it("supports explicit user order in terminal and both JSON views", () => {
     const text = renderStats(
