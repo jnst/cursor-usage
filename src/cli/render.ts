@@ -12,6 +12,7 @@ import {
   includeEmptyDailyWindows,
   summarize,
   topEvents,
+  topUsersByEffectiveRate,
 } from "../core/aggregate.ts";
 import {
   formatMetric,
@@ -123,7 +124,20 @@ function renderBucketChart(
   return lines;
 }
 
-export type StatsAxis = "daily-window" | "user" | "model" | "model-family";
+function renderEffectiveRateRanking(events: UsageEvent[]): string[] {
+  const rows = topUsersByEffectiveRate(events);
+  return [
+    bold("Users by Effective Rate (Top 10, lowest first)"),
+    dim("  Reported cost / total tokens; model and cache mix affect this rate."),
+    ...rows.map(
+      (row, index) =>
+        `  ${index + 1}. ${row.key}  ${formatUsdPerMTok(row.cost, row.totalTokens)}  ${formatUsd(row.cost)}  ${formatTokens(row.totalTokens)} tokens`,
+    ),
+    ...(rows.length ? [] : ["  No eligible users with billable tokens."]),
+  ];
+}
+
+export type StatsAxis = "daily-window" | "user" | "model" | "model-family" | "user-effective-rate";
 
 /**
  * Renders the overview analysis for terminal display.
@@ -165,6 +179,7 @@ export function renderStats(
       renderBucketChart("By Model Family", byModelFamily(events, metric), metric, {
         total,
       }),
+    "user-effective-rate": () => renderEffectiveRateRanking(events),
     user: () =>
       renderBucketChart("By User", byUser(events, metric), metric, {
         total,
@@ -178,6 +193,7 @@ export function renderStats(
       charts["daily-window"](),
       modelFamily ? charts.model() : charts["model-family"](),
       charts.user(),
+      charts["user-effective-rate"](),
     );
   }
 
@@ -208,6 +224,7 @@ export function statsJson(
       byModelFamily: byModelFamily(events, metric),
       byModel: byModel(events, metric),
       byUser: byUser(events, metric),
+      topUsersByEffectiveRate: topUsersByEffectiveRate(events),
     },
     null,
     2,
@@ -348,6 +365,7 @@ export function renderDailyWindowView(
     renderBucketChart("By Kind", byKind(dailyWindowEvents, metric), metric, {
       total: dailyWindowTotal,
     }),
+    renderEffectiveRateRanking(dailyWindowEvents),
     renderDailyWindowEvents(dailyWindowEvents, 20, ctx.timeZone, metric),
   ];
 
@@ -381,6 +399,7 @@ export function dailyWindowViewJson(
       byModelFamily: byModelFamily(dailyWindowEvents, metric),
       byModel: byModel(dailyWindowEvents, metric),
       byUser: byUser(dailyWindowEvents, metric),
+      topUsersByEffectiveRate: topUsersByEffectiveRate(dailyWindowEvents),
       byKind: byKind(dailyWindowEvents, metric),
     },
     null,

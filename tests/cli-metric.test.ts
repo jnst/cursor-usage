@@ -2,7 +2,12 @@ import type { AnalysisContext, UsageEvent } from "../src/core/types.ts";
 
 import { describe, expect, it } from "bun:test";
 
-import { renderDailyWindowView, renderStats, statsJson } from "../src/cli/render.ts";
+import {
+  dailyWindowViewJson,
+  renderDailyWindowView,
+  renderStats,
+  statsJson,
+} from "../src/cli/render.ts";
 
 function event(overrides: Partial<UsageEvent>): UsageEvent {
   return {
@@ -80,5 +85,26 @@ describe("CLI Selected Metric", () => {
     expect(byCost).toContain("rank 1/2 by cost");
     expect(byTokens).toContain("rank 2/2 by tokens");
     expect(byTokens).toContain("Effective");
+  });
+});
+
+describe("CLI Effective Rate ranking", () => {
+  it("renders lowest rates first with cost and token totals", () => {
+    const text = renderStats(events, "user-effective-rate", ctx);
+    expect(text).toContain("Top 10, lowest first");
+    expect(text.indexOf("bob@example.com")).toBeLessThan(text.indexOf("alice@example.com"));
+    expect(text).toContain("$20.00 / MTok");
+    expect(text).toContain("50.0K tokens");
+  });
+  it("includes the same ranking in overview and Daily Window JSON", () => {
+    const overview = JSON.parse(statsJson(events, ctx));
+    expect(overview.topUsersByEffectiveRate.map((r: { key: string }) => r.key)).toEqual([
+      "bob@example.com",
+      "alice@example.com",
+    ]);
+    const daily = JSON.parse(dailyWindowViewJson(events, "2026-06-04", ctx));
+    expect(daily.topUsersByEffectiveRate.map((r: { key: string }) => r.key)).toEqual([
+      "alice@example.com",
+    ]);
   });
 });

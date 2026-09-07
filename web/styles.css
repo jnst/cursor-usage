@@ -31,7 +31,7 @@ body {
 }
 
 .app {
-  max-width: 1180px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 24px 20px 64px;
 }
@@ -76,34 +76,6 @@ body {
 
 .reload-button:hover {
   border-color: var(--accent);
-}
-
-.metric-tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--panel-border);
-  margin-bottom: 16px;
-}
-
-.metric-tabs button {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-dim);
-  padding: 8px 20px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-bottom: -1px;
-}
-
-.metric-tabs button.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
-}
-
-.metric-tabs button:hover {
-  color: var(--text);
 }
 
 /* Drop zone */
@@ -186,7 +158,7 @@ body {
 /* Panels */
 .grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -201,6 +173,7 @@ body {
 }
 
 .panel {
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
@@ -353,6 +326,7 @@ tr:last-child td {
 }
 
 .model-mark {
+  position: relative;
   display: inline-flex;
   align-items: center;
   color: var(--text-dim);
@@ -435,4 +409,160 @@ tr:last-child td {
 .chart-tooltip-value {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
+}
+
+/* Cost, tokens and effective rate remain visible together. */
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.ranking-note {
+  color: var(--text-dim);
+  font-size: 11px;
+  min-height: 34px;
+  margin: 0 0 8px;
+}
+.ranking-list {
+  margin: 0;
+  padding-left: 24px;
+  font-size: 12px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+.ranking-list li {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--panel-border);
+}
+.ranking-list li:last-child {
+  border: 0;
+}
+.ranking-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: space-between;
+}
+.ranking-heading button {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.ranking-heading button,
+.ranking-heading > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ranking-heading strong {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.ranking-meta {
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1.2;
+}
+.family-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  font-size: 12px;
+}
+.family-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.family-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+.analysis-details {
+  margin-top: 16px;
+}
+@media (max-width: 1200px) {
+  .breakdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.model-metric-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.model-metric-toggle button {
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+}
+.model-metric-toggle button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Fill the remaining panel height with complete legend rows. */
+.model-family-panel {
+  display: flex;
+  flex-direction: column;
+}
+.model-family-chart {
+  flex: none;
+}
+.model-family-legend-space {
+  position: relative;
+  flex: 1;
+  min-height: 60px;
+}
+
+.model-family-legend {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  column-gap: 12px;
+  overflow: hidden;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
+}
+.model-family-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  max-width: 100%;
+  min-width: 0;
+}
+.model-family-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.model-family-legend span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

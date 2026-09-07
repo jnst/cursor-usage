@@ -146,6 +146,15 @@ export function byUser(events: UsageEvent[], metric: Metric = "cost"): BucketSta
   );
 }
 
+/** Lowest aggregate $ / MTok first; No Charge, zero-token and zero-cost Users are ineligible. */
+export function topUsersByEffectiveRate(events: UsageEvent[], limit = 10) {
+  return byUser(billable(events))
+    .filter((row) => row.totalTokens > 0 && row.cost > 0)
+    .map((row) => ({ ...row, effectiveRate: (row.cost / row.totalTokens) * 1_000_000 }))
+    .sort((a, b) => a.effectiveRate - b.effectiveRate || a.key.localeCompare(b.key))
+    .slice(0, limit);
+}
+
 /**
  * Groups events by Model, ordered by the Selected Metric descending.
  *

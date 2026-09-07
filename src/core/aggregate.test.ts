@@ -17,6 +17,7 @@ import {
   includeEmptyDailyWindows,
   summarize,
   topEvents,
+  topUsersByEffectiveRate,
 } from "./aggregate.ts";
 import { eventsInDailyWindow } from "./time.ts";
 
@@ -254,5 +255,43 @@ describe("buckets", () => {
   it("topEvents returns the full set when the limit exceeds the length", () => {
     expect(topEvents(b, 10)).toHaveLength(3);
     expect(topEvents([], 5)).toEqual([]);
+  });
+});
+
+describe("topUsersByEffectiveRate", () => {
+  it("divides aggregate cost by aggregate tokens instead of averaging event rates", () => {
+    const rows = topUsersByEffectiveRate([
+      event({ user: "weighted", cost: 9, totalTokens: 9_000_000 }),
+      event({ user: "weighted", cost: 9, totalTokens: 1_000_000 }),
+      event({ user: "other", cost: 2, totalTokens: 1_000_000 }),
+    ]);
+    expect(rows.map((row) => row.key)).toEqual(["weighted", "other"]);
+    expect(rows[0]!.effectiveRate).toBeCloseTo(1.8);
+    expect(rows[0]!.cost).toBe(18);
+    expect(rows[0]!.totalTokens).toBe(10_000_000);
+  });
+
+  it("excludes no-charge events, zero-token and zero-cost users, retaining tiny paid usage", () => {
+    const rows = topUsersByEffectiveRate([
+      event({ user: "empty", cost: 1, totalTokens: 0 }),
+      event({ user: "free", cost: 0, totalTokens: 1 }),
+      event({ user: "tiny", cost: 0.001, totalTokens: 1 }),
+      event({ user: "ignored", kind: "Errored, No Charge", cost: 0, totalTokens: 1_000_000 }),
+      event({ user: "paid", cost: 1, totalTokens: 1_000_000 }),
+      event({ user: "paid", kind: "Errored, No Charge", cost: 0, totalTokens: 9_000_000 }),
+    ]);
+    expect(rows.map((row) => row.key)).toEqual(["paid", "tiny"]);
+    expect(rows[0]!.effectiveRate).toBe(1);
+    expect(topUsersByEffectiveRate([])).toEqual([]);
+  });
+
+  it("breaks rate ties by user name and limits the result to ten", () => {
+    const input = Array.from({ length: 12 }, (_, i) =>
+      event({ user: `user-${String(11 - i).padStart(2, "0")}` }),
+    );
+    const rows = topUsersByEffectiveRate(input);
+    expect(rows).toHaveLength(10);
+    expect(rows[0]!.key).toBe("user-00");
+    expect(rows[9]!.key).toBe("user-09");
   });
 });

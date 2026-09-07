@@ -60,6 +60,8 @@ This rejects keeping all tests in `tests/` by default. `bun test` already discov
 
 ## ADR-009: Rank and Display Analysis by a Selected Metric
 
+The dashboard presentation decision is superseded by ADR-011. CLI metric selection remains supported.
+
 Cost-only analysis cannot tell unused Daily Windows from cheap-model or low-reported-cost usage. We will let the analysis choose a Selected Metric of Cost or Token Count (default Cost). Rankings, summaries, event tables, and the single stacked Daily Window chart all use that Metric. The same Daily Window columns, Model Family colors, and chart geometry are reused; only the encoded value changes. Switching twice compares the two shapes by visual memory. Effective Rate (`$ / MTok`) stays visible as a diagnostic.
 
 This rejects overlaying Cost and Token Count on dual Y axes, and rejects small-multiples (two stacked charts). Dual axes already served daily Cost versus cumulative Cost; a third incommensurable scale would mislead. Two charts would double legend, axis, and hover complexity.
@@ -75,3 +77,21 @@ Period displays — the stacked Daily Window chart, the CLI Daily Window series,
 This does not change Active Daily Window. Rankings, summaries, and Avg Daily Cost / Avg Daily Token Count still divide by windows that have at least one Billable Event. Category breakdowns (User, Model, Model Family, Kind) stay sparse: they are not a time period.
 
 This rejects skipping empty days on a period axis. An empty Sunday is information: usage was zero that window, not that the window did not exist.
+
+## ADR-011: Show Cost and Token Count Together for Sharing
+
+Comparing Cost and Token Count through tabs requires two screenshots. The dashboard will show both Metrics simultaneously in the overview and Daily Window view so one screenshot communicates cost and usage volume. This supersedes ADR-009's single-chart and dashboard Metric-switching decision.
+
+Cost and Token Count use separate full-width charts stacked vertically, Cost first and Token Count immediately below, with the same time range and Model Family colors; the overview charts share one legend and family stack order. Each chart has its own units and scale. Summary cards show both totals and averages (or Daily Window shares and ranks). User Cost and Token Count Top 10 rankings are visible together. Model Family breakdowns use one panel in the first column of a four-column row immediately after the time-series charts, followed by User Cost, Token Count, and Effective Rate Top 10 panels, with a local Cost / Token Count toggle defaulting to Cost. This toggle also applies to Model-level drilldown and does not change the time-series charts or User rankings; screenshot exports use the default Cost breakdown. Reserve the donut area independently of the legend; show as many complete legend rows as fit in the remaining panel height, without a fixed row limit. All Model Families remain in the donut, and slice tooltips show the family name on the first line and selected Metric value on the next line. Narrow screens stack the panels vertically.
+
+Prioritize readable month-long time series and visual comparison over fitting a fixed viewport or page height. Do not halve the time-series chart width to put Metrics side by side. Model Family breakdowns and event details are always visible, without collapsible sections. Screenshot exports use a 1600-pixel width and full-page capture; a long single image is acceptable. An explicit Daily Window event limit limits event rows; Daily Reports show the top 10 events by Cost.
+
+CLI `stats --metric cost|tokens` still selects terminal ranking and display order. Legacy dashboard `metric` URL values and screenshot `--metric` options remain accepted but do not hide either Metric. New dashboard navigation omits `metric` from URLs.
+
+## ADR-012: Rank Users by Aggregate Effective Rate
+
+Show User Effective Rate Top 10, lowest first, alongside User Cost and Token Count rankings. Calculate each User's rate as total reported Cost divided by total Token Count, multiplied by 1,000,000 (`$ / MTok`), never as the arithmetic mean of event rates. Display Cost and Token Count with the rate so low-volume usage is visible. Do not impose a minimum usage threshold.
+
+Exclude No Charge Events from this ranking even when another CLI breakdown explicitly includes them, and exclude Users with zero total tokens or zero total reported Cost. Eligibility is based on unrounded aggregate values; positive Cost remains eligible even if its display rounds to zero. Break ties by User identifier for stable ordering. Use the same Analysis Time Zone and Daily Window boundaries as other analysis; dashboard User rankings retain the comparison set when a User is selected, matching existing User-chart behavior.
+
+This is a diagnostic of reported unit cost, not a productivity or quality score: Model and cache mix affect the result (ADR-003). The visible label is `ユーザー別 実効単価 TOP10（低い順）`. The CLI provides `stats --by user-effective-rate`, and both overview and Daily Window JSON include `topUsersByEffectiveRate` with numeric rates and totals (ADR-005).
