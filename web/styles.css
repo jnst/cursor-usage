@@ -423,6 +423,26 @@ tr:last-child td {
   min-height: 34px;
   margin: 0 0 8px;
 }
+.ranking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ranking-header h3 {
+  margin: 0;
+  min-width: 0;
+}
+.ranking-header .model-metric-toggle {
+  margin: 0;
+  flex-shrink: 0;
+}
+.ranking-header .model-metric-toggle button {
+  padding: 3px 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
 .ranking-list {
   margin: 0;
   padding-left: 24px;

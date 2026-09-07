@@ -42,6 +42,7 @@ Stats options:
                                   (e.g. "Auto", "Opus 4.8", "Fable 5")
   --timezone <iana-tz>            Analysis time zone (default: current environment)
   --metric <cost|tokens>          Selected Metric (default: cost)
+  --user-order <asc|desc>         User ranking order (default: cost/tokens desc, rate asc)
   --json                          Output aggregated stats as JSON
   --include-no-charge             Include "Errored, No Charge" events
 
@@ -149,6 +150,7 @@ async function runStats(args: string[]): Promise<void> {
     options: {
       ...SHARED_ANALYSIS_OPTIONS,
       by: { type: "string" },
+      "user-order": { type: "string" },
       "model-family": { type: "string" },
       json: { type: "boolean", default: false },
     },
@@ -158,6 +160,10 @@ async function runStats(args: string[]): Promise<void> {
   if (!csvPath) fail("stats requires a path to a CSV file");
 
   const axis = values.by as StatsAxis | undefined;
+  const userOrder = values["user-order"];
+  if (userOrder !== undefined && userOrder !== "asc" && userOrder !== "desc") {
+    fail(`invalid --user-order value: ${userOrder} (expected asc or desc)`);
+  }
   if (
     axis &&
     !["daily-window", "user", "model", "model-family", "user-effective-rate"].includes(axis)
@@ -183,16 +189,16 @@ async function runStats(args: string[]): Promise<void> {
   if (dailyWindow) {
     console.log(
       values.json
-        ? dailyWindowViewJson(events, dailyWindow, ctx, user, modelFamily, metric)
-        : renderDailyWindowView(events, dailyWindow, ctx, user, modelFamily, metric),
+        ? dailyWindowViewJson(events, dailyWindow, ctx, user, modelFamily, metric, userOrder)
+        : renderDailyWindowView(events, dailyWindow, ctx, user, modelFamily, metric, userOrder),
     );
     return;
   }
 
   console.log(
     values.json
-      ? statsJson(events, ctx, user, modelFamily, metric)
-      : renderStats(events, axis, ctx, user, modelFamily, metric),
+      ? statsJson(events, ctx, user, modelFamily, metric, userOrder)
+      : renderStats(events, axis, ctx, user, modelFamily, metric, userOrder),
   );
 }
 

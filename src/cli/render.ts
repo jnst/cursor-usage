@@ -13,6 +13,7 @@ import {
   summarize,
   topEvents,
   topUsersByEffectiveRate,
+  type RankingOrder,
 } from "../core/aggregate.ts";
 import {
   formatMetric,
@@ -124,10 +125,10 @@ function renderBucketChart(
   return lines;
 }
 
-function renderEffectiveRateRanking(events: UsageEvent[]): string[] {
-  const rows = topUsersByEffectiveRate(events);
+function renderEffectiveRateRanking(events: UsageEvent[], order: RankingOrder = "asc"): string[] {
+  const rows = topUsersByEffectiveRate(events, 10, order);
   return [
-    bold("Users by Effective Rate (Top 10, lowest first)"),
+    bold(`Users by Effective Rate (Top 10, ${order === "asc" ? "lowest" : "highest"} first)`),
     dim("  Reported cost / total tokens; model and cache mix affect this rate."),
     ...rows.map(
       (row, index) =>
@@ -154,6 +155,7 @@ export function renderStats(
   user?: string,
   modelFamily?: string,
   metric: Metric = "cost",
+  userOrder?: RankingOrder,
 ): string {
   const summary = summarize(events, ctx);
   const total = metricTotal(summary, metric);
@@ -179,9 +181,9 @@ export function renderStats(
       renderBucketChart("By Model Family", byModelFamily(events, metric), metric, {
         total,
       }),
-    "user-effective-rate": () => renderEffectiveRateRanking(events),
+    "user-effective-rate": () => renderEffectiveRateRanking(events, userOrder),
     user: () =>
-      renderBucketChart("By User", byUser(events, metric), metric, {
+      renderBucketChart("By User", byUser(events, metric, userOrder), metric, {
         total,
       }),
   };
@@ -212,6 +214,7 @@ export function statsJson(
   user?: string,
   modelFamily?: string,
   metric: Metric = "cost",
+  userOrder?: RankingOrder,
 ): string {
   return JSON.stringify(
     {
@@ -223,8 +226,9 @@ export function statsJson(
       byDailyWindow: includeEmptyDailyWindows(byDailyWindow(events, ctx)),
       byModelFamily: byModelFamily(events, metric),
       byModel: byModel(events, metric),
-      byUser: byUser(events, metric),
-      topUsersByEffectiveRate: topUsersByEffectiveRate(events),
+      userRankingOrder: { metric: userOrder ?? "desc", effectiveRate: userOrder ?? "asc" },
+      byUser: byUser(events, metric, userOrder),
+      topUsersByEffectiveRate: topUsersByEffectiveRate(events, 10, userOrder),
     },
     null,
     2,
@@ -318,6 +322,7 @@ export function renderDailyWindowView(
   user?: string,
   modelFamily?: string,
   metric: Metric = "cost",
+  userOrder?: RankingOrder,
 ): string {
   const dailyWindows = byDailyWindow(events, ctx);
   const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, ctx);
@@ -359,13 +364,13 @@ export function renderDailyWindowView(
     renderBucketChart("By Model", byModel(dailyWindowEvents, metric), metric, {
       total: dailyWindowTotal,
     }),
-    renderBucketChart("By User", byUser(dailyWindowEvents, metric), metric, {
+    renderBucketChart("By User", byUser(dailyWindowEvents, metric, userOrder), metric, {
       total: dailyWindowTotal,
     }),
     renderBucketChart("By Kind", byKind(dailyWindowEvents, metric), metric, {
       total: dailyWindowTotal,
     }),
-    renderEffectiveRateRanking(dailyWindowEvents),
+    renderEffectiveRateRanking(dailyWindowEvents, userOrder),
     renderDailyWindowEvents(dailyWindowEvents, 20, ctx.timeZone, metric),
   ];
 
@@ -385,6 +390,7 @@ export function dailyWindowViewJson(
   user?: string,
   modelFamily?: string,
   metric: Metric = "cost",
+  userOrder?: RankingOrder,
 ): string {
   const dailyWindowEvents = eventsInDailyWindow(events, dailyWindow, ctx);
   return JSON.stringify(
@@ -398,8 +404,9 @@ export function dailyWindowViewJson(
       byHour: byHour(dailyWindowEvents, ctx),
       byModelFamily: byModelFamily(dailyWindowEvents, metric),
       byModel: byModel(dailyWindowEvents, metric),
-      byUser: byUser(dailyWindowEvents, metric),
-      topUsersByEffectiveRate: topUsersByEffectiveRate(dailyWindowEvents),
+      userRankingOrder: { metric: userOrder ?? "desc", effectiveRate: userOrder ?? "asc" },
+      byUser: byUser(dailyWindowEvents, metric, userOrder),
+      topUsersByEffectiveRate: topUsersByEffectiveRate(dailyWindowEvents, 10, userOrder),
       byKind: byKind(dailyWindowEvents, metric),
     },
     null,

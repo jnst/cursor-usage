@@ -259,6 +259,33 @@ describe("buckets", () => {
 });
 
 describe("topUsersByEffectiveRate", () => {
+  it("selects the highest or lowest ten from all users before truncating", () => {
+    const input = Array.from({ length: 12 }, (_, i) =>
+      event({ user: `user-${i}`, cost: i + 1, totalTokens: (i + 1) * (i + 1) * 1_000_000 }),
+    );
+    expect(
+      byUser(input, "cost", "asc")
+        .slice(0, 10)
+        .map((r) => r.cost),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(
+      byUser(input, "tokens", "desc")
+        .slice(0, 10)
+        .map((r) => r.cost),
+    ).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3]);
+    expect(byUser(input, "tokens", "asc")[0]!.cost).toBe(1);
+    expect(topUsersByEffectiveRate(input, 10, "desc").map((r) => r.cost)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    ]);
+    expect(topUsersByEffectiveRate(input, 10, "asc").map((r) => r.cost)).toEqual([
+      12, 11, 10, 9, 8, 7, 6, 5, 4, 3,
+    ]);
+    expect(
+      topUsersByEffectiveRate([...input, event({ user: "free", cost: 0 })], 10, "desc").some(
+        (r) => r.key === "free",
+      ),
+    ).toBe(false);
+  });
   it("divides aggregate cost by aggregate tokens instead of averaging event rates", () => {
     const rows = topUsersByEffectiveRate([
       event({ user: "weighted", cost: 9, totalTokens: 9_000_000 }),
