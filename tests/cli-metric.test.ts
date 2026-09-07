@@ -89,6 +89,27 @@ describe("CLI Selected Metric", () => {
 });
 
 describe("CLI Effective Rate ranking", () => {
+  it("supports explicit user order in terminal and both JSON views", () => {
+    const text = renderStats(
+      events,
+      "user-effective-rate",
+      ctx,
+      undefined,
+      undefined,
+      "cost",
+      "desc",
+    );
+    expect(text).toContain("highest first");
+    expect(text.indexOf("alice@example.com")).toBeLessThan(text.indexOf("bob@example.com"));
+    const overview = JSON.parse(statsJson(events, ctx, undefined, undefined, "cost", "asc"));
+    expect(overview.byUser[0].key).toBe("bob@example.com");
+    const sameDay = events.map((e) => ({ ...e, date: events[0]!.date }));
+    const daily = JSON.parse(
+      dailyWindowViewJson(sameDay, "2026-06-04", ctx, undefined, undefined, "cost", "desc"),
+    );
+    expect(daily.topUsersByEffectiveRate[0].key).toBe("alice@example.com");
+    expect(daily.userRankingOrder.effectiveRate).toBe("desc");
+  });
   it("renders lowest rates first with cost and token totals", () => {
     const text = renderStats(events, "user-effective-rate", ctx);
     expect(text).toContain("Top 10, lowest first");

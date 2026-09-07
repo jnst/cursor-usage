@@ -90,6 +90,8 @@ CLI `stats --metric cost|tokens` still selects terminal ranking and display orde
 
 ## ADR-012: Rank Users by Aggregate Effective Rate
 
+Each dashboard User Top 10 panel has an independent `高い順` / `低い順` toggle. Defaults remain descending for Cost and Token Count and ascending for Effective Rate, including screenshots. Sort the complete comparison set before selecting ten Users; changing order must not merely reverse the currently displayed ten. The CLI exposes `--user-order asc|desc` for User rankings, with the same per-Metric defaults when omitted. JSON includes the effective `userRankingOrder` values. Other analysis axes are unaffected.
+
 Show User Effective Rate Top 10, lowest first, alongside User Cost and Token Count rankings. Calculate each User's rate as total reported Cost divided by total Token Count, multiplied by 1,000,000 (`$ / MTok`), never as the arithmetic mean of event rates. Display Cost and Token Count with the rate so low-volume usage is visible. Do not impose a minimum usage threshold.
 
 Exclude No Charge Events from this ranking even when another CLI breakdown explicitly includes them, and exclude Users with zero total tokens or zero total reported Cost. Eligibility is based on unrounded aggregate values; positive Cost remains eligible even if its display rounds to zero. Break ties by User identifier for stable ordering. Use the same Analysis Time Zone and Daily Window boundaries as other analysis; dashboard User rankings retain the comparison set when a User is selected, matching existing User-chart behavior.

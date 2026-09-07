@@ -139,19 +139,34 @@ export function byDailyWindow(
  * User keys are the identifiers reported by the Usage Export; this function
  * does not normalize or map them to account records.
  */
-export function byUser(events: UsageEvent[], metric: Metric = "cost"): BucketStat[] {
-  return sortByMetric(
-    bucketBy(events, (e) => e.user),
-    metric,
+export type RankingOrder = "asc" | "desc";
+
+export function byUser(
+  events: UsageEvent[],
+  metric: Metric = "cost",
+  order: RankingOrder = "desc",
+): BucketStat[] {
+  return bucketBy(events, (e) => e.user).sort(
+    (a, b) =>
+      (order === "asc" ? 1 : -1) * (bucketMetric(a, metric) - bucketMetric(b, metric)) ||
+      a.key.localeCompare(b.key),
   );
 }
 
 /** Lowest aggregate $ / MTok first; No Charge, zero-token and zero-cost Users are ineligible. */
-export function topUsersByEffectiveRate(events: UsageEvent[], limit = 10) {
+export function topUsersByEffectiveRate(
+  events: UsageEvent[],
+  limit = 10,
+  order: RankingOrder = "asc",
+) {
   return byUser(billable(events))
     .filter((row) => row.totalTokens > 0 && row.cost > 0)
     .map((row) => ({ ...row, effectiveRate: (row.cost / row.totalTokens) * 1_000_000 }))
-    .sort((a, b) => a.effectiveRate - b.effectiveRate || a.key.localeCompare(b.key))
+    .sort(
+      (a, b) =>
+        (order === "asc" ? 1 : -1) * (a.effectiveRate - b.effectiveRate) ||
+        a.key.localeCompare(b.key),
+    )
     .slice(0, limit);
 }
 

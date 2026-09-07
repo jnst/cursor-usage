@@ -102,6 +102,12 @@ cursor-usage stats usage.csv
 
 ### User Effective Rate
 
+Each User Top 10 panel has independent high-to-low and low-to-high controls.
+Cost and Token Count default to highest first; Effective Rate defaults to lowest
+first. CLI User rankings accept `--user-order asc|desc`, for example
+`stats usage.csv --by user-effective-rate --user-order desc` or
+`stats usage.csv --by user --metric tokens --user-order asc`.
+
 ```bash
 npx @jnst/cursor-usage stats usage.csv --by user-effective-rate
 ```
