@@ -502,6 +502,14 @@ button.ranking-user-label[aria-pressed="true"] {
 .analysis-details {
   margin-top: 16px;
 }
+.analysis-disclosure > summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.analysis-disclosure[open] > summary {
+  margin-bottom: 16px;
+}
 @media (max-width: 1000px) {
   .user-rankings {
     grid-template-columns: 1fr;

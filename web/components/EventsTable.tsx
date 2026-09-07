@@ -38,8 +38,8 @@ export function EventsTable({
 }) {
   const { formatCost } = useCostVisibility();
   return (
-    <div className="panel wide">
-      <h3>{title}</h3>
+    <details className="panel wide analysis-disclosure" open>
+      <summary>{title}</summary>
       <div className={wrapClassName}>
         <table>
           <thead>
@@ -76,6 +76,6 @@ export function EventsTable({
           </tbody>
         </table>
       </div>
-    </div>
+    </details>
   );
 }

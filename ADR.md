@@ -113,3 +113,7 @@ Replace the four-column breakdown row with a Model Family panel followed by four
 A dashboard-wide visibility toggle masks totals and individual costs with `••••`, including cost axes, cumulative values, tooltips, model detail, ranking tooltips, and event tables. Average costs and Effective Rate stay visible, as do tokens, proportions, order, and chart shapes. Default to visible costs, and keep the toggle in memory for the current page; User or Daily Window navigation preserves it. Screenshot and Daily Report exports accept `--hide-costs`.
 
 This is a display preference, not data redaction or access control: average costs or Effective Rate combined with counts can reconstruct totals. CSV input and CLI stats/JSON stay numeric and unchanged. Format masked text directly rather than hiding an unmasked DOM text node with CSS.
+
+## ADR-015: Keep Detail Sections Initially Open and Collapsible
+
+Event tables use native disclosure controls and start open in both overview and Daily Window views, including screenshot exports. This revises ADR-011's ban on collapsible sections: the user can now collapse detail while keeping it visible by default. Keep the existing event selection and deduplication behavior; collapsing a section does not change analysis.
