@@ -39,14 +39,13 @@ import {
   tooltipStyle,
 } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
-import { UserChart } from "./UserChart.tsx";
+import { UserRankings } from "./UserRankings.tsx";
 
 interface Props {
   events: UsageEvent[];
   userEvents: UsageEvent[];
   dailyWindow: string;
   ctx: AnalysisContext;
-  metric: Metric;
   eventLimit?: number;
   showControls: boolean;
   selectedUser: string | null;
@@ -57,50 +56,50 @@ interface Props {
 
 function DailyWindowSummaryCards({
   dailyWindowEvents,
+  events,
+  dailyWindow,
   ctx,
-  metric,
-  periodTotal,
-  rank,
-  dailyWindowCount,
 }: {
   dailyWindowEvents: UsageEvent[];
+  events: UsageEvent[];
+  dailyWindow: string;
   ctx: AnalysisContext;
-  metric: Metric;
-  periodTotal: number;
-  rank: number;
-  dailyWindowCount: number;
 }) {
-  const s = useMemo(() => summarize(dailyWindowEvents, ctx), [dailyWindowEvents, ctx]);
-  const windowValue = metric === "tokens" ? s.totalTokens : s.totalCost;
-  const share = periodTotal > 0 ? Math.round((windowValue / periodTotal) * 100) : 0;
-  const cards = [
-    {
-      label: metric === "tokens" ? "Tokens" : "Cost",
-      value: formatMetric(windowValue, metric),
-      sub: `期間全体の ${share}%`,
-    },
-    {
-      label: metric === "tokens" ? "Cost" : "Tokens",
-      value: metric === "tokens" ? formatUsd(s.totalCost) : formatTokens(s.totalTokens),
-      sub: "this window",
-    },
-    {
-      label: "Effective Rate",
-      value: formatUsdPerMTok(s.totalCost, s.totalTokens),
-      sub: "$ / MTok",
-    },
-    {
-      label: "Events",
-      value: String(s.eventCount),
-      sub: `${s.modelCount} models, ${s.userCount} users`,
-    },
-    {
-      label: `${metricLabel(metric)}順位`,
-      value: `${rank} / ${dailyWindowCount}`,
-      sub: "Daily Windowランキング",
-    },
-  ];
-  return <SummaryCards cards={cards} />;
+  const s = summarize(dailyWindowEvents, ctx);
+  const period = summarize(events, ctx);
+  const windows = byDailyWindow(events, ctx);
+  const rank = (metric: Metric) =>
+    [...windows]
+      .sort((a, b) => bucketMetric(b, metric) - bucketMetric(a, metric))
+      .findIndex((row) => row.key === dailyWindow) + 1;
+  const share = (value: number, total: number) =>
+    total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <SummaryCards
+      cards={[
+        {
+          label: "Cost",
+          value: formatUsd(s.totalCost),
+          sub: `期間全体の ${share(s.totalCost, period.totalCost)}% · 順位 ${rank("cost")} / ${windows.length}`,
+        },
+        {
+          label: "Tokens",
+          value: formatTokens(s.totalTokens),
+          sub: `期間全体の ${share(s.totalTokens, period.totalTokens)}% · 順位 ${rank("tokens")} / ${windows.length}`,
+        },
+        {
+          label: "Effective Rate",
+          value: formatUsdPerMTok(s.totalCost, s.totalTokens),
+          sub: "$ / MTok",
+        },
+        {
+          label: "Events",
+          value: String(s.eventCount),
+          sub: `${s.modelCount} models · ${s.userCount} users`,
+        },
+      ]}
+    />
+  );
 }
 
 /**
@@ -222,18 +221,10 @@ function HourlyChart({
   );
 }
 
-function KindBreakdown({
-  dailyWindowEvents,
-  metric,
-}: {
-  dailyWindowEvents: UsageEvent[];
-  metric: Metric;
-}) {
-  const data = useMemo(() => byKind(dailyWindowEvents, metric), [dailyWindowEvents, metric]);
-  const maxValue = Math.max(...data.map((d) => bucketMetric(d, metric)), 0);
-  const label = metricLabel(metric);
+function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] }) {
+  const data = byKind(dailyWindowEvents);
   return (
-    <div className="panel">
+    <div className="panel wide">
       <h3>種別別内訳</h3>
       <div className="table-wrap">
         <table>
@@ -241,28 +232,19 @@ function KindBreakdown({
             <tr>
               <th>種別</th>
               <th className="num">イベント</th>
-              <th className="num">{label}</th>
+              <th className="num">コスト</th>
+              <th className="num">トークン</th>
             </tr>
           </thead>
           <tbody>
-            {data.map((d) => {
-              const value = bucketMetric(d, metric);
-              return (
-                <tr key={d.key}>
-                  <td>{d.key}</td>
-                  <td className="num">{d.eventCount}</td>
-                  <td className="num">
-                    <span
-                      className="cost-bar"
-                      style={{
-                        width: maxValue > 0 ? `${(value / maxValue) * 100}%` : 0,
-                      }}
-                    />
-                    {formatMetric(value, metric)}
-                  </td>
-                </tr>
-              );
-            })}
+            {data.map((row) => (
+              <tr key={row.key}>
+                <td>{row.key}</td>
+                <td className="num">{row.eventCount}</td>
+                <td className="num">{formatUsd(row.cost)}</td>
+                <td className="num">{formatTokens(row.totalTokens)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -275,15 +257,13 @@ function KindBreakdown({
  *
  * `events` is the current filtered analysis set for charts and tables.
  * `userEvents` keeps the unfiltered User comparison set for the window so the
- * selected user can be shown without hiding the other users. Rankings follow
- * the Selected Metric.
+ * selected user can be shown without hiding the other users. Cost and Token Count are shown together.
  */
 export function DailyWindowView({
   events,
   userEvents,
   dailyWindow,
   ctx,
-  metric,
   eventLimit,
   showControls,
   selectedUser,
@@ -300,25 +280,12 @@ export function DailyWindowView({
     () => eventsInDailyWindow(userEvents, dailyWindow, ctx),
     [userEvents, dailyWindow, ctx],
   );
-  const periodTotal = useMemo(() => {
-    const s = summarize(events, ctx);
-    return metric === "tokens" ? s.totalTokens : s.totalCost;
-  }, [events, ctx, metric]);
-  const rank = useMemo(() => {
-    const sorted = [...byDailyWindow(events, ctx)].sort(
-      (a, b) => bucketMetric(b, metric) - bucketMetric(a, metric),
-    );
-    return sorted.findIndex((d) => d.key === dailyWindow) + 1;
-  }, [events, dailyWindow, ctx, metric]);
-
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
   const eventRows = useMemo(() => {
-    const sorted = [...dailyWindowEvents].sort((a, b) =>
-      metric === "tokens" ? b.totalTokens - a.totalTokens : b.cost - a.cost,
-    );
+    const sorted = [...dailyWindowEvents].sort((a, b) => b.cost - a.cost);
     return eventLimit === undefined ? sorted : sorted.slice(0, eventLimit);
-  }, [dailyWindowEvents, eventLimit, metric]);
-  const orderLabel = metric === "tokens" ? "トークン降順" : "コスト降順";
+  }, [dailyWindowEvents, eventLimit]);
+  const orderLabel = "コスト降順";
   const eventTitle =
     eventLimit === undefined
       ? `この Daily Window のイベント (${eventRows.length}件・${orderLabel})`
@@ -370,46 +337,50 @@ export function DailyWindowView({
         </div>
       ) : (
         <>
+          {selectedUser && <p className="meta">選択中のユーザー: {selectedUser}</p>}
           <DailyWindowSummaryCards
             dailyWindowEvents={dailyWindowEvents}
+            events={events}
+            dailyWindow={dailyWindow}
             ctx={ctx}
-            metric={metric}
-            periodTotal={periodTotal}
-            rank={rank}
-            dailyWindowCount={dailyWindows.length}
           />
           <div className="grid">
-            <HourlyChart
-              dailyWindowEvents={dailyWindowEvents}
-              scaleDayEvents={dailyWindowUserEvents}
-              ctx={ctx}
-              metric={metric}
-            />
-            <ModelFamilyPanel
-              events={dailyWindowEvents}
-              metric={metric}
-              familyColors={familyColors}
-              showControls={showControls}
-              height={260}
-            />
-            <UserChart
-              events={dailyWindowUserEvents}
-              metric={metric}
-              selectedUser={selectedUser}
-              showControls={showControls}
-              onSelectUser={onSelectUser}
-              height={260}
-              barFill="#3fb950"
-            />
-            <KindBreakdown dailyWindowEvents={dailyWindowEvents} metric={metric} />
-            <EventsTable
-              events={eventRows}
-              timeZone={ctx.timeZone}
-              title={eventTitle}
-              timeHeader={`時刻 (${ctx.timeZone})`}
-              formatTimestamp={formatTime}
-              wrapClassName="table-wrap scroll"
-            />
+            {(["cost", "tokens"] as const).map((metric) => (
+              <HourlyChart
+                key={metric}
+                dailyWindowEvents={dailyWindowEvents}
+                scaleDayEvents={dailyWindowUserEvents}
+                ctx={ctx}
+                metric={metric}
+              />
+            ))}
+            <div className="breakdown-grid wide">
+              <ModelFamilyPanel
+                events={dailyWindowEvents}
+                familyColors={familyColors}
+                showControls={showControls}
+                height={260}
+              />
+              <UserRankings
+                events={dailyWindowUserEvents}
+                selectedUser={selectedUser}
+                showControls={showControls}
+                onSelectUser={onSelectUser}
+              />
+            </div>
+          </div>
+          <div className="analysis-details">
+            <div className="grid">
+              <KindBreakdown dailyWindowEvents={dailyWindowEvents} />
+              <EventsTable
+                events={eventRows}
+                timeZone={ctx.timeZone}
+                title={eventTitle}
+                timeHeader={`時刻 (${ctx.timeZone})`}
+                formatTimestamp={formatTime}
+                wrapClassName="table-wrap"
+              />
+            </div>
           </div>
         </>
       )}

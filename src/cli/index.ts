@@ -33,7 +33,7 @@ Usage:
   cursor-usage daily-report <csv>                 Capture a shareable daily report PNG
 
 Stats options:
-  --by <daily-window|user|model|model-family>
+  --by <daily-window|user|model|model-family|user-effective-rate>
                                   Show a single breakdown axis (default: all)
   --daily-window <YYYY-MM-DD>     Drill into a single Daily Window
   --start-hour <0-23>             Daily Window start hour (default: 0)
@@ -52,7 +52,7 @@ Screenshot options:
   --out <path>                    Output path
   --user <identifier>             Filter screenshot to a single User
   --timezone <iana-tz>            Analysis time zone (default: current environment)
-  --metric <cost|tokens>          Selected Metric (default: cost)
+  --metric <cost|tokens>          Accepted for compatibility; PNG always shows both metrics
   --include-no-charge             Include "Errored, No Charge" events
 
 Serve options:
@@ -158,8 +158,13 @@ async function runStats(args: string[]): Promise<void> {
   if (!csvPath) fail("stats requires a path to a CSV file");
 
   const axis = values.by as StatsAxis | undefined;
-  if (axis && !["daily-window", "user", "model", "model-family"].includes(axis)) {
-    fail(`invalid --by value: ${axis} (expected daily-window, user, model or model-family)`);
+  if (
+    axis &&
+    !["daily-window", "user", "model", "model-family", "user-effective-rate"].includes(axis)
+  ) {
+    fail(
+      `invalid --by value: ${axis} (expected daily-window, user, model, model-family or user-effective-rate)`,
+    );
   }
 
   const dailyWindow = parseDailyWindow(values["daily-window"]);

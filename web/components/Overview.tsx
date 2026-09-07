@@ -5,7 +5,6 @@ import {
   Bar,
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
   ResponsiveContainer,
   Tooltip,
@@ -43,7 +42,7 @@ import {
   modelFamilyColors,
 } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
-import { UserChart } from "./UserChart.tsx";
+import { UserRankings } from "./UserRankings.tsx";
 
 const CUMULATIVE_KEY = "cumulative";
 
@@ -137,33 +136,19 @@ function DailyMetricTooltip({
   );
 }
 
-function OverviewSummary({
-  events,
-  ctx,
-  metric,
-}: {
-  events: UsageEvent[];
-  ctx: AnalysisContext;
-  metric: Metric;
-}) {
+function OverviewSummary({ events, ctx }: { events: UsageEvent[]; ctx: AnalysisContext }) {
   const s = useMemo(() => summarize(events, ctx), [events, ctx]);
-  const primaryValue = metric === "tokens" ? s.totalTokens : s.totalCost;
-  const secondaryValue = metric === "tokens" ? s.totalCost : s.totalTokens;
-  const avg =
-    s.dailyWindowCount > 0
-      ? (metric === "tokens" ? s.totalTokens : s.totalCost) / s.dailyWindowCount
-      : 0;
   return (
     <SummaryCards
       cards={[
         {
-          label: metric === "tokens" ? "Total Tokens" : "Total Cost",
-          value: formatMetric(primaryValue, metric),
+          label: "Total Cost",
+          value: formatUsd(s.totalCost),
           sub: formatDailyWindowRange(s.firstDailyWindow, s.lastDailyWindow),
         },
         {
-          label: metric === "tokens" ? "Total Cost" : "Total Tokens",
-          value: metric === "tokens" ? formatUsd(secondaryValue) : formatTokens(secondaryValue),
+          label: "Total Tokens",
+          value: formatTokens(s.totalTokens),
           sub: `${s.eventCount} events`,
         },
         {
@@ -172,19 +157,14 @@ function OverviewSummary({
           sub: "$ / MTok",
         },
         {
-          label: metric === "tokens" ? "Avg Daily Token Count" : "Avg Daily Cost",
-          value: formatMetric(avg, metric),
+          label: "Avg Daily Cost",
+          value: formatUsd(s.avgCostPerActiveDailyWindow),
           sub: `${s.dailyWindowCount} active windows`,
         },
         {
-          label: "Models",
-          value: String(s.modelCount),
-          sub: "in this export",
-        },
-        {
-          label: "Users",
-          value: String(s.userCount),
-          sub: "in this export",
+          label: "Avg Daily Token Count",
+          value: formatTokens(s.dailyWindowCount ? s.totalTokens / s.dailyWindowCount : 0),
+          sub: `${s.modelCount} models · ${s.userCount} users`,
         },
       ]}
     />
@@ -208,7 +188,7 @@ function DailyChart({
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
 }) {
-  const families = useMemo(() => byModelFamily(events, metric).map((f) => f.key), [events, metric]);
+  const families = useMemo(() => byModelFamily(events).map((f) => f.key), [events]);
   const data = useMemo(() => {
     let cumulative = 0;
     return includeEmptyDailyWindowCosts(byDailyWindowAndModelFamily(events, ctx)).map((d) => {
@@ -240,7 +220,7 @@ function DailyChart({
   return (
     <div className="panel wide">
       <h3>
-        日別{metric === "tokens" ? "トークン" : "コスト"}推移(モデル分類別積み上げ + 累積)
+        日別{metric === "tokens" ? "トークン" : "コスト"}推移
         {showControls && onSelectDailyWindow && (
           <span className="hint">バーをクリックで詳細へ</span>
         )}
@@ -276,7 +256,6 @@ function DailyChart({
             allowEscapeViewBox={{ x: true, y: true }}
             wrapperStyle={{ zIndex: 20, pointerEvents: "auto" }}
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
           {families.map((family, i) => (
             <Bar
               key={family}
@@ -311,13 +290,12 @@ function DailyChart({
  *
  * `events` is the currently filtered analysis set. `userEvents` keeps the
  * unfiltered User comparison set so the User chart can show selected and
- * unselected users together. Charts and rankings follow the Selected Metric.
+ * unselected users together. Cost and Token Count are shown together.
  */
 export function Overview({
   events,
   userEvents,
   ctx,
-  metric,
   showControls,
   onSelectDailyWindow,
   onSelectUser,
@@ -326,47 +304,73 @@ export function Overview({
   events: UsageEvent[];
   userEvents: UsageEvent[];
   ctx: AnalysisContext;
-  metric: Metric;
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
   onSelectUser?: (user: string) => void;
   selectedUser: string | null;
 }) {
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
-  const top = useMemo(() => topEvents(events, 20, metric), [events, metric]);
+  const families = useMemo(() => byModelFamily(events), [events]);
+  const top = useMemo(
+    () =>
+      [...new Set([...topEvents(events, 20, "cost"), ...topEvents(events, 20, "tokens")])].sort(
+        (a, b) => b.cost - a.cost,
+      ),
+    [events],
+  );
   return (
     <>
-      <OverviewSummary events={events} ctx={ctx} metric={metric} />
+      {selectedUser && <p className="meta">選択中のユーザー: {selectedUser}</p>}
+      <OverviewSummary events={events} ctx={ctx} />
       <div className="grid">
-        <DailyChart
-          events={events}
-          scaleEvents={userEvents}
-          ctx={ctx}
-          metric={metric}
-          familyColors={familyColors}
-          showControls={showControls}
-          onSelectDailyWindow={onSelectDailyWindow}
-        />
-        <ModelFamilyPanel
-          events={events}
-          metric={metric}
-          familyColors={familyColors}
-          showControls={showControls}
-        />
-        <UserChart
-          events={userEvents}
-          metric={metric}
-          selectedUser={selectedUser}
-          showControls={showControls}
-          onSelectUser={onSelectUser}
-        />
-        <EventsTable
-          events={top}
-          timeZone={ctx.timeZone}
-          title={metric === "tokens" ? "高トークンイベント Top 20" : "高コストイベント Top 20"}
-          timeHeader={`日時 (${ctx.timeZone})`}
-          formatTimestamp={formatDateTime}
-        />
+        {(["cost", "tokens"] as const).map((metric) => (
+          <DailyChart
+            key={metric}
+            events={events}
+            scaleEvents={userEvents}
+            ctx={ctx}
+            metric={metric}
+            familyColors={familyColors}
+            showControls={showControls}
+            onSelectDailyWindow={onSelectDailyWindow}
+          />
+        ))}
+        <div className="family-legend wide" aria-label="モデル分類の共通凡例">
+          {families.map((family) => (
+            <span key={family.key}>
+              <i style={{ background: familyColors.get(family.key) }} />
+              {family.key}
+            </span>
+          ))}
+          <span>
+            <i style={{ background: "#e6edf3" }} />
+            累積（右軸）
+          </span>
+        </div>
+        <div className="breakdown-grid wide">
+          <ModelFamilyPanel
+            events={events}
+            familyColors={familyColors}
+            showControls={showControls}
+          />
+          <UserRankings
+            events={userEvents}
+            selectedUser={selectedUser}
+            showControls={showControls}
+            onSelectUser={onSelectUser}
+          />
+        </div>
+      </div>
+      <div className="analysis-details">
+        <div className="grid">
+          <EventsTable
+            events={top}
+            timeZone={ctx.timeZone}
+            title="高コスト・高トークンイベント 各 Top 20（重複を除く・コスト降順）"
+            timeHeader={`日時 (${ctx.timeZone})`}
+            formatTimestamp={formatDateTime}
+          />
+        </div>
       </div>
     </>
   );

@@ -100,6 +100,23 @@ npm install -g @jnst/cursor-usage   # or: bun add -g @jnst/cursor-usage
 cursor-usage stats usage.csv
 ```
 
+### User Effective Rate
+
+```bash
+npx @jnst/cursor-usage stats usage.csv --by user-effective-rate
+```
+
+Shows the ten Users with the lowest aggregate reported Cost per million tokens
+(`$ / MTok`), alongside Cost and Token Count. No Charge Events and Users with
+zero tokens or zero total reported Cost are excluded; there is no minimum usage threshold. Model and cache
+mix affect this diagnostic, so it is not a productivity score. Overview and
+Daily Window JSON expose the same ranking as `topUsersByEffectiveRate`.
+
+The dashboard always shows Cost and Token Count together. Terminal
+`stats --metric cost|tokens` still selects ranking order; legacy screenshot
+`--metric` options and dashboard `metric` URL values are accepted but no longer
+switch the displayed Metric.
+
 ### Screenshots
 
 ```bash
@@ -107,7 +124,10 @@ npx @jnst/cursor-usage screenshot team-usage-events.csv
 ```
 
 Captures the dashboard as a PNG next to the CSV. The default screenshot is an
-Overview:
+Overview. Cost and Token Count charts are stacked vertically at full width, with User Cost, Token Count,
+and Effective Rate Top 10 rankings in the same image (1600px wide). Model Family
+breakdowns and event details are always visible. Readability takes priority over
+fitting a fixed page height:
 
 ```text
 team-usage-events.csv -> team-usage-events.png
@@ -131,9 +151,10 @@ npx @jnst/cursor-usage screenshot usage.csv --daily-window 2026-06-14 --start-ho
 ```
 
 For a shareable report of the latest work session in the CSV, use
-`daily-report`. It captures the latest 5:00-start Daily Window, limits the
-event table to the top 10 events by cost, and writes `daily-report.png` in the
-current directory:
+`daily-report`. It captures the latest 5:00-start Daily Window with both Metrics
+and all three User rankings, and writes `daily-report.png` in the current
+directory. Model Family and Kind breakdowns are visible, along with the top 10
+events by Cost. The image captures the full page:
 
 ```bash
 npx @jnst/cursor-usage daily-report usage.csv
@@ -145,7 +166,6 @@ can also be filtered the same way as terminal stats:
 
 ```bash
 npx @jnst/cursor-usage screenshot usage.csv --daily-window 2026-06-14 --user jnst@example.jp --timezone Asia/Tokyo
-npx @jnst/cursor-usage screenshot usage.csv --metric tokens --out dashboard-tokens.png
 npx @jnst/cursor-usage screenshot usage.csv --out dashboard.png
 ```
 

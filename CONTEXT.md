@@ -102,7 +102,7 @@ A Usage Event whose `Kind` is `Errored, No Charge`. No Charge Events are parsed 
 No Charge Events may be included only when explicitly requested.
 
 **Selected Metric**:
-The Metric this analysis ranks and displays as its primary value, either Cost or Token Count. The default is Cost. Selected Metric is an analysis choice, like Analysis Time Zone and Daily Window start hour: it does not change which Usage Events are included.
+The Metric the CLI ranks and displays as its primary value, either Cost or Token Count. The default is Cost. The dashboard displays both simultaneously (ADR-011). Selected Metric is an analysis choice, like Analysis Time Zone and Daily Window start hour: it does not change which Usage Events are included.
 _Avoid_: Chart scale, Display Metric
 
 **Token Count**:

@@ -1,11 +1,48 @@
 import type { Metric, UsageEvent } from "../../src/core/types.ts";
 
-import { useMemo, useState } from "react";
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Cell, DefaultTooltipContent, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { byModel, byModelFamily, eventsInModelFamily } from "../../src/core/aggregate.ts";
 import { formatMetric } from "../../src/core/format.ts";
-import { COLORS, metricLabel, tooltipItemStyle, tooltipStyle } from "./shared.ts";
+import { COLORS, metricHoverLabel, metricLabel, tooltipItemStyle, tooltipStyle } from "./shared.ts";
+
+/** Use the space left by the other panels without changing the donut size. */
+function FittingLegend({
+  families,
+  familyColors,
+}: {
+  families: { key: string }[];
+  familyColors: Map<string, string>;
+}) {
+  const slot = useRef<HTMLDivElement>(null);
+  const [legendHeight, setLegendHeight] = useState(60);
+  useLayoutEffect(() => {
+    const element = slot.current;
+    if (!element) return;
+    const update = () => setLegendHeight(Math.floor(element.clientHeight / 20) * 20);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div className="model-family-legend-space" ref={slot}>
+      <ul
+        className="model-family-legend"
+        style={{ height: legendHeight }}
+        aria-label="モデル分類の凡例（一部表示）"
+      >
+        {families.map((family, i) => (
+          <li key={family.key} title={family.key}>
+            <i style={{ background: familyColors.get(family.key) ?? COLORS[i % COLORS.length] }} />
+            <span>{family.key}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 /**
  * Model Family pie with a Model-level drilldown.
@@ -16,17 +53,16 @@ import { COLORS, metricLabel, tooltipItemStyle, tooltipStyle } from "./shared.ts
  */
 export function ModelFamilyPanel({
   events,
-  metric,
   familyColors,
   showControls,
   height = 280,
 }: {
   events: UsageEvent[];
-  metric: Metric;
   familyColors: Map<string, string>;
   showControls: boolean;
   height?: number;
 }) {
+  const [metric, setMetric] = useState<Metric>("cost");
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const families = useMemo(
     () =>
@@ -41,6 +77,20 @@ export function ModelFamilyPanel({
     [events, selectedFamily, metric],
   );
   const label = metricLabel(metric);
+  const metricToggle = showControls && (
+    <div className="model-metric-toggle" role="group" aria-label="モデル分類別の表示指標">
+      {(["cost", "tokens"] as const).map((value) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={metric === value}
+          onClick={() => setMetric(value)}
+        >
+          {value === "cost" ? "コスト" : "トークン"}
+        </button>
+      ))}
+    </div>
+  );
 
   if (selectedFamily) {
     const familyTotal = models.reduce(
@@ -68,6 +118,7 @@ export function ModelFamilyPanel({
             {selectedFamily === "Auto" ? " (Auto の実モデル)" : ""}
           </span>
         </h3>
+        {metricToggle}
         <div className="table-wrap scroll">
           <table>
             <thead>
@@ -113,45 +164,59 @@ export function ModelFamilyPanel({
   }
 
   return (
-    <div className="panel">
+    <div className="panel model-family-panel">
       <h3>
         モデル分類別{metric === "tokens" ? "トークン使用量" : "コスト"}
         {showControls && <span className="hint">クリックで実モデルの内訳へ</span>}
       </h3>
-      <ResponsiveContainer width="100%" height={height}>
-        <PieChart>
-          <Pie
-            data={families}
-            dataKey="value"
-            nameKey="key"
-            innerRadius={height >= 280 ? 55 : 50}
-            outerRadius={height >= 280 ? 95 : 90}
-            paddingAngle={2}
-            stroke="none"
-            isAnimationActive={false}
-            cursor={showControls ? "pointer" : undefined}
-            onClick={(_, index) => {
-              if (!showControls) return;
-              const family = families[index]?.key;
-              if (family) setSelectedFamily(family);
-            }}
-          >
-            {families.map((entry, i) => (
-              <Cell
-                key={entry.key}
-                fill={familyColors.get(entry.key) ?? COLORS[i % COLORS.length]}
-              />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={tooltipStyle}
-            itemStyle={tooltipItemStyle}
-            labelStyle={tooltipItemStyle}
-            formatter={(value) => [formatMetric(Number(value), metric), label]}
-          />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-        </PieChart>
-      </ResponsiveContainer>
+      {metricToggle}
+      <div className="model-family-chart">
+        <ResponsiveContainer width="100%" height={height - 60}>
+          <PieChart>
+            <Pie
+              data={families}
+              dataKey="value"
+              nameKey="key"
+              innerRadius={height >= 280 ? 55 : 50}
+              outerRadius={height >= 280 ? 95 : 90}
+              paddingAngle={2}
+              stroke="none"
+              isAnimationActive={false}
+              cursor={showControls ? "pointer" : undefined}
+              onClick={(_, index) => {
+                if (!showControls) return;
+                const family = families[index]?.key;
+                if (family) setSelectedFamily(family);
+              }}
+            >
+              {families.map((entry, i) => (
+                <Cell
+                  key={entry.key}
+                  fill={familyColors.get(entry.key) ?? COLORS[i % COLORS.length]}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={tooltipStyle}
+              itemStyle={tooltipItemStyle}
+              labelStyle={tooltipItemStyle}
+              content={(props) => {
+                const item = props.payload?.[0];
+                if (!props.active || !item) return null;
+                return (
+                  <DefaultTooltipContent
+                    {...props}
+                    label={String(item.name)}
+                    payload={[{ ...item, name: metricHoverLabel(metric) }]}
+                    formatter={(value) => formatMetric(Number(value), metric)}
+                  />
+                );
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <FittingLegend families={families} familyColors={familyColors} />
     </div>
   );
 }

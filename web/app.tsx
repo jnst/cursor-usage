@@ -9,10 +9,9 @@ import {
   isValidStartHour,
   isValidTimeZone,
 } from "../src/core/time.ts";
-import { isMetric, type AnalysisContext, type Metric, type UsageEvent } from "../src/core/types.ts";
+import { type AnalysisContext, type UsageEvent } from "../src/core/types.ts";
 import { DailyWindowView } from "./components/DailyWindowView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
-import { MetricToggle } from "./components/MetricToggle.tsx";
 import { Overview } from "./components/Overview.tsx";
 
 type SerializedUsageEvent = Omit<UsageEvent, "date"> & { date: string };
@@ -35,7 +34,6 @@ function routeFromHash(defaultTimeZone: string): {
   user: string | null;
   ctx: AnalysisContext;
   eventLimit: number | null;
-  metric: Metric;
 } {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const dailyWindow = params.get("daily-window");
@@ -43,7 +41,6 @@ function routeFromHash(defaultTimeZone: string): {
   const timeZone = params.get("timezone");
   const startHour = Number(params.get("start-hour") ?? 0);
   const eventLimit = Number(params.get("event-limit"));
-  const metric = params.get("metric");
   return {
     dailyWindow: dailyWindow && isValidDailyWindowKey(dailyWindow) ? dailyWindow : null,
     user: user || null,
@@ -52,20 +49,17 @@ function routeFromHash(defaultTimeZone: string): {
       startHour: isValidStartHour(startHour) ? startHour : 0,
     },
     eventLimit: Number.isInteger(eventLimit) && eventLimit > 0 ? eventLimit : null,
-    metric: isMetric(metric) ? metric : "cost",
   };
 }
 
-/** Selected Daily Window, Analysis Time Zone, and Selected Metric, kept in sync with the URL hash. */
+/** Selected Daily Window and Analysis Time Zone, kept in sync with the URL hash. */
 function useDailyWindowRoute(): {
   selectedDailyWindow: string | null;
   selectedUser: string | null;
   ctx: AnalysisContext;
   eventLimit: number | null;
-  metric: Metric;
   setSelectedDailyWindow: (dailyWindow: string | null) => void;
   setSelectedUser: (user: string | null) => void;
-  setMetric: (metric: Metric) => void;
 } {
   const defaultTimeZone = useMemo(() => defaultAnalysisTimeZone(), []);
   const [route, setRoute] = useState(() => routeFromHash(defaultTimeZone));
@@ -81,20 +75,24 @@ function useDailyWindowRoute(): {
     user: string | null,
     ctx: AnalysisContext,
     eventLimit: number | null,
-    metric: Metric,
   ) => {
-    if (dailyWindow || user || metric !== "cost") {
+    if (
+      dailyWindow ||
+      user ||
+      ctx.timeZone !== defaultTimeZone ||
+      ctx.startHour !== 0 ||
+      eventLimit !== null
+    ) {
       const params = new URLSearchParams({ timezone: ctx.timeZone });
       if (dailyWindow) params.set("daily-window", dailyWindow);
       if (user) params.set("user", user);
       if (ctx.startHour !== 0) params.set("start-hour", String(ctx.startHour));
       if (eventLimit !== null) params.set("event-limit", String(eventLimit));
-      if (metric !== "cost") params.set("metric", metric);
       window.location.hash = params.toString();
     } else if (window.location.hash) {
       window.history.pushState(null, "", window.location.pathname + window.location.search);
     }
-    setRoute({ dailyWindow, user, ctx, eventLimit, metric });
+    setRoute({ dailyWindow, user, ctx, eventLimit });
   };
 
   return {
@@ -102,13 +100,9 @@ function useDailyWindowRoute(): {
     selectedUser: route.user,
     ctx: route.ctx,
     eventLimit: route.eventLimit,
-    metric: route.metric,
     setSelectedDailyWindow: (dailyWindow) =>
-      updateHash(dailyWindow, route.user, route.ctx, route.eventLimit, route.metric),
-    setSelectedUser: (user) =>
-      updateHash(route.dailyWindow, user, route.ctx, route.eventLimit, route.metric),
-    setMetric: (metric) =>
-      updateHash(route.dailyWindow, route.user, route.ctx, route.eventLimit, metric),
+      updateHash(dailyWindow, route.user, route.ctx, route.eventLimit),
+    setSelectedUser: (user) => updateHash(route.dailyWindow, user, route.ctx, route.eventLimit),
   };
 }
 
@@ -121,10 +115,8 @@ function App() {
     selectedUser,
     ctx,
     eventLimit,
-    metric,
     setSelectedDailyWindow,
     setSelectedUser,
-    setMetric,
   } = useDailyWindowRoute();
 
   const onCsvText = (text: string) => {
@@ -188,14 +180,12 @@ function App() {
           </>
         )}
       </div>
-      {events && showControls && <MetricToggle metric={metric} onChange={setMetric} />}
       {events ? (
         selectedDailyWindow ? (
           <DailyWindowView
             events={events}
             dailyWindow={selectedDailyWindow}
             ctx={ctx}
-            metric={metric}
             eventLimit={eventLimit ?? undefined}
             showControls={showControls}
             onBack={() => setSelectedDailyWindow(null)}
@@ -209,7 +199,6 @@ function App() {
             events={events}
             userEvents={userEvents ?? events}
             ctx={ctx}
-            metric={metric}
             showControls={showControls}
             onSelectDailyWindow={setSelectedDailyWindow}
             onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
