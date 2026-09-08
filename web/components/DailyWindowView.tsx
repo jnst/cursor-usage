@@ -359,7 +359,6 @@ export function DailyWindowView({
                 events={dailyWindowEvents}
                 familyColors={familyColors}
                 showControls={showControls}
-                height={260}
               />
               <UserRankings
                 events={dailyWindowUserEvents}

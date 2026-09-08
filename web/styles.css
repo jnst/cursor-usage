@@ -567,25 +567,18 @@ button.ranking-user-label[aria-pressed="true"] {
   color: var(--accent);
 }
 
-/* Fill the remaining panel height with complete legend rows. */
+/* Size the donut from its available width and keep the legend in normal flow. */
 .model-family-panel {
+  align-self: start;
   display: flex;
   flex-direction: column;
 }
 .model-family-chart {
   flex: none;
+  width: 100%;
+  aspect-ratio: 1;
 }
-.model-family-legend-space {
-  position: relative;
-  flex: 1;
-  min-height: 60px;
-}
-
 .model-family-legend {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
