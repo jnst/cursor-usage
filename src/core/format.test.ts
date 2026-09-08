@@ -61,9 +61,9 @@ describe("formatDailyWindowAxis", () => {
 });
 
 describe("formatDailyWindowRange", () => {
-  it("uses compact month/day bounds without year", () => {
-    expect(formatDailyWindowRange("2026-07-29", "2026-08-24")).toBe("7/29 - 8/24");
-    expect(formatDailyWindowRange("2026-08-14", "2026-08-14")).toBe("8/14");
+  it("uses full ISO dates for range bounds", () => {
+    expect(formatDailyWindowRange("2026-07-29", "2026-08-24")).toBe("2026-07-29 - 2026-08-24");
+    expect(formatDailyWindowRange("2026-08-14", "2026-08-14")).toBe("2026-08-14");
   });
 });
 
