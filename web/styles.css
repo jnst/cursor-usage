@@ -46,6 +46,9 @@ body {
 }
 
 .header h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 20px;
   margin: 0;
   letter-spacing: 0.02em;

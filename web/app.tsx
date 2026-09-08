@@ -157,6 +157,11 @@ function App() {
           role={events && showControls ? "button" : undefined}
           tabIndex={events && showControls ? 0 : undefined}
         >
+          <svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true">
+            <rect x="1" y="8" width="3" height="7" fill="#58a6ff" />
+            <rect x="6" y="4" width="3" height="11" fill="#3fb950" />
+            <rect x="11" y="1" width="3" height="14" fill="#d29922" />
+          </svg>
           Cursor Usage
         </h1>
         {events && (
