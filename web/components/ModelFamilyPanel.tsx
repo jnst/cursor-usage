@@ -1,48 +1,11 @@
 import type { Metric, UsageEvent } from "../../src/core/types.ts";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Cell, DefaultTooltipContent, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { byModel, byModelFamily, eventsInModelFamily } from "../../src/core/aggregate.ts";
-import { formatMetric } from "../../src/core/format.ts";
+import { useCostVisibility } from "./CostVisibility.tsx";
 import { COLORS, metricHoverLabel, metricLabel, tooltipItemStyle, tooltipStyle } from "./shared.ts";
-
-/** Use the space left by the other panels without changing the donut size. */
-function FittingLegend({
-  families,
-  familyColors,
-}: {
-  families: { key: string }[];
-  familyColors: Map<string, string>;
-}) {
-  const slot = useRef<HTMLDivElement>(null);
-  const [legendHeight, setLegendHeight] = useState(60);
-  useLayoutEffect(() => {
-    const element = slot.current;
-    if (!element) return;
-    const update = () => setLegendHeight(Math.floor(element.clientHeight / 20) * 20);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-  return (
-    <div className="model-family-legend-space" ref={slot}>
-      <ul
-        className="model-family-legend"
-        style={{ height: legendHeight }}
-        aria-label="モデル分類の凡例（一部表示）"
-      >
-        {families.map((family, i) => (
-          <li key={family.key} title={family.key}>
-            <i style={{ background: familyColors.get(family.key) ?? COLORS[i % COLORS.length] }} />
-            <span>{family.key}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 /**
  * Model Family pie with a Model-level drilldown.
@@ -55,13 +18,12 @@ export function ModelFamilyPanel({
   events,
   familyColors,
   showControls,
-  height = 280,
 }: {
   events: UsageEvent[];
   familyColors: Map<string, string>;
   showControls: boolean;
-  height?: number;
 }) {
+  const { formatValue: formatMetric } = useCostVisibility();
   const [metric, setMetric] = useState<Metric>("cost");
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const families = useMemo(
@@ -171,14 +133,14 @@ export function ModelFamilyPanel({
       </h3>
       {metricToggle}
       <div className="model-family-chart">
-        <ResponsiveContainer width="100%" height={height - 60}>
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={families}
               dataKey="value"
               nameKey="key"
-              innerRadius={height >= 280 ? 55 : 50}
-              outerRadius={height >= 280 ? 95 : 90}
+              innerRadius="52%"
+              outerRadius="90%"
               paddingAngle={2}
               stroke="none"
               isAnimationActive={false}
@@ -216,7 +178,14 @@ export function ModelFamilyPanel({
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <FittingLegend families={families} familyColors={familyColors} />
+      <ul className="model-family-legend" aria-label="モデル分類の凡例">
+        {families.map((family, i) => (
+          <li key={family.key} title={family.key}>
+            <i style={{ background: familyColors.get(family.key) ?? COLORS[i % COLORS.length] }} />
+            <span>{family.key}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

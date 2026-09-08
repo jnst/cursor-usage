@@ -80,6 +80,8 @@ This rejects skipping empty days on a period axis. An empty Sunday is informatio
 
 ## ADR-011: Show Cost and Token Count Together for Sharing
 
+The four-column breakdown layout is superseded by ADR-013. The full-width time series and 1400-pixel dashboard maximum remain in effect.
+
 Comparing Cost and Token Count through tabs requires two screenshots. The dashboard will show both Metrics simultaneously in the overview and Daily Window view so one screenshot communicates cost and usage volume. This supersedes ADR-009's single-chart and dashboard Metric-switching decision.
 
 Cost and Token Count use separate full-width charts stacked vertically, Cost first and Token Count immediately below, with the same time range and Model Family colors; the overview charts share one legend and family stack order. Each chart has its own units and scale. Summary cards show both totals and averages (or Daily Window shares and ranks). User Cost and Token Count Top 10 rankings are visible together. Model Family breakdowns use one panel in the first column of a four-column row immediately after the time-series charts, followed by User Cost, Token Count, and Effective Rate Top 10 panels, with a local Cost / Token Count toggle defaulting to Cost. This toggle also applies to Model-level drilldown and does not change the time-series charts or User rankings; screenshot exports use the default Cost breakdown. Reserve the donut area independently of the legend; show as many complete legend rows as fit in the remaining panel height, without a fixed row limit. All Model Families remain in the donut, and slice tooltips show the family name on the first line and selected Metric value on the next line. Narrow screens stack the panels vertically.
@@ -97,3 +99,41 @@ Show User Effective Rate Top 10, lowest first, alongside User Cost and Token Cou
 Exclude No Charge Events from this ranking even when another CLI breakdown explicitly includes them, and exclude Users with zero total tokens or zero total reported Cost. Eligibility is based on unrounded aggregate values; positive Cost remains eligible even if its display rounds to zero. Break ties by User identifier for stable ordering. Use the same Analysis Time Zone and Daily Window boundaries as other analysis; dashboard User rankings retain the comparison set when a User is selected, matching existing User-chart behavior.
 
 This is a diagnostic of reported unit cost, not a productivity or quality score: Model and cache mix affect the result (ADR-003). The visible label is `実行単価 Top 10`. The CLI provides `stats --by user-effective-rate`, and both overview and Daily Window JSON include `topUsersByEffectiveRate` with numeric rates and totals (ADR-005).
+
+## ADR-013: Show Cloud Agent Usage and Restore Horizontal User Bars
+
+Cloud Agent Usage Rate is the percentage of a User's Billable Events with a nonempty Cloud Agent ID. Count event rows, not distinct IDs: repeated use of the same agent counts for each event. Exclude No Charge Events from both numerator and denominator. Automation IDs alone do not imply Cloud Agent usage. Users with no Cloud Agent events remain eligible at 0%; Users without Billable Events are absent. The rate is event-based, not weighted by Cost or Token Count, and missing IDs count as non-Cloud events.
+
+Add `Cloud Agent使用率 Top 10`, highest first by default, with an independent ascending/descending toggle. Apply the same Daily Window boundaries and User comparison set as the other rankings. Break ties by User identifier, and sort all Users before selecting ten. CLI `--by user-cloud-agent` exposes the ranking, `--user-order` controls its order, and overview/Daily Window JSON include `topUsersByCloudAgentUsage` with percentages, Cloud Agent event counts, and total Billable Event counts.
+
+Replace the four-column breakdown row with a Model Family panel followed by four User horizontal bar charts in two columns and two rows: Cost and Token Count above Effective Rate and Cloud Agent Usage Rate. Keep each order toggle beside its title. Bars and User labels support the existing User selection, including zero-valued Users through their labels. Tooltips show identifiers and supporting totals; Cloud Agent tooltips show the percentage and numerator/denominator. The percentage axis always spans 0–100. Narrow screens stack the charts and allow horizontal scrolling within charts when necessary for readable User labels.
+
+## ADR-014: Hide Displayed Costs for Sharing
+
+A dashboard-wide visibility toggle masks totals and individual costs with `***`, including cumulative values, tooltips, model detail, ranking tooltips, and event tables. Average costs and Effective Rate stay visible, as do tokens, proportions, order, and chart shapes. Default to visible costs, and keep the toggle in memory for the current page; User or Daily Window navigation preserves it. Screenshot and Daily Report exports accept `--hide-costs`.
+
+This is a display preference, not data redaction or access control: average costs or Effective Rate combined with counts can reconstruct totals. CSV input and CLI stats/JSON stay numeric and unchanged. Format masked text directly rather than hiding an unmasked DOM text node with CSS.
+
+## ADR-015: Keep Detail Sections Initially Open and Collapsible
+
+Event tables use native disclosure controls and start open in both overview and Daily Window views, including screenshot exports. This revises ADR-011's ban on collapsible sections: the user can now collapse detail while keeping it visible by default. Keep the existing event selection and deduplication behavior; collapsing a section does not change analysis.
+
+## ADR-016: Group Cloud Agent IDs Within the Current Analysis Scope
+
+Group Billable Events by trimmed, nonempty Cloud Agent ID within the current period and filters. Repeated IDs across Users or Daily Windows remain one group. Include zero-cost groups; exclude No Charge Events even when other CLI analyses include them. These groups do not establish task count, success, lifetime cost, or runtime. First/last observation timestamps describe only exported events in scope.
+
+Above the event table, show an initially open native disclosure with four horizontal Top 10 charts: per-ID Cost, Token Count, Event Count, and unique ID count per User. Show ID count, aggregate totals, mean/median/max per-ID Cost, and the percentage of Cloud Agent Cost from the ten highest-cost IDs. A shared ID counts once for each participating User. Detail rows retain full IDs, Users, model event counts, and observation timestamps, ordered by Cost descending. Ties use identifiers for stable ordering. Empty input yields zero summary metrics and an explicit empty state.
+
+Cost visibility applies to totals, maximum, per-ID costs, axes and tooltips; mean and median stay visible. CLI `stats --by cloud-agent` and overview/Daily Window JSON `cloudAgentAnalysis` expose the shared aggregation, including model totals. All JSON values stay numeric.
+
+Cloud Agent chart labels now lead with first observation in the Analysis Time Zone, because opaque IDs do not identify recognizable activity. Hover shows the timestamp, Users, usage totals and full ID with a subtle highlight. The dashboard detail table is explicitly labeled and limited to the highest-cost 20 groups, with displayed/total counts; summaries, rankings and CLI/JSON continue to use all groups.
+
+## ADR-017: Use Ranked Rows with Background Bars for User Top 10
+
+Restore readable User ranking lists with rank, selectable full User identifier, and a right-aligned primary value. Encode relative magnitude as a subtle background bar across each row. Use the maximum displayed value as the scale, except Cloud Agent Usage Rate which uses a fixed 100%. Put complementary metrics below without dot separators or repeating the primary cost. Preserve independent ordering, comparison-set selection, and cost visibility. The four rankings remain in two columns and two rows on wide screens.
+
+The Model Family panel shares the ranking grid instead of occupying its own row. Wide viewports (1800px and above) show all five panels in one row, within a 2000px page limit. Medium viewports use three columns with the Model Family panel spanning two rows beside the four rankings. Smaller viewports progressively use two and then one column.
+
+Model Family donuts now scale with panel width, using a square chart area and proportional radii. The panel aligns to its content height, and the complete wrapping legend remains in normal flow, avoiding the unused height caused by stretching a fixed-size chart over both ranking rows.
+
+When costs are hidden, monetary axis tick labels are blank rather than repeated asterisk masks. Token and percentage axes remain visible. Other displayed costs retain the `***` mask.

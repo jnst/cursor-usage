@@ -2,10 +2,15 @@ import type { UsageEvent } from "../../src/core/types.ts";
 
 import { useMemo, useState } from "react";
 
-import { byUser, topUsersByEffectiveRate, type RankingOrder } from "../../src/core/aggregate.ts";
-import { formatTokens, formatUsd, formatUsdPerMTok } from "../../src/core/format.ts";
+import {
+  byUser,
+  topUsersByEffectiveRate,
+  topUsersByCloudAgentUsage,
+  type RankingOrder,
+} from "../../src/core/aggregate.ts";
+import { UserRankingChart, type UserRankingMetric } from "./UserRankingChart.tsx";
 
-/** All three rankings use the same comparison set, even when a User is selected. */
+/** All rankings use the same comparison set, even when a User is selected. */
 export function UserRankings({
   events,
   selectedUser,
@@ -17,10 +22,11 @@ export function UserRankings({
   showControls: boolean;
   onSelectUser?: (user: string) => void;
 }) {
-  const [orders, setOrders] = useState<Record<"cost" | "tokens" | "rate", RankingOrder>>({
+  const [orders, setOrders] = useState<Record<UserRankingMetric, RankingOrder>>({
     cost: "desc",
     tokens: "desc",
     rate: "asc",
+    cloud: "desc",
   });
   const rankings = useMemo(
     () => [
@@ -39,11 +45,16 @@ export function UserRankings({
         rows: topUsersByEffectiveRate(events, 10, orders.rate),
         metric: "rate" as const,
       },
+      {
+        title: "Cloud Agent使用率 Top 10",
+        rows: topUsersByCloudAgentUsage(events, 10, orders.cloud),
+        metric: "cloud" as const,
+      },
     ],
     [events, orders],
   );
   return (
-    <>
+    <div className="user-rankings wide">
       {rankings.map(({ title, rows, metric }) => (
         <section className="panel" key={metric}>
           <div className="ranking-header">
@@ -64,47 +75,26 @@ export function UserRankings({
             )}
           </div>
           <p className="ranking-note">
-            {metric === "rate"
-              ? "合計コスト ÷ 合計トークン × 100万。モデル・キャッシュ利用で変わります。"
-              : showControls
-                ? "同じ期間の全ユーザーを比較。ユーザー名で選択／解除。"
-                : "同じ期間の全ユーザーを比較。"}
+            {metric === "cloud"
+              ? "Cloud Agent IDありの課金イベント数 ÷ 全課金イベント数。"
+              : metric === "rate"
+                ? "合計コスト ÷ 合計トークン × 100万。モデル・キャッシュ利用で変わります。"
+                : showControls
+                  ? "同じ期間の全ユーザーを比較。ユーザー名で選択／解除。"
+                  : "同じ期間の全ユーザーを比較。"}
           </p>
-          <ol className="ranking-list">
-            {rows.map((row) => (
-              <li
-                key={row.key}
-                style={{ opacity: !selectedUser || selectedUser === row.key ? 1 : 0.4 }}
-              >
-                <div className="ranking-heading">
-                  {showControls && onSelectUser ? (
-                    <button
-                      type="button"
-                      aria-pressed={selectedUser === row.key}
-                      onClick={() => onSelectUser(row.key)}
-                    >
-                      {row.key}
-                    </button>
-                  ) : (
-                    <span>{row.key}</span>
-                  )}
-                  <strong>
-                    {metric === "rate"
-                      ? formatUsdPerMTok(row.cost, row.totalTokens)
-                      : metric === "tokens"
-                        ? formatTokens(row.totalTokens)
-                        : formatUsd(row.cost)}
-                  </strong>
-                </div>
-                <div className="ranking-meta">
-                  {formatUsd(row.cost)} · {formatTokens(row.totalTokens)} tokens
-                </div>
-              </li>
-            ))}
-          </ol>
+          {rows.length > 0 && (
+            <UserRankingChart
+              rows={rows}
+              metric={metric}
+              selectedUser={selectedUser}
+              showControls={showControls}
+              onSelectUser={onSelectUser}
+            />
+          )}
           {rows.length === 0 && <p className="meta">対象ユーザーはいません。</p>}
         </section>
       ))}
-    </>
+    </div>
   );
 }

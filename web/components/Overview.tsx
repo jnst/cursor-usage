@@ -27,11 +27,12 @@ import {
   formatDailyWindowAxis,
   formatDailyWindowRange,
   formatDateTime,
-  formatMetric,
   formatTokens,
   formatUsd,
   formatUsdPerMTok,
 } from "../../src/core/format.ts";
+import { CloudAgentAnalysis } from "./CloudAgentAnalysis.tsx";
+import { useCostVisibility } from "./CostVisibility.tsx";
 import { EventsTable } from "./EventsTable.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
 import {
@@ -71,6 +72,7 @@ function DailyMetricTooltip({
   label,
   active,
 }: TooltipContentProps & { metric: Metric }) {
+  const { formatValue: formatMetric } = useCostVisibility();
   if (!active || !payload?.length) return null;
 
   // Recharts lists stacked series top-first. Reverse so the tooltip matches
@@ -137,13 +139,14 @@ function DailyMetricTooltip({
 }
 
 function OverviewSummary({ events, ctx }: { events: UsageEvent[]; ctx: AnalysisContext }) {
+  const { formatCost } = useCostVisibility();
   const s = useMemo(() => summarize(events, ctx), [events, ctx]);
   return (
     <SummaryCards
       cards={[
         {
           label: "Total Cost",
-          value: formatUsd(s.totalCost),
+          value: formatCost(s.totalCost),
           sub: formatDailyWindowRange(s.firstDailyWindow, s.lastDailyWindow),
         },
         {
@@ -188,6 +191,7 @@ function DailyChart({
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
 }) {
+  const { formatAxisValue: formatMetric } = useCostVisibility();
   const families = useMemo(() => byModelFamily(events).map((f) => f.key), [events]);
   const data = useMemo(() => {
     let cumulative = 0;
@@ -363,6 +367,7 @@ export function Overview({
       </div>
       <div className="analysis-details">
         <div className="grid">
+          <CloudAgentAnalysis events={events} ctx={ctx} />
           <EventsTable
             events={top}
             timeZone={ctx.timeZone}

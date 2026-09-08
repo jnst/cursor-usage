@@ -90,9 +90,7 @@ export function formatDailyWindowAxis(dailyWindowKey: string): { date: string; w
  */
 export function formatDailyWindowRange(first: string | null, last: string | null): string {
   if (!first || !last) return "";
-  const start = formatDailyWindowAxis(first).date;
-  const end = formatDailyWindowAxis(last).date;
-  return start === end ? start : `${start} - ${end}`;
+  return first === last ? first : `${first} - ${last}`;
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   isValidTimeZone,
 } from "../src/core/time.ts";
 import { type AnalysisContext, type UsageEvent } from "../src/core/types.ts";
+import { CostVisibilityProvider, CostVisibilityToggle } from "./components/CostVisibility.tsx";
 import { DailyWindowView } from "./components/DailyWindowView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
 import { Overview } from "./components/Overview.tsx";
@@ -20,6 +21,7 @@ declare global {
   interface Window {
     __CURSOR_USAGE_EVENTS__?: SerializedUsageEvent[];
     __CURSOR_USAGE_SCREENSHOT__?: boolean;
+    __CURSOR_USAGE_HIDE_COSTS__?: boolean;
   }
 }
 
@@ -155,6 +157,11 @@ function App() {
           role={events && showControls ? "button" : undefined}
           tabIndex={events && showControls ? 0 : undefined}
         >
+          <svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true">
+            <rect x="1" y="8" width="3" height="7" fill="#58a6ff" />
+            <rect x="6" y="4" width="3" height="11" fill="#3fb950" />
+            <rect x="11" y="1" width="3" height="14" fill="#d29922" />
+          </svg>
           Cursor Usage
         </h1>
         {events && (
@@ -164,18 +171,21 @@ function App() {
               {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
             </span>
             {showControls && (
-              <button
-                type="button"
-                className="reload-button"
-                onClick={() => {
-                  setSelectedDailyWindow(null);
-                  setSelectedUser(null);
-                  setAllEvents(null);
-                  setError(null);
-                }}
-              >
-                別のCSVを読み込む
-              </button>
+              <div className="header-actions">
+                <CostVisibilityToggle />
+                <button
+                  type="button"
+                  className="reload-button"
+                  onClick={() => {
+                    setSelectedDailyWindow(null);
+                    setSelectedUser(null);
+                    setAllEvents(null);
+                    setError(null);
+                  }}
+                >
+                  別のCSVを読み込む
+                </button>
+              </div>
             )}
           </>
         )}
@@ -214,4 +224,8 @@ function App() {
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element not found.");
-createRoot(root).render(<App />);
+createRoot(root).render(
+  <CostVisibilityProvider>
+    <App />
+  </CostVisibilityProvider>,
+);

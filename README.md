@@ -102,7 +102,8 @@ cursor-usage stats usage.csv
 
 ### User Effective Rate
 
-Each User Top 10 panel has independent high-to-low and low-to-high controls.
+The four User Top 10 panels use horizontal bars in a two-column, two-row layout,
+with independent high-to-low and low-to-high controls.
 Cost and Token Count default to highest first; Effective Rate defaults to lowest
 first. CLI User rankings accept `--user-order asc|desc`, for example
 `stats usage.csv --by user-effective-rate --user-order desc` or
@@ -123,7 +124,22 @@ The dashboard always shows Cost and Token Count together. Terminal
 `--metric` options and dashboard `metric` URL values are accepted but no longer
 switch the displayed Metric.
 
+### Cloud Agent Usage Rate
+
+Cloud Agent Usage Rate ranks the percentage of each User's billable event rows
+with a nonempty Cloud Agent ID. Repeated IDs count for each event, No Charge
+events are excluded from both counts, and 0% Users remain eligible. The default
+is highest first. Use `stats usage.csv --by user-cloud-agent` (optionally with
+`--user-order asc`) for terminal output. JSON includes `topUsersByCloudAgentUsage`
+with the rate as a percentage and both event counts.
+
 ### Screenshots
+
+The dashboard's `金額を隠す` button masks totals, individual costs, axes, and
+tooltip costs. Averages and Effective Rate stay visible. This is display masking,
+not data redaction; those values can sometimes be used to reconstruct totals.
+Use `screenshot usage.csv --hide-costs` or `daily-report usage.csv --hide-costs`
+to export a masked image. The interactive setting lasts for the current page.
 
 ```bash
 npx @jnst/cursor-usage screenshot team-usage-events.csv
@@ -131,7 +147,7 @@ npx @jnst/cursor-usage screenshot team-usage-events.csv
 
 Captures the dashboard as a PNG next to the CSV. The default screenshot is an
 Overview. Cost and Token Count charts are stacked vertically at full width, with User Cost, Token Count,
-and Effective Rate Top 10 rankings in the same image (1400px wide). Model Family
+Effective Rate, and Cloud Agent Usage Rate Top 10 rankings in the same image (1400px wide). Model Family
 breakdowns and event details are always visible. Readability takes priority over
 fitting a fixed page height:
 
@@ -158,7 +174,7 @@ npx @jnst/cursor-usage screenshot usage.csv --daily-window 2026-06-14 --start-ho
 
 For a shareable report of the latest work session in the CSV, use
 `daily-report`. It captures the latest 5:00-start Daily Window with both Metrics
-and all three User rankings, and writes `daily-report.png` in the current
+and all four User rankings, and writes `daily-report.png` in the current
 directory. Model Family and Kind breakdowns are visible, along with the top 10
 events by Cost. The image captures the full page:
 
@@ -225,3 +241,11 @@ bun run release
 ## License
 
 MIT
+
+### Cloud Agent ID analysis
+
+The dashboard groups Cloud Agent IDs above the event table in a section that starts open and can be collapsed. Four charts compare Cost, Token Count, Event Count, and unique IDs per User. Summary cards show mean, median, maximum Cost and Top 10 Cost share; detail rows include Users, model event counts and first/last observations.
+
+Only Billable Events with a nonempty ID in the current period and filters are included. Observation timestamps do not measure runtime or task completion. Shared IDs count once per participating User. The cost visibility toggle masks individual and total costs while keeping mean and median visible.
+
+Use `cursor-usage stats usage.csv --by cloud-agent` for terminal analysis. Overview and Daily Window JSON include the same numeric results in `cloudAgentAnalysis`.

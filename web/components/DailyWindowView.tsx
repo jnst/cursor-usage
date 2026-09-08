@@ -20,14 +20,10 @@ import {
   byKind,
   summarize,
 } from "../../src/core/aggregate.ts";
-import {
-  formatMetric,
-  formatTime,
-  formatTokens,
-  formatUsd,
-  formatUsdPerMTok,
-} from "../../src/core/format.ts";
+import { formatTime, formatTokens, formatUsdPerMTok } from "../../src/core/format.ts";
 import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
+import { CloudAgentAnalysis } from "./CloudAgentAnalysis.tsx";
+import { useCostVisibility } from "./CostVisibility.tsx";
 import { EventsTable } from "./EventsTable.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
 import {
@@ -66,6 +62,7 @@ function DailyWindowSummaryCards({
   ctx: AnalysisContext;
 }) {
   const s = summarize(dailyWindowEvents, ctx);
+  const { formatCost: formatUsd } = useCostVisibility();
   const period = summarize(events, ctx);
   const windows = byDailyWindow(events, ctx);
   const rank = (metric: Metric) =>
@@ -106,6 +103,7 @@ function DailyWindowSummaryCards({
  * Hourly tooltip: selected Metric → other Metric → 実効レート.
  */
 function HourlyMetricTooltip({ metric, ...props }: TooltipContentProps & { metric: Metric }) {
+  const { formatValue: formatMetric } = useCostVisibility();
   const { active, payload } = props;
   if (!active || !payload?.length) return null;
 
@@ -167,6 +165,7 @@ function HourlyChart({
   ctx: AnalysisContext;
   metric: Metric;
 }) {
+  const { formatAxisValue: formatMetric } = useCostVisibility();
   const data = useMemo(() => {
     const byHourMap = new Map(byHour(dailyWindowEvents, ctx).map((b) => [b.key, b]));
     return orderedHours(ctx).map((key) => {
@@ -222,6 +221,7 @@ function HourlyChart({
 }
 
 function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] }) {
+  const { formatCost: formatUsd } = useCostVisibility();
   const data = byKind(dailyWindowEvents);
   return (
     <div className="panel wide">
@@ -359,7 +359,6 @@ export function DailyWindowView({
                 events={dailyWindowEvents}
                 familyColors={familyColors}
                 showControls={showControls}
-                height={260}
               />
               <UserRankings
                 events={dailyWindowUserEvents}
@@ -372,6 +371,7 @@ export function DailyWindowView({
           <div className="analysis-details">
             <div className="grid">
               <KindBreakdown dailyWindowEvents={dailyWindowEvents} />
+              <CloudAgentAnalysis events={dailyWindowEvents} ctx={ctx} />
               <EventsTable
                 events={eventRows}
                 timeZone={ctx.timeZone}

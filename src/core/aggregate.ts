@@ -170,6 +170,34 @@ export function topUsersByEffectiveRate(
     .slice(0, limit);
 }
 
+/** Percentage of each User's Billable Events carrying a Cloud Agent ID. */
+export function topUsersByCloudAgentUsage(
+  events: UsageEvent[],
+  limit = 10,
+  order: RankingOrder = "desc",
+) {
+  const eligible = billable(events);
+  const counts = new Map<string, number>();
+  for (const event of eligible) {
+    if (event.cloudAgentId?.trim()) counts.set(event.user, (counts.get(event.user) ?? 0) + 1);
+  }
+  return byUser(eligible)
+    .map((row) => {
+      const cloudAgentEventCount = counts.get(row.key) ?? 0;
+      return {
+        ...row,
+        cloudAgentEventCount,
+        cloudAgentUsageRate: (cloudAgentEventCount / row.eventCount) * 100,
+      };
+    })
+    .sort(
+      (a, b) =>
+        (order === "asc" ? 1 : -1) * (a.cloudAgentUsageRate - b.cloudAgentUsageRate) ||
+        a.key.localeCompare(b.key),
+    )
+    .slice(0, limit);
+}
+
 /**
  * Groups events by Model, ordered by the Selected Metric descending.
  *

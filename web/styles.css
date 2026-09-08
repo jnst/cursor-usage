@@ -31,7 +31,7 @@ body {
 }
 
 .app {
-  max-width: 1400px;
+  max-width: 2000px;
   margin: 0 auto;
   padding: 24px 20px 64px;
 }
@@ -39,13 +39,16 @@ body {
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .header h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 20px;
   margin: 0;
   letter-spacing: 0.02em;
@@ -60,6 +63,7 @@ body {
 }
 
 .header .meta {
+  margin-left: auto;
   color: var(--text-dim);
   font-size: 13px;
 }
@@ -76,6 +80,19 @@ body {
 
 .reload-button:hover {
   border-color: var(--accent);
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cost-visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
 }
 
 /* Drop zone */
@@ -414,8 +431,73 @@ tr:last-child td {
 /* Cost, tokens and effective rate remain visible together. */
 .breakdown-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+.breakdown-grid > .user-rankings {
+  display: contents;
+}
+.breakdown-grid > .panel {
+  grid-row: span 2;
+}
+@media (min-width: 1800px) {
+  .breakdown-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .breakdown-grid > .panel {
+    grid-row: auto;
+  }
+}
+@media (max-width: 1100px) {
+  .breakdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .breakdown-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .breakdown-grid > .panel {
+    grid-row: auto;
+  }
+}
+.cloud-agent-chart {
+  min-width: 0;
+}
+
+.user-rankings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.user-ranking-chart {
+  min-width: 0;
+  overflow-x: auto;
+}
+.user-ranking-chart > .recharts-responsive-container {
+  min-width: 470px;
+}
+.ranking-user-label {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  line-height: 24px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+button.ranking-user-label {
+  cursor: pointer;
+}
+button.ranking-user-label:hover,
+button.ranking-user-label[aria-pressed="true"] {
+  color: var(--accent);
 }
 .ranking-note {
   color: var(--text-dim);
@@ -443,49 +525,6 @@ tr:last-child td {
   font-size: 11px;
   white-space: nowrap;
 }
-.ranking-list {
-  margin: 0;
-  padding-left: 24px;
-  font-size: 12px;
-  line-height: 1.35;
-  font-variant-numeric: tabular-nums;
-}
-.ranking-list li {
-  padding: 3px 0;
-  border-bottom: 1px solid var(--panel-border);
-}
-.ranking-list li:last-child {
-  border: 0;
-}
-.ranking-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  justify-content: space-between;
-}
-.ranking-heading button {
-  background: none;
-  border: 0;
-  color: var(--accent);
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-.ranking-heading button,
-.ranking-heading > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.ranking-heading strong {
-  font-size: 13px;
-  white-space: nowrap;
-}
-.ranking-meta {
-  color: var(--text-dim);
-  font-size: 10px;
-  line-height: 1.2;
-}
 .family-legend {
   display: flex;
   flex-wrap: wrap;
@@ -506,13 +545,16 @@ tr:last-child td {
 .analysis-details {
   margin-top: 16px;
 }
-@media (max-width: 1200px) {
-  .breakdown-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.analysis-disclosure > summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
 }
-@media (max-width: 700px) {
-  .breakdown-grid {
+.analysis-disclosure[open] > summary {
+  margin-bottom: 16px;
+}
+@media (max-width: 1000px) {
+  .user-rankings {
     grid-template-columns: 1fr;
   }
 }
@@ -537,25 +579,18 @@ tr:last-child td {
   color: var(--accent);
 }
 
-/* Fill the remaining panel height with complete legend rows. */
+/* Size the donut from its available width and keep the legend in normal flow. */
 .model-family-panel {
+  align-self: start;
   display: flex;
   flex-direction: column;
 }
 .model-family-chart {
   flex: none;
+  width: 100%;
+  aspect-ratio: 1;
 }
-.model-family-legend-space {
-  position: relative;
-  flex: 1;
-  min-height: 60px;
-}
-
 .model-family-legend {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
@@ -585,4 +620,133 @@ tr:last-child td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cloud-agent-tooltip {
+  max-width: 320px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.cloud-agent-tooltip {
+  width: min(360px, calc(100vw - 48px));
+  max-width: 360px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 28px #0005;
+}
+.cloud-agent-tooltip-heading {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.cloud-agent-tooltip dl {
+  margin: 0;
+}
+.cloud-agent-tooltip dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 3px 0;
+}
+.cloud-agent-tooltip dt {
+  color: var(--text-dim);
+}
+.cloud-agent-tooltip dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cloud-agent-tooltip-user {
+  display: block;
+}
+.cloud-agent-tooltip-section {
+  border-top: 1px solid var(--panel-border);
+  margin-top: 10px;
+  padding-top: 8px;
+  margin-bottom: 4px;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.cloud-agent-tooltip-id,
+.cloud-agent-tooltip-more {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.user-ranking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.user-ranking-list > li {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  gap: 8px;
+  padding: 5px 8px;
+  font-size: 13px;
+  line-height: 17px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.ranking-background {
+  position: absolute;
+  inset: 3px auto 3px 0;
+  z-index: -1;
+  background: #58a6ff;
+  opacity: 0.1;
+  border-radius: 3px;
+}
+.ranking-position {
+  width: 22px;
+  flex-shrink: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ranking-content {
+  flex: 1;
+  min-width: 0;
+}
+.ranking-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ranking-user {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+button.ranking-user {
+  cursor: pointer;
+}
+.ranking-user[aria-pressed="true"] {
+  font-weight: 700;
+  text-decoration: underline;
+}
+.ranking-primary {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.ranking-support {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 2px;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 14px;
+  margin-top: 0;
+}
+.ranking-muted .ranking-background {
+  opacity: 0.035;
+}
+.ranking-muted .ranking-user {
+  color: var(--text-dim);
 }

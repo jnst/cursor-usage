@@ -33,7 +33,7 @@ Usage:
   cursor-usage daily-report <csv>                 Capture a shareable daily report PNG
 
 Stats options:
-  --by <daily-window|user|model|model-family|user-effective-rate>
+  --by <daily-window|user|model|model-family|user-effective-rate|user-cloud-agent|cloud-agent>
                                   Show a single breakdown axis (default: all)
   --daily-window <YYYY-MM-DD>     Drill into a single Daily Window
   --start-hour <0-23>             Daily Window start hour (default: 0)
@@ -42,11 +42,12 @@ Stats options:
                                   (e.g. "Auto", "Opus 4.8", "Fable 5")
   --timezone <iana-tz>            Analysis time zone (default: current environment)
   --metric <cost|tokens>          Selected Metric (default: cost)
-  --user-order <asc|desc>         User ranking order (default: cost/tokens desc, rate asc)
+  --user-order <asc|desc>         User ranking order (default: cost/tokens/cloud desc, rate asc)
   --json                          Output aggregated stats as JSON
   --include-no-charge             Include "Errored, No Charge" events
 
 Screenshot options:
+  --hide-costs                   Mask totals and individual costs (averages/rates stay visible)
   --daily-window <YYYY-MM-DD>     Capture a Daily Window detail view
   --start-hour <0-23>             Daily Window start hour (default: 0)
   --event-limit <n>               Limit Daily Window event table rows
@@ -166,10 +167,18 @@ async function runStats(args: string[]): Promise<void> {
   }
   if (
     axis &&
-    !["daily-window", "user", "model", "model-family", "user-effective-rate"].includes(axis)
+    ![
+      "daily-window",
+      "user",
+      "model",
+      "model-family",
+      "user-effective-rate",
+      "user-cloud-agent",
+      "cloud-agent",
+    ].includes(axis)
   ) {
     fail(
-      `invalid --by value: ${axis} (expected daily-window, user, model, model-family or user-effective-rate)`,
+      `invalid --by value: ${axis} (expected daily-window, user, model, model-family, user-effective-rate user-cloud-agent or cloud-agent)`,
     );
   }
 
@@ -209,6 +218,7 @@ async function runScreenshot(args: string[]): Promise<void> {
     options: {
       ...SHARED_ANALYSIS_OPTIONS,
       "event-limit": { type: "string" },
+      "hide-costs": { type: "boolean", default: false },
       out: { type: "string" },
     },
   });
@@ -232,6 +242,7 @@ async function runScreenshot(args: string[]): Promise<void> {
     dailyWindow,
     eventLimit,
     dailyReport: false,
+    hideCosts: values["hide-costs"],
     out: values.out,
     user: values.user,
     metric,
@@ -240,10 +251,10 @@ async function runScreenshot(args: string[]): Promise<void> {
 }
 
 async function runDailyReport(args: string[]): Promise<void> {
-  const { positionals } = parseArgs({
+  const { positionals, values } = parseArgs({
     args,
     allowPositionals: true,
-    options: {},
+    options: { "hide-costs": { type: "boolean", default: false } },
   });
 
   const csvPath = positionals[0];
@@ -266,6 +277,7 @@ async function runDailyReport(args: string[]): Promise<void> {
     dailyWindow,
     eventLimit: 10,
     dailyReport: true,
+    hideCosts: values["hide-costs"],
   });
   console.log(`wrote ${path}`);
 }
