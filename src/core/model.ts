@@ -39,7 +39,7 @@ const FAMILY_LABELS: Record<string, string> = {
 const VARIANT_TOKENS = new Set(["thinking", "high", "xhigh", "medium", "low", "max", "fast"]);
 
 /** Usage Exports contain zero-width characters in some display names. */
-const INVISIBLE_CHARS = /[\u200b\u200c\u200d\ufeff]/g;
+const INVISIBLE_CHARS = /[\u200b-\u200d\ufeff]/g;
 
 function sanitizeModel(model: string): string {
   return model.replace(INVISIBLE_CHARS, "").trim();
