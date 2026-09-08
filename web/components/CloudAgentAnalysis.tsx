@@ -13,11 +13,13 @@ function Ranking({
   rows,
   format,
   color,
+  hideAxis = false,
 }: {
   title: string;
   rows: { key: string; label: string; value: number; detail?: ReactNode }[];
   format: (value: number) => string;
   color: string;
+  hideAxis?: boolean;
 }) {
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const top = [...rows]
@@ -34,7 +36,12 @@ function Ranking({
           <ResponsiveContainer width="100%" height={Math.max(180, top.length * 30 + 40)}>
             <BarChart data={top} layout="vertical" margin={{ right: 16 }}>
               <CartesianGrid stroke="#21262d" horizontal={false} />
-              <XAxis type="number" stroke="#8b949e" fontSize={12} tickFormatter={format} />
+              <XAxis
+                type="number"
+                stroke="#8b949e"
+                fontSize={12}
+                tickFormatter={hideAxis ? () => "" : format}
+              />
               <YAxis
                 type="category"
                 dataKey="label"
@@ -91,7 +98,7 @@ export function CloudAgentAnalysis({
   ctx: AnalysisContext;
 }) {
   const { agents, summary: s, byUser } = useMemo(() => analyzeCloudAgents(events), [events]);
-  const { formatCost } = useCostVisibility();
+  const { formatCost, hidden } = useCostVisibility();
   const agentRow = (a: (typeof agents)[number], value: number) => ({
     key: a.key,
     label: formatDateTime(new Date(a.firstObserved), ctx.timeZone),
@@ -195,6 +202,7 @@ export function CloudAgentAnalysis({
           <div className="user-rankings">
             <Ranking
               title="Cloud Agent コスト Top 10"
+              hideAxis={hidden}
               rows={agents.map((a) => agentRow(a, a.cost))}
               format={formatCost}
               color="#58a6ff"

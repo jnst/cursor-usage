@@ -110,7 +110,7 @@ Replace the four-column breakdown row with a Model Family panel followed by four
 
 ## ADR-014: Hide Displayed Costs for Sharing
 
-A dashboard-wide visibility toggle masks totals and individual costs with `***`, including cost axes, cumulative values, tooltips, model detail, ranking tooltips, and event tables. Average costs and Effective Rate stay visible, as do tokens, proportions, order, and chart shapes. Default to visible costs, and keep the toggle in memory for the current page; User or Daily Window navigation preserves it. Screenshot and Daily Report exports accept `--hide-costs`.
+A dashboard-wide visibility toggle masks totals and individual costs with `***`, including cumulative values, tooltips, model detail, ranking tooltips, and event tables. Average costs and Effective Rate stay visible, as do tokens, proportions, order, and chart shapes. Default to visible costs, and keep the toggle in memory for the current page; User or Daily Window navigation preserves it. Screenshot and Daily Report exports accept `--hide-costs`.
 
 This is a display preference, not data redaction or access control: average costs or Effective Rate combined with counts can reconstruct totals. CSV input and CLI stats/JSON stay numeric and unchanged. Format masked text directly rather than hiding an unmasked DOM text node with CSS.
 
@@ -135,3 +135,5 @@ Restore readable User ranking lists with rank, selectable full User identifier, 
 The Model Family panel shares the ranking grid instead of occupying its own row. Wide viewports (1800px and above) show all five panels in one row, within a 2000px page limit. Medium viewports use three columns with the Model Family panel spanning two rows beside the four rankings. Smaller viewports progressively use two and then one column.
 
 Model Family donuts now scale with panel width, using a square chart area and proportional radii. The panel aligns to its content height, and the complete wrapping legend remains in normal flow, avoiding the unused height caused by stretching a fixed-size chart over both ranking rows.
+
+When costs are hidden, monetary axis tick labels are blank rather than repeated asterisk masks. Token and percentage axes remain visible. Other displayed costs retain the `***` mask.

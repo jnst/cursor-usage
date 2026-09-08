@@ -25,6 +25,11 @@ export function useCostVisibility() {
       toggle,
       formatCost: (value: number, options: { trimZeroCents?: boolean } = {}) =>
         hidden ? HIDDEN_COST : formatUsd(value, options),
+      formatAxisValue: (
+        value: number,
+        metric: Metric,
+        options: { trimZeroCents?: boolean } = {},
+      ) => (hidden && metric === "cost" ? "" : formatMetric(value, metric, options)),
       formatValue: (value: number, metric: Metric, options: { trimZeroCents?: boolean } = {}) =>
         hidden && metric === "cost" ? HIDDEN_COST : formatMetric(value, metric, options),
     }),

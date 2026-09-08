@@ -165,7 +165,7 @@ function HourlyChart({
   ctx: AnalysisContext;
   metric: Metric;
 }) {
-  const { formatValue: formatMetric } = useCostVisibility();
+  const { formatAxisValue: formatMetric } = useCostVisibility();
   const data = useMemo(() => {
     const byHourMap = new Map(byHour(dailyWindowEvents, ctx).map((b) => [b.key, b]));
     return orderedHours(ctx).map((key) => {

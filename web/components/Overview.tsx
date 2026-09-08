@@ -191,7 +191,7 @@ function DailyChart({
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
 }) {
-  const { formatValue: formatMetric } = useCostVisibility();
+  const { formatAxisValue: formatMetric } = useCostVisibility();
   const families = useMemo(() => byModelFamily(events).map((f) => f.key), [events]);
   const data = useMemo(() => {
     let cumulative = 0;
