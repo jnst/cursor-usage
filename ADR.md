@@ -127,3 +127,7 @@ Above the event table, show an initially open native disclosure with four horizo
 Cost visibility applies to totals, maximum, per-ID costs, axes and tooltips; mean and median stay visible. CLI `stats --by cloud-agent` and overview/Daily Window JSON `cloudAgentAnalysis` expose the shared aggregation, including model totals. All JSON values stay numeric.
 
 Cloud Agent chart labels now lead with first observation in the Analysis Time Zone, because opaque IDs do not identify recognizable activity. Hover shows the timestamp, Users, usage totals and full ID with a subtle highlight. The dashboard detail table is explicitly labeled and limited to the highest-cost 20 groups, with displayed/total counts; summaries, rankings and CLI/JSON continue to use all groups.
+
+## ADR-017: Use Ranked Rows with Background Bars for User Top 10
+
+Restore readable User ranking lists with rank, selectable full User identifier, and a right-aligned primary value. Encode relative magnitude as a subtle background bar across each row. Use the maximum displayed value as the scale, except Cloud Agent Usage Rate which uses a fixed 100%. Put complementary metrics below without dot separators or repeating the primary cost. Preserve independent ordering, comparison-set selection, and cost visibility. The four rankings remain in two columns and two rows on wide screens.

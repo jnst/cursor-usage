@@ -1,20 +1,7 @@
 import type { BucketStat } from "../../src/core/types.ts";
 
-import {
-  Bar,
-  CartesianGrid,
-  Cell,
-  ComposedChart,
-  DefaultTooltipContent,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
-import { formatTokens, formatUsd, formatUsdPerMTok } from "../../src/core/format.ts";
+import { formatTokens, formatUsdPerMTok } from "../../src/core/format.ts";
 import { useCostVisibility } from "./CostVisibility.tsx";
-import { tooltipItemStyle, tooltipStyle } from "./shared.ts";
 
 export type UserRankingMetric = "cost" | "tokens" | "rate" | "cloud";
 type Row = BucketStat & { cloudAgentUsageRate?: number; cloudAgentEventCount?: number };
@@ -33,128 +20,77 @@ export function UserRankingChart({
   onSelectUser?: (user: string) => void;
 }) {
   const { formatCost } = useCostVisibility();
-  const data = rows.map((row) => ({
-    ...row,
-    value:
-      metric === "cost"
-        ? row.cost
-        : metric === "tokens"
-          ? row.totalTokens
-          : metric === "cloud"
-            ? (row.cloudAgentUsageRate ?? 0)
-            : (row.cost / row.totalTokens) * 1_000_000,
-  }));
+  const valueOf = (row: Row) =>
+    metric === "cost"
+      ? row.cost
+      : metric === "tokens"
+        ? row.totalTokens
+        : metric === "cloud"
+          ? (row.cloudAgentUsageRate ?? 0)
+          : row.totalTokens > 0
+            ? (row.cost / row.totalTokens) * 1_000_000
+            : 0;
+  const max = metric === "cloud" ? 100 : Math.max(0, ...rows.map(valueOf));
   const selectable = showControls && !!onSelectUser;
-  const format = (value: number) =>
-    metric === "tokens"
-      ? formatTokens(value)
-      : metric === "cloud"
-        ? `${value.toFixed(1)}%`
-        : metric === "rate"
-          ? `${formatUsd(value)} / MTok`
-          : formatCost(value, { trimZeroCents: true });
   return (
-    <div className="user-ranking-chart">
-      <ResponsiveContainer width="100%" height={340}>
-        <ComposedChart
-          data={data}
-          layout="vertical"
-          margin={{ top: 4, right: 12, bottom: 0, left: 0 }}
-        >
-          <CartesianGrid stroke="#21262d" horizontal={false} />
-          <XAxis
-            type="number"
-            domain={metric === "cloud" ? [0, 100] : [0, "auto"]}
-            stroke="#8b949e"
-            fontSize={11}
-            tickFormatter={format}
-          />
-          <YAxis
-            type="category"
-            dataKey="key"
-            interval={0}
-            width={190}
-            stroke="#8b949e"
-            tick={({ x, y, payload }) => (
-              <g transform={`translate(${x},${y})`}>
-                <foreignObject x={-185} y={-12} width={177} height={24}>
-                  {selectable ? (
-                    <button
-                      className="ranking-user-label"
-                      type="button"
-                      title={String(payload.value)}
-                      aria-pressed={selectedUser === payload.value}
-                      onClick={() => onSelectUser?.(String(payload.value))}
-                    >
-                      {String(payload.value)}
-                    </button>
-                  ) : (
-                    <span className="ranking-user-label" title={String(payload.value)}>
-                      {String(payload.value)}
-                    </span>
-                  )}
-                </foreignObject>
-              </g>
-            )}
-          />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            itemStyle={tooltipItemStyle}
-            labelStyle={tooltipItemStyle}
-            content={(props) => {
-              const item = props.payload?.[0];
-              if (!props.active || !item) return null;
-              const row = item.payload as Row;
-              const fields =
-                metric === "cloud"
-                  ? [
-                      ["Cloud Agent使用率", `${(row.cloudAgentUsageRate ?? 0).toFixed(1)}%`],
-                      [
-                        "Cloud Agentイベント",
-                        `${row.cloudAgentEventCount ?? 0} / ${row.eventCount}`,
-                      ],
-                    ]
-                  : [
-                      ["コスト", formatCost(row.cost)],
-                      ["トークン", formatTokens(row.totalTokens)],
-                      ["実行単価", formatUsdPerMTok(row.cost, row.totalTokens)],
-                    ];
-              return (
-                <DefaultTooltipContent
-                  {...props}
-                  label={row.key}
-                  payload={fields.map(([name, value], index) => ({
-                    ...item,
-                    name,
-                    value,
-                    dataKey: String(index),
-                  }))}
-                  itemSorter={undefined}
-                  formatter={(value) => String(value)}
-                />
-              );
-            }}
-          />
-          <Bar
-            dataKey="value"
-            radius={[0, 4, 4, 0]}
-            barSize={22}
-            isAnimationActive={false}
-            cursor={selectable ? "pointer" : undefined}
-            onClick={(row) => {
-              if (selectable && typeof row.key === "string") onSelectUser?.(row.key);
-            }}
+    <ol className="user-ranking-list">
+      {rows.map((row, index) => {
+        const primary =
+          metric === "cost"
+            ? formatCost(row.cost)
+            : metric === "tokens"
+              ? formatTokens(row.totalTokens)
+              : metric === "cloud"
+                ? `${(row.cloudAgentUsageRate ?? 0).toFixed(1)}%`
+                : formatUsdPerMTok(row.cost, row.totalTokens);
+        return (
+          <li
+            key={row.key}
+            className={selectedUser && selectedUser !== row.key ? "ranking-muted" : undefined}
           >
-            {data.map((row) => (
-              <Cell
-                key={row.key}
-                fill="#58a6ff"
-                opacity={!selectedUser || selectedUser === row.key ? 1 : 0.25}
-              />
-            ))}
-          </Bar>
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+            <span
+              className="ranking-background"
+              aria-hidden="true"
+              style={{ width: `${max > 0 ? Math.min(100, (valueOf(row) / max) * 100) : 0}%` }}
+            />
+            <span className="ranking-position" aria-hidden="true">
+              {index + 1}.
+            </span>
+            <div className="ranking-content">
+              <div className="ranking-main">
+                {selectable ? (
+                  <button
+                    type="button"
+                    className="ranking-user"
+                    aria-pressed={selectedUser === row.key}
+                    onClick={() => onSelectUser?.(row.key)}
+                  >
+                    {row.key}
+                  </button>
+                ) : (
+                  <span className="ranking-user">{row.key}</span>
+                )}
+                <strong className="ranking-primary">{primary}</strong>
+              </div>
+              <div className="ranking-support">
+                {metric !== "cloud" ? (
+                  <>
+                    {metric !== "cost" && <span>コスト {formatCost(row.cost)}</span>}
+                    {metric !== "tokens" && <span>トークン {formatTokens(row.totalTokens)}</span>}
+                    {metric !== "rate" && (
+                      <span>実行単価 {formatUsdPerMTok(row.cost, row.totalTokens)}</span>
+                    )}
+                  </>
+                ) : (
+                  <span>
+                    Cloud Agentイベント {row.cloudAgentEventCount ?? 0} / {row.eventCount}
+                  </span>
+                )}
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
