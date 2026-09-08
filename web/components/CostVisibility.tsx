@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 import { formatMetric, formatUsd } from "../../src/core/format.ts";
 
-export const HIDDEN_COST = "••••";
+export const HIDDEN_COST = "***";
 const Context = createContext({ hidden: false, toggle: () => {} });
 
 export function CostVisibilityProvider({ children }: { children: ReactNode }) {
