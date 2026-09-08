@@ -165,20 +165,22 @@ function App() {
               {events.length} 課金イベント
               {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
             </span>
-            {showControls && <CostVisibilityToggle />}
             {showControls && (
-              <button
-                type="button"
-                className="reload-button"
-                onClick={() => {
-                  setSelectedDailyWindow(null);
-                  setSelectedUser(null);
-                  setAllEvents(null);
-                  setError(null);
-                }}
-              >
-                別のCSVを読み込む
-              </button>
+              <div className="header-actions">
+                <CostVisibilityToggle />
+                <button
+                  type="button"
+                  className="reload-button"
+                  onClick={() => {
+                    setSelectedDailyWindow(null);
+                    setSelectedUser(null);
+                    setAllEvents(null);
+                    setError(null);
+                  }}
+                >
+                  別のCSVを読み込む
+                </button>
+              </div>
             )}
           </>
         )}
