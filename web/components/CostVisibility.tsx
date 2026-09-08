@@ -38,6 +38,8 @@ export function CostVisibilityToggle() {
     <button
       type="button"
       className="reload-button cost-visibility-toggle"
+      aria-label={hidden ? "金額を表示" : "金額を隠す"}
+      title={hidden ? "金額を表示" : "金額を隠す"}
       aria-pressed={hidden}
       onClick={toggle}
     >
@@ -54,7 +56,6 @@ export function CostVisibilityToggle() {
         <circle cx="12" cy="12" r="3" />
         {hidden && <path d="m3 3 18 18" />}
       </svg>
-      {hidden ? "金額を表示" : "金額を隠す"}
     </button>
   );
 }

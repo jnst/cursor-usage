@@ -39,7 +39,7 @@ body {
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
   margin-bottom: 20px;
   flex-wrap: wrap;
@@ -77,10 +77,19 @@ body {
 .reload-button:hover {
   border-color: var(--accent);
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
 .cost-visibility-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
 }
 
 /* Drop zone */
