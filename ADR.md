@@ -131,3 +131,5 @@ Cloud Agent chart labels now lead with first observation in the Analysis Time Zo
 ## ADR-017: Use Ranked Rows with Background Bars for User Top 10
 
 Restore readable User ranking lists with rank, selectable full User identifier, and a right-aligned primary value. Encode relative magnitude as a subtle background bar across each row. Use the maximum displayed value as the scale, except Cloud Agent Usage Rate which uses a fixed 100%. Put complementary metrics below without dot separators or repeating the primary cost. Preserve independent ordering, comparison-set selection, and cost visibility. The four rankings remain in two columns and two rows on wide screens.
+
+The Model Family panel shares the ranking grid instead of occupying its own row. Wide viewports (1800px and above) show all five panels in one row, within a 2000px page limit. Medium viewports use three columns with the Model Family panel spanning two rows beside the four rankings. Smaller viewports progressively use two and then one column.
