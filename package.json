@@ -28,12 +28,14 @@
     "dev": "bun --hot src/server/dev.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "fix": "vp fmt . --write",
+    "check": "vp check",
+    "fix": "vp check --fix",
     "precommit": "bun run typecheck && bun test",
-    "prepush": "bun run precommit && bun run build",
+    "prepush": "bun run check && bun run precommit && bun run build",
     "build": "bun run build.ts",
     "release": "bun run scripts/release.ts minor",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "prepare": "vp config --no-agent"
   },
   "dependencies": {
     "playwright-core": "^1.63.0"

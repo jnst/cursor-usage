@@ -1,6 +1,10 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  staged: {
+    "*.{js,ts,tsx}": "vp check --fix",
+    "*.{md,json,css,html,yml,yaml}": "vp fmt --write",
+  },
   fmt: {
     sortImports: {
       groups: [

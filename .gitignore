@@ -2,3 +2,4 @@ node_modules/
 dist/
 *.csv
 .DS_Store
+.vite-hooks/_/
