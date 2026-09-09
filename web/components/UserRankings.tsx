@@ -31,12 +31,12 @@ export function UserRankings({
   const rankings = useMemo(
     () => [
       {
-        title: "コスト Top 10",
+        title: "Spend Top 10",
         rows: byUser(events, "cost", orders.cost).slice(0, 10),
         metric: "cost" as const,
       },
       {
-        title: "トークン使用量 Top 10",
+        title: "Tokens Top 10",
         rows: byUser(events, "tokens", orders.tokens).slice(0, 10),
         metric: "tokens" as const,
       },
@@ -78,7 +78,7 @@ export function UserRankings({
             {metric === "cloud"
               ? "Cloud Agent IDありの課金イベント数 ÷ 全課金イベント数。"
               : metric === "rate"
-                ? "合計コスト ÷ 合計トークン × 100万。モデル・キャッシュ利用で変わります。"
+                ? "合計 Spend ÷ 合計 Tokens × 100万。モデル・キャッシュ利用で変わります。"
                 : showControls
                   ? "同じ期間の全ユーザーを比較。ユーザー名で選択／解除。"
                   : "同じ期間の全ユーザーを比較。"}

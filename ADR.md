@@ -38,7 +38,7 @@ Analyze reported usage trends and costs without auditing billing.
 
 ### Current State (Single Source of Truth)
 
-Cost comes from the CSV `Cost` column, not reconstructed model prices. Pricing validation, invoice reconciliation, and accounting workflows are outside the product scope.
+Spend comes from the CSV `Cost` column, not reconstructed model prices. Pricing validation, invoice reconciliation, and accounting workflows are outside the product scope.
 
 ### Rationale
 
@@ -118,15 +118,15 @@ Colocation makes tests visible when their implementation changes.
 
 ### Decision
 
-Let CLI analysis select Cost or Token Count as its primary Metric.
+Let CLI analysis select Spend or Tokens as its primary Metric.
 
 ### Current State (Single Source of Truth)
 
-CLI `stats --metric cost|tokens` controls ranking and display order, defaulting to Cost. Effective Rate remains a diagnostic. Dashboard presentation is owned by ADR-011, which supersedes the original dashboard Metric switch.
+CLI `stats --metric cost|tokens` controls ranking and display order, defaulting to Spend. Effective Rate remains a diagnostic. Dashboard presentation is owned by ADR-011, which supersedes the original dashboard Metric switch.
 
 ### Rationale
 
-Token Count distinguishes usage volume from reported Cost.
+Tokens distinguishes usage volume from reported Spend.
 
 ## ADR-010: Period Charts Show Missing Daily Windows as Zero
 
@@ -136,13 +136,13 @@ Render missing time intervals as zero in period displays.
 
 ### Current State (Single Source of Truth)
 
-Daily Window charts and CLI series include every key from the first to last Active Daily Window; Hourly charts include every Hour in the window. Missing intervals have zero Cost, Token Count, and Event Count. Rankings, summaries, and averages still use Active Daily Windows, while category breakdowns remain sparse.
+Daily Window charts and CLI series include every key from the first to last Active Daily Window; Hourly charts include every Hour in the window. Missing intervals have zero Spend, Tokens, and Event Count. Rankings, summaries, and averages still use Active Daily Windows, while category breakdowns remain sparse.
 
 ### Rationale
 
 Omitting idle intervals makes discontinuous activity look continuous.
 
-## ADR-011: Show Cost and Token Count Together for Sharing
+## ADR-011: Show Spend and Tokens Together for Sharing
 
 ### Decision
 
@@ -150,21 +150,21 @@ Show both Metrics simultaneously in dashboard views and screenshots.
 
 ### Current State (Single Source of Truth)
 
-Overview and Daily Window views stack full-width Cost and Token Count charts with matching ranges and Model Family colors; overview charts share a legend and stack order. Summaries show both Metrics. The Model Family breakdown has a local Cost / Token Count toggle, including drilldown, defaulting to Cost for screenshots. Screenshot width is 1400 pixels with full-page capture; Daily Reports show the top ten events by Cost, and Daily Window exports support an explicit event limit. Legacy `metric` URLs and screenshot `--metric` remain accepted without hiding either Metric; new dashboard navigation omits `metric`. Current layout and disclosure behavior are owned by ADR-017 and ADR-015.
+Overview and Daily Window views stack full-width Spend and Tokens charts with matching ranges and Model Family colors; overview charts share a legend and stack order. Summaries show both Metrics. The Model Family breakdown has a local Spend / Tokens toggle, including drilldown, defaulting to Spend for screenshots. Screenshot width is 1400 pixels with full-page capture; Daily Reports show the top ten events by Spend, and Daily Window exports support an explicit event limit. Legacy `metric` URLs and screenshot `--metric` remain accepted without hiding either Metric; new dashboard navigation omits `metric`. Current layout and disclosure behavior are owned by ADR-017 and ADR-015.
 
 ### Rationale
 
-One screenshot should communicate both reported Cost and usage volume.
+One screenshot should communicate both reported Spend and usage volume.
 
 ## ADR-012: Rank Users by Aggregate Effective Rate
 
 ### Decision
 
-Rank Users by aggregate reported Cost per million tokens, with independent ordering for each User ranking.
+Rank Users by aggregate reported Spend per million tokens, with independent ordering for each User ranking.
 
 ### Current State (Single Source of Truth)
 
-`実行単価 Top 10` calculates `Cost / Token Count * 1,000,000` from Billable Events and shows supporting totals. Users with zero aggregate tokens or Cost are excluded using unrounded values; no minimum volume threshold applies. Rankings sort the full comparison set before taking ten, break ties by User identifier, and retain that set when a User is selected. `高い順` / `低い順` toggles are independent; Cost and Token Count default descending, Effective Rate ascending. CLI `--by user-effective-rate` and `--user-order asc|desc` share these rules; overview and Daily Window JSON expose `topUsersByEffectiveRate` and effective `userRankingOrder` values.
+`実行単価 Top 10` calculates `Spend / Tokens * 1,000,000` from Billable Events and shows supporting totals. Users with zero aggregate tokens or Spend are excluded using unrounded values; no minimum volume threshold applies. Rankings sort the full comparison set before taking ten, break ties by User identifier, and retain that set when a User is selected. `高い順` / `低い順` toggles are independent; Spend and Tokens default descending, Effective Rate ascending. CLI `--by user-effective-rate` and `--user-order asc|desc` share these rules; overview and Daily Window JSON expose `topUsersByEffectiveRate` and effective `userRankingOrder` values.
 
 ### Rationale
 
@@ -182,7 +182,7 @@ Measure Cloud Agent usage as the share of each User's Billable Events with a Clo
 
 ### Rationale
 
-Event share describes Cloud Agent adoption independently of Cost and Token Count.
+Event share describes Cloud Agent adoption independently of Spend and Tokens.
 
 ## ADR-014: Hide Displayed Costs for Sharing
 
@@ -220,7 +220,7 @@ Group Billable Events by Cloud Agent ID within the current period and filters.
 
 ### Current State (Single Source of Truth)
 
-Trimmed, nonempty IDs form groups across Users and Daily Windows, including zero-cost groups and excluding No Charge Events. Above the event table, four Top 10 charts show per-ID Cost, Token Count, Event Count, and unique IDs per User; shared IDs count once per participating User. Summaries include group count, totals, mean/median/max Cost, and the top ten IDs' share of Cloud Agent Cost. Labels lead with first observation in the Analysis Time Zone; tooltips retain full IDs and supporting details. Detail rows show the highest-cost 20 groups with displayed/total counts, full IDs, Users, model event counts, and observation timestamps; ties use identifiers. Summaries, rankings, CLI `stats --by cloud-agent`, and JSON `cloudAgentAnalysis` use all groups, including model totals. Empty input produces zero summaries and an empty state. Cost masking includes maximum and per-ID costs but leaves mean and median visible; JSON stays numeric. Groups and observed timestamps do not establish task completion, success, lifetime cost, or runtime.
+Trimmed, nonempty IDs form groups across Users and Daily Windows, including zero-cost groups and excluding No Charge Events. Above the event table, four Top 10 charts show per-ID Spend, Tokens, Event Count, and unique IDs per User; shared IDs count once per participating User. Summaries include group count, totals, mean/median/max Spend, and the top ten IDs' share of Cloud Agent Spend. Labels lead with first observation in the Analysis Time Zone; tooltips retain full IDs and supporting details. Detail rows show the highest-cost 20 groups with displayed/total counts, full IDs, Users, model event counts, and observation timestamps; ties use identifiers. Summaries, rankings, CLI `stats --by cloud-agent`, and JSON `cloudAgentAnalysis` use all groups, including model totals. Empty input produces zero summaries and an empty state. Spend masking includes maximum and per-ID costs but leaves mean and median visible; JSON stays numeric. Groups and observed timestamps do not establish task completion, success, lifetime cost, or runtime.
 
 ### Rationale
 
