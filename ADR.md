@@ -239,3 +239,31 @@ Rows show rank, selectable full User identifier, a right-aligned primary value, 
 ### Rationale
 
 Full identifiers and responsive sizing keep rankings readable across viewport sizes.
+
+## ADR-018: Prefer Official Cursor Terminology
+
+### Decision
+
+Align user-facing terminology with Cursor's official usage screen wherever the concepts match. Introduce distinct terms only when cursor-usage expresses a different concept, and define them in CONTEXT.md.
+
+### Current State (Single Source of Truth)
+
+Dashboard and terminal metric labels use Spend and Tokens, matching Cursor's official usage screen. CONTEXT.md owns their definitions and Japanese labels. CSV columns, CLI options, JSON keys, and internal identifiers retain compatible names. Distinct analysis concepts such as Daily Window and Model Family keep their documented terms.
+
+### Rationale
+
+Familiar terminology lets users transfer their understanding of Cursor's official screen to cursor-usage.
+
+## ADR-019: Deliver Value Beyond Cursor's Official Usage Screen
+
+### Decision
+
+Treat Cursor's official usage screen as the baseline for product quality. cursor-usage must provide value beyond that baseline through clearer presentation, deeper analysis, or more useful workflows; reproducing the official screen alone is insufficient.
+
+### Current State (Single Source of Truth)
+
+Evaluate feature and UI decisions against the corresponding official experience, including clarity, readability, and usefulness. Existing capabilities that support this direction include simultaneous Spend and Tokens displays (ADR-011), configurable Daily Windows (ADR-006), reproducible CLI analysis (ADR-005), and Cloud Agent ID analysis (ADR-016). These capabilities do not by themselves establish that every part of the product exceeds the official experience; observed gaps should guide improvements.
+
+### Rationale
+
+cursor-usage earns its place by helping users understand and use their usage data better than the official screen alone.
