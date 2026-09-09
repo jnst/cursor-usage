@@ -48,7 +48,7 @@ export function ModelFamilyPanel({
           aria-pressed={metric === value}
           onClick={() => setMetric(value)}
         >
-          {value === "cost" ? "Spend" : "Tokens"}
+          {value === "cost" ? "支出" : "トークン"}
         </button>
       ))}
     </div>
@@ -128,7 +128,7 @@ export function ModelFamilyPanel({
   return (
     <div className="panel model-family-panel">
       <h3>
-        モデル別{metric === "tokens" ? "Tokens" : "Spend"}
+        モデル別{metric === "tokens" ? "トークン" : "支出"}
         {showControls && <span className="hint">クリックで実モデルの内訳へ</span>}
       </h3>
       {metricToggle}

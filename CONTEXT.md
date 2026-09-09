@@ -2,7 +2,11 @@
 
 This context defines how Cursor usage-events CSV exports are interpreted for cost and usage analysis.
 
-English headings are canonical terms. Use the heading in English UI and the `Japanese` label in Japanese UI; every term must include a `Japanese` field. `Same as English` means the English heading is used unchanged in Japanese UI. Keep definitions in English only. CSV column names, CLI options, JSON keys, and other identifiers are not translated. This file owns domain terminology and naming rules, not screen-specific copy.
+## Terminology and Translation Rules
+
+- Match concepts and English headings to official terminology (ADR-018); Japanese UI uses each term's required `Japanese` label. Official English wording does not exempt ordinary words from translation.
+- Reserve `Same as English` for proper names, retained product/feature names, and conventional symbols or units.
+- Keep definitions in English and machine-facing identifiers unchanged. This file owns terminology, not screen-specific copy.
 
 ## Active Daily Window
 
@@ -32,14 +36,14 @@ Avoid: Auto Mode Family per Router mode
 
 ## Avg Daily Spend
 
-Japanese: 平均日次 Spend
+Japanese: 平均日次支出
 
 Total Spend divided by the number of Active Daily Windows in the analysis set. "Daily" here means Daily Window, not a calendar day.
 Avoid: Avg Spend / Active Daily Window, Avg Spend / Active Day, Avg Spend / Day
 
 ## Avg Daily Tokens
 
-Japanese: 平均日次 Tokens
+Japanese: 平均日次トークン
 
 Total Tokens divided by the number of Active Daily Windows in the analysis set. Shown when Selected Metric is Tokens.
 Avoid: Avg Tokens / Active Daily Window, Avg Tokens / Day
@@ -66,9 +70,9 @@ Billable Events sharing a trimmed, nonempty Cloud Agent ID within the current an
 
 ## Spend
 
-Japanese: Same as English
+Japanese: 支出
 
-The USD amount reported by the `Cost` column in Cursor's usage-events CSV export. Spend is not recalculated from token counts and model prices. Use Spend and Tokens as metric display names in both English and Japanese UI, matching Cursor’s official usage screen. Existing CSV columns, CLI options, JSON keys, and internal identifiers retain their compatible names (such as `Cost`, `--metric cost`, and `totalCost`).
+The USD amount reported by the `Cost` column in Cursor's usage-events CSV export. Spend is not recalculated from token counts and model prices. Use Spend and Tokens as English metric display names, matching Cursor’s official usage screen; use their Japanese labels in Japanese UI. Existing CSV columns, CLI options, JSON keys, and internal identifiers retain their compatible names (such as `Cost`, `--metric cost`, and `totalCost`).
 
 ## Daily Report
 
@@ -121,7 +125,7 @@ Avoid: Model Mark, treating an Event Label as an Analysis Axis or Metric
 
 ## High Spend
 
-Japanese: 高 Spend
+Japanese: 高支出
 
 A relative description for Daily Windows or Billable Events with large Spend within the current analysis set.
 Avoid: Fixed Spend Threshold
@@ -191,7 +195,7 @@ Avoid: Chart scale, Display Metric
 
 ## Tokens
 
-Japanese: Same as English
+Japanese: トークン
 
 A usage volume measure reported by the token columns in Cursor's usage-events CSV export. Tokens explain usage shape but are not the source of truth for Spend.
 

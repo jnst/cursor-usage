@@ -118,11 +118,11 @@ export function CloudAgentAnalysis({
             </dd>
           </div>
           <div>
-            <dt>Spend</dt>
+            <dt>支出</dt>
             <dd>{formatCost(a.cost)}</dd>
           </div>
           <div>
-            <dt>Tokens</dt>
+            <dt>トークン</dt>
             <dd>{formatTokens(a.totalTokens)}</dd>
           </div>
           <div>
@@ -180,19 +180,19 @@ export function CloudAgentAnalysis({
                 sub: `${s.eventCount} events / ${formatTokens(s.totalTokens)} tokens`,
               },
               {
-                label: "Cloud Agent 合計 Spend",
+                label: "Cloud Agent 合計支出",
                 value: formatCost(s.totalCost),
                 sub: "ID があるイベントのみ",
               },
               {
-                label: "ID あたり平均 Spend",
+                label: "ID あたり平均支出",
                 value: formatUsd(s.meanCost),
                 sub: `中央値 ${formatUsd(s.medianCost)}`,
               },
               {
-                label: "ID あたり最大 Spend",
+                label: "ID あたり最大支出",
                 value: formatCost(s.maxCost),
-                sub: `Spend上位 10 ID の占有率 ${s.top10CostShare.toFixed(1)}%`,
+                sub: `支出上位 10 ID の占有率 ${s.top10CostShare.toFixed(1)}%`,
               },
             ]}
           />
@@ -201,14 +201,14 @@ export function CloudAgentAnalysis({
           </p>
           <div className="user-rankings">
             <Ranking
-              title="Cloud Agent Spend Top 10"
+              title="Cloud Agent 支出 Top 10"
               hideAxis={hidden}
               rows={agents.map((a) => agentRow(a, a.cost))}
               format={formatCost}
               color="#58a6ff"
             />
             <Ranking
-              title="Cloud Agent Tokens Top 10"
+              title="Cloud Agent トークン Top 10"
               rows={agents.map((a) => agentRow(a, a.totalTokens))}
               format={formatTokens}
               color="#3fb950"
@@ -229,7 +229,7 @@ export function CloudAgentAnalysis({
           <p className="meta">
             ユーザー別の ID 数は、同じ ID が複数ユーザーに現れる場合、各ユーザーで 1 件と数えます。
           </p>
-          <h3>Cloud Agent 集計一覧（Spend上位 20 件）</h3>
+          <h3>Cloud Agent 集計一覧（支出上位 20 件）</h3>
           <p className="meta">
             1 行は 1 つの ID の集計です。全 {agents.length} 件中 {Math.min(20, agents.length)}{" "}
             件を表示。
@@ -241,8 +241,8 @@ export function CloudAgentAnalysis({
                   <th>最初の観測 ({ctx.timeZone})</th>
                   <th>ユーザー</th>
                   <th>イベント数</th>
-                  <th>Spend</th>
-                  <th>Tokens</th>
+                  <th>支出</th>
+                  <th>トークン</th>
                   <th>モデル別イベント数</th>
                   <th>Cloud Agent ID</th>
                   <th>最後の観測 ({ctx.timeZone})</th>

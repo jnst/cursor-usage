@@ -63,7 +63,7 @@ function DailyWindowAxisTick({ x, y, payload, fill }: XAxisTickContentProps) {
 
 /**
  * Daily tooltip: stacked families (bar bottom → top), then the day-level
- * rows. Only the family list scrolls, so 合計 / Spend or Tokens / 実効レート /
+ * rows. Only the family list scrolls, so 合計 / 支出 or トークン / 実効レート /
  * 累積 stay visible when many families share a day.
  */
 function DailyMetricTooltip({
@@ -224,7 +224,7 @@ function DailyChart({
   return (
     <div className="panel wide">
       <h3>
-        日別{metric === "tokens" ? "Tokens" : "Spend"}推移
+        日別{metric === "tokens" ? "トークン" : "支出"}推移
         {showControls && onSelectDailyWindow && (
           <span className="hint">バーをクリックで詳細へ</span>
         )}
@@ -371,7 +371,7 @@ export function Overview({
           <EventsTable
             events={top}
             timeZone={ctx.timeZone}
-            title="Spend・Tokens 上位イベント 各 Top 20（重複を除く）"
+            title="支出・トークン上位イベント 各 Top 20（重複を除く）"
             timeHeader={`日時 (${ctx.timeZone})`}
             formatTimestamp={formatDateTime}
           />

@@ -188,7 +188,7 @@ function HourlyChart({
   return (
     <div className="panel wide">
       <h3>
-        時間帯別{metric === "tokens" ? "Tokens" : "Spend"} ({ctx.timeZone})
+        時間帯別{metric === "tokens" ? "トークン" : "支出"} ({ctx.timeZone})
       </h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
@@ -232,8 +232,8 @@ function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] 
             <tr>
               <th>種別</th>
               <th className="num">イベント</th>
-              <th className="num">Spend</th>
-              <th className="num">Tokens</th>
+              <th className="num">支出</th>
+              <th className="num">トークン</th>
             </tr>
           </thead>
           <tbody>
@@ -285,7 +285,7 @@ export function DailyWindowView({
     const sorted = [...dailyWindowEvents].sort((a, b) => b.cost - a.cost);
     return eventLimit === undefined ? sorted : sorted.slice(0, eventLimit);
   }, [dailyWindowEvents, eventLimit]);
-  const orderLabel = "Spend降順";
+  const orderLabel = "支出降順";
   const eventTitle =
     eventLimit === undefined
       ? `この Daily Window のイベント (${eventRows.length}件・${orderLabel})`

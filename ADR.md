@@ -1,6 +1,11 @@
 # Architecture Decision Records
 
-ADRs are kept in this file. Each record states the decision, the current implementation, and a one-line rationale. Keep Current State up to date; reference the owning ADR instead of duplicating details.
+## Writing Rules
+
+- Keep Decision, Current State, and Rationale to one sentence each by default.
+- Add detail only when omission would change implementation or interpretation.
+- Omit repetition, obvious explanations, speculative caveats, and feature lists.
+- Keep Current State current; reference owning ADRs or CONTEXT.md instead of duplicating them.
 
 ## ADR-001: Use a User-Selectable Analysis Time Zone
 
@@ -244,26 +249,26 @@ Full identifiers and responsive sizing keep rankings readable across viewport si
 
 ### Decision
 
-Align user-facing terminology with Cursor's official usage screen wherever the concepts match. Introduce distinct terms only when cursor-usage expresses a different concept, and define them in CONTEXT.md.
+Match official Cursor terminology wherever possible; translation rules belong to CONTEXT.md.
 
 ### Current State (Single Source of Truth)
 
-Dashboard and terminal metric labels use Spend and Tokens, matching Cursor's official usage screen. CONTEXT.md owns their definitions and Japanese labels. CSV columns, CLI options, JSON keys, and internal identifiers retain compatible names. Distinct analysis concepts such as Daily Window and Model Family keep their documented terms.
+Metric labels use Spend / Tokens in English and 支出 / トークン in Japanese.
 
 ### Rationale
 
-Familiar terminology lets users transfer their understanding of Cursor's official screen to cursor-usage.
+Familiar terms reduce the effort of learning cursor-usage.
 
 ## ADR-019: Deliver Value Beyond Cursor's Official Usage Screen
 
 ### Decision
 
-Treat Cursor's official usage screen as the baseline for product quality. cursor-usage must provide value beyond that baseline through clearer presentation, deeper analysis, or more useful workflows; reproducing the official screen alone is insufficient.
+Provide quality and value beyond Cursor's official usage screen.
 
 ### Current State (Single Source of Truth)
 
-Evaluate feature and UI decisions against the corresponding official experience, including clarity, readability, and usefulness. Existing capabilities that support this direction include simultaneous Spend and Tokens displays (ADR-011), configurable Daily Windows (ADR-006), reproducible CLI analysis (ADR-005), and Cloud Agent ID analysis (ADR-016). These capabilities do not by themselves establish that every part of the product exceeds the official experience; observed gaps should guide improvements.
+Use the official experience as the baseline when evaluating features and UI improvements.
 
 ### Rationale
 
-cursor-usage earns its place by helping users understand and use their usage data better than the official screen alone.
+cursor-usage needs a reason to be chosen over the official screen.
