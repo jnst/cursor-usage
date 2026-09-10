@@ -75,7 +75,7 @@ export function UserRankingChart({
               <div className="ranking-support">
                 {metric !== "cloud" ? (
                   <>
-                    {metric !== "cost" && <span>コスト {formatCost(row.cost)}</span>}
+                    {metric !== "cost" && <span>支出 {formatCost(row.cost)}</span>}
                     {metric !== "tokens" && <span>トークン {formatTokens(row.totalTokens)}</span>}
                     {metric !== "rate" && (
                       <span>実行単価 {formatUsdPerMTok(row.cost, row.totalTokens)}</span>

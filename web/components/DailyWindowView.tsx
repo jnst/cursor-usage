@@ -75,7 +75,7 @@ function DailyWindowSummaryCards({
     <SummaryCards
       cards={[
         {
-          label: "Cost",
+          label: "Spend",
           value: formatUsd(s.totalCost),
           sub: `期間全体の ${share(s.totalCost, period.totalCost)}% · 順位 ${rank("cost")} / ${windows.length}`,
         },
@@ -188,7 +188,7 @@ function HourlyChart({
   return (
     <div className="panel wide">
       <h3>
-        時間帯別{metric === "tokens" ? "トークン使用量" : "コスト"} ({ctx.timeZone})
+        時間帯別{metric === "tokens" ? "トークン" : "支出"} ({ctx.timeZone})
       </h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
@@ -232,7 +232,7 @@ function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] 
             <tr>
               <th>種別</th>
               <th className="num">イベント</th>
-              <th className="num">コスト</th>
+              <th className="num">支出</th>
               <th className="num">トークン</th>
             </tr>
           </thead>
@@ -257,7 +257,7 @@ function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] 
  *
  * `events` is the current filtered analysis set for charts and tables.
  * `userEvents` keeps the unfiltered User comparison set for the window so the
- * selected user can be shown without hiding the other users. Cost and Token Count are shown together.
+ * selected user can be shown without hiding the other users. Spend and Tokens are shown together.
  */
 export function DailyWindowView({
   events,
@@ -285,7 +285,7 @@ export function DailyWindowView({
     const sorted = [...dailyWindowEvents].sort((a, b) => b.cost - a.cost);
     return eventLimit === undefined ? sorted : sorted.slice(0, eventLimit);
   }, [dailyWindowEvents, eventLimit]);
-  const orderLabel = "コスト降順";
+  const orderLabel = "支出降順";
   const eventTitle =
     eventLimit === undefined
       ? `この Daily Window のイベント (${eventRows.length}件・${orderLabel})`

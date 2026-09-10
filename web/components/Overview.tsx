@@ -63,7 +63,7 @@ function DailyWindowAxisTick({ x, y, payload, fill }: XAxisTickContentProps) {
 
 /**
  * Daily tooltip: stacked families (bar bottom → top), then the day-level
- * rows. Only the family list scrolls, so 合計 / コスト or トークン / 実効レート /
+ * rows. Only the family list scrolls, so 合計 / 支出 or トークン / 実効レート /
  * 累積 stay visible when many families share a day.
  */
 function DailyMetricTooltip({
@@ -145,7 +145,7 @@ function OverviewSummary({ events, ctx }: { events: UsageEvent[]; ctx: AnalysisC
     <SummaryCards
       cards={[
         {
-          label: "Total Cost",
+          label: "Total Spend",
           value: formatCost(s.totalCost),
           sub: formatDailyWindowRange(s.firstDailyWindow, s.lastDailyWindow),
         },
@@ -160,12 +160,12 @@ function OverviewSummary({ events, ctx }: { events: UsageEvent[]; ctx: AnalysisC
           sub: "$ / MTok",
         },
         {
-          label: "Avg Daily Cost",
+          label: "Avg Daily Spend",
           value: formatUsd(s.avgCostPerActiveDailyWindow),
           sub: `${s.dailyWindowCount} active windows`,
         },
         {
-          label: "Avg Daily Token Count",
+          label: "Avg Daily Tokens",
           value: formatTokens(s.dailyWindowCount ? s.totalTokens / s.dailyWindowCount : 0),
           sub: `${s.modelCount} models · ${s.userCount} users`,
         },
@@ -224,7 +224,7 @@ function DailyChart({
   return (
     <div className="panel wide">
       <h3>
-        日別{metric === "tokens" ? "トークン" : "コスト"}推移
+        日別{metric === "tokens" ? "トークン" : "支出"}推移
         {showControls && onSelectDailyWindow && (
           <span className="hint">バーをクリックで詳細へ</span>
         )}
@@ -294,7 +294,7 @@ function DailyChart({
  *
  * `events` is the currently filtered analysis set. `userEvents` keeps the
  * unfiltered User comparison set so the User chart can show selected and
- * unselected users together. Cost and Token Count are shown together.
+ * unselected users together. Spend and Tokens are shown together.
  */
 export function Overview({
   events,
@@ -371,7 +371,7 @@ export function Overview({
           <EventsTable
             events={top}
             timeZone={ctx.timeZone}
-            title="高コスト・高トークンイベント 各 Top 20（重複を除く）"
+            title="支出・トークン上位イベント 各 Top 20（重複を除く）"
             timeHeader={`日時 (${ctx.timeZone})`}
             formatTimestamp={formatDateTime}
           />

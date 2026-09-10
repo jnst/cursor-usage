@@ -52,7 +52,7 @@ export function EventsTable({
               <th className="num">Cache Read</th>
               <th className="num">Output</th>
               <th className="num">Total</th>
-              <th className="num">Cost</th>
+              <th className="num">Spend</th>
             </tr>
           </thead>
           <tbody>

@@ -2,7 +2,11 @@
 
 This context defines how Cursor usage-events CSV exports are interpreted for cost and usage analysis.
 
-English headings are canonical terms. Use the heading in English UI and the `Japanese` label in Japanese UI; every term must include a `Japanese` field. `Same as English` means the English heading is used unchanged in Japanese UI. Keep definitions in English only. CSV column names, CLI options, JSON keys, and other identifiers are not translated. This file owns domain terminology and naming rules, not screen-specific copy.
+## Terminology and Translation Rules
+
+- Match concepts and English headings to official terminology (ADR-018); Japanese UI uses each term's required `Japanese` label. Official English wording does not exempt ordinary words from translation.
+- Reserve `Same as English` for proper names, retained product/feature names, and conventional symbols or units.
+- Keep definitions in English and machine-facing identifiers unchanged. This file owns terminology, not screen-specific copy.
 
 ## Active Daily Window
 
@@ -30,19 +34,19 @@ Japanese: Same as English
 Cursor's model router. Usage Exports report Auto usage as an `auto` Model identifier, an `auto-smart` Model identifier (the Router's internal model id, recorded for Auto usage via the SDK/API and JetBrains ACP sessions), a standalone Router mode name (`Auto Balanced` or `Auto Intelligence`), or a routed display name such as `Opus 5 (Auto Balanced)`, where the parenthesized part names the Router mode and the leading part names the routed Model. All these shapes belong to the `Auto` Model Family.
 Avoid: Auto Mode Family per Router mode
 
-## Avg Daily Cost
+## Avg Daily Spend
 
-Japanese: 平均日次コスト
+Japanese: 平均日次支出
 
-Total Cost divided by the number of Active Daily Windows in the analysis set. "Daily" here means Daily Window, not a calendar day.
-Avoid: Avg Cost / Active Daily Window, Avg Cost / Active Day, Avg Cost / Day
+Total Spend divided by the number of Active Daily Windows in the analysis set. "Daily" here means Daily Window, not a calendar day.
+Avoid: Avg Spend / Active Daily Window, Avg Spend / Active Day, Avg Spend / Day
 
-## Avg Daily Token Count
+## Avg Daily Tokens
 
-Japanese: 平均日次トークン使用量
+Japanese: 平均日次トークン
 
-Total Token Count divided by the number of Active Daily Windows in the analysis set. Shown when Selected Metric is Token Count.
-Avoid: Avg Token Count / Active Daily Window, Avg Token Count / Day
+Total Tokens divided by the number of Active Daily Windows in the analysis set. Shown when Selected Metric is Tokens.
+Avoid: Avg Tokens / Active Daily Window, Avg Tokens / Day
 
 ## Billable Event
 
@@ -56,7 +60,7 @@ Normal analysis uses Billable Events by default.
 
 Japanese: Cloud Agent使用率
 
-The percentage of a User's Billable Events whose `Cloud Agent ID` is nonempty. Each Usage Event counts once, even when the same ID repeats. No Charge Events are excluded from numerator and denominator. This measures event share, not Cost or Token Count share.
+The percentage of a User's Billable Events whose `Cloud Agent ID` is nonempty. Each Usage Event counts once, even when the same ID repeats. No Charge Events are excluded from numerator and denominator. This measures event share, not Spend or Tokens share.
 
 ## Cloud Agent ID Group
 
@@ -64,17 +68,17 @@ Japanese: Cloud Agent IDグループ
 
 Billable Events sharing a trimmed, nonempty Cloud Agent ID within the current analysis scope. One group can span multiple Users and Daily Windows. It does not establish a completed task or agent lifetime; first and last observations are event timestamps, not runtime.
 
-## Cost
+## Spend
 
-Japanese: コスト
+Japanese: 支出
 
-The USD amount reported by the `Cost` column in Cursor's usage-events CSV export. Cost is not recalculated from token counts and model prices.
+The USD amount reported by the `Cost` column in Cursor's usage-events CSV export. Spend is not recalculated from token counts and model prices. Use Spend and Tokens as English metric display names, matching Cursor’s official usage screen; use their Japanese labels in Japanese UI. Existing CSV columns, CLI options, JSON keys, and internal identifiers retain their compatible names (such as `Cost`, `--metric cost`, and `totalCost`).
 
 ## Daily Report
 
 Japanese: 日次レポート
 
-A shareable dashboard view for one Daily Window. Daily Reports are optimized to show when usage happened and what drove Cost.
+A shareable dashboard view for one Daily Window. Daily Reports are optimized to show when usage happened and what drove Spend.
 
 ## Daily Window
 
@@ -101,7 +105,7 @@ Avoid: Calendar Range
 
 Japanese: 実行単価
 
-Reported Cost per million tokens (`Cost / Token Count * 1,000,000`) over the current analysis set or Daily Window. Displayed as `$x.xx / MTok`. Effective Rate is a diagnostic for cheap versus expensive usage, not a reconstructed model price. When Token Count is 0, Effective Rate is undefined and renders as an em dash.
+Reported Spend per million tokens (`Spend / Tokens * 1,000,000`) over the current analysis set or Daily Window. Displayed as `$x.xx / MTok`. Effective Rate is a diagnostic for cheap versus expensive usage, not a reconstructed model price. When Tokens is 0, Effective Rate is undefined and renders as an em dash.
 Avoid: Unit Price, Model Price, Free Tier
 
 ## Event Label
@@ -119,12 +123,12 @@ There are four Event Labels:
 
 Avoid: Model Mark, treating an Event Label as an Analysis Axis or Metric
 
-## High Cost
+## High Spend
 
-Japanese: 高コスト
+Japanese: 高支出
 
-A relative description for Daily Windows or Billable Events with large Cost within the current analysis set.
-Avoid: Fixed Cost Threshold
+A relative description for Daily Windows or Billable Events with large Spend within the current analysis set.
+Avoid: Fixed Spend Threshold
 
 ## Hour
 
@@ -144,13 +148,13 @@ Avoid: Status, Type
 Japanese: Same as English
 
 A legacy `Max Mode` column in older usage-events CSV exports. Current Usage Exports typically do not populate it, so Max Mode is not an analysis Metric and is not shown in summaries. The column is still parsed when present. When the column is `Yes`, Max Mode may also appear as an Event Label.
-Avoid: High-Cost Mode, Max Mode Ratio
+Avoid: High-Spend Mode, Max Mode Ratio
 
 ## Metric
 
 Japanese: 指標
 
-An analysis value obtained from or calculated over Usage Events, such as Cost, Token Count, Event Count, or Effective Rate.
+An analysis value obtained from or calculated over Usage Events, such as Spend, Tokens, Event Count, or Effective Rate.
 Avoid: Summary, Bucket
 
 ## Model
@@ -186,14 +190,14 @@ No Charge Events may be included only when explicitly requested.
 
 Japanese: 選択指標
 
-The Metric the CLI ranks and displays as its primary value, either Cost or Token Count. The default is Cost. The dashboard displays both simultaneously (ADR-011). Selected Metric is an analysis choice, like Analysis Time Zone and Daily Window start hour: it does not change which Usage Events are included.
+The Metric the CLI ranks and displays as its primary value, either Spend or Tokens. The default is Spend. The dashboard displays both simultaneously (ADR-011). Selected Metric is an analysis choice, like Analysis Time Zone and Daily Window start hour: it does not change which Usage Events are included.
 Avoid: Chart scale, Display Metric
 
-## Token Count
+## Tokens
 
-Japanese: トークン使用量
+Japanese: トークン
 
-A usage volume measure reported by the token columns in Cursor's usage-events CSV export. Token Counts explain usage shape but are not the source of truth for Cost.
+A usage volume measure reported by the token columns in Cursor's usage-events CSV export. Tokens explain usage shape but are not the source of truth for Spend.
 
 ## Usage Event
 

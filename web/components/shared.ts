@@ -54,12 +54,12 @@ export const tooltipStyle = {
 export const tooltipItemStyle = { color: TOOLTIP_TEXT } as const;
 
 export function metricLabel(metric: Metric): string {
-  return metric === "tokens" ? "Token Count" : "Cost";
+  return metric === "tokens" ? "Tokens" : "Spend";
 }
 
-/** Hover labels: match the Japanese used in chart titles (コスト / トークン). */
+/** Japanese hover labels match the domain glossary and chart titles. */
 export function metricHoverLabel(metric: Metric): string {
-  return metric === "tokens" ? "トークン" : "コスト";
+  return metric === "tokens" ? "トークン" : "支出";
 }
 
 export const EFFECTIVE_RATE_HOVER_LABEL = "実効レート";

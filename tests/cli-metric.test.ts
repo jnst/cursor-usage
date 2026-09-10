@@ -49,15 +49,15 @@ const events: UsageEvent[] = [
 describe("CLI Selected Metric", () => {
   it("uses Token Count as the summary primary value and ranks Users by tokens", () => {
     const text = renderStats(events, "user", ctx, undefined, undefined, "tokens");
-    expect(text).toContain("metric tokens");
+    expect(text).toContain("metric Tokens");
     expect(text.indexOf("Total Tokens")).toBeGreaterThan(-1);
-    expect(text.indexOf("Total Tokens")).toBeLessThan(text.indexOf("Total Cost"));
+    expect(text.indexOf("Total Tokens")).toBeLessThan(text.indexOf("Total Spend"));
     expect(text.indexOf("bob@example.com")).toBeLessThan(text.indexOf("alice@example.com"));
   });
 
   it("keeps Cost as the default ranking", () => {
     const text = renderStats(events, "user", ctx);
-    expect(text).toContain("metric cost");
+    expect(text).toContain("metric Spend");
     expect(text.indexOf("alice@example.com")).toBeLessThan(text.indexOf("bob@example.com"));
   });
 
@@ -82,8 +82,8 @@ describe("CLI Selected Metric", () => {
       undefined,
       "tokens",
     );
-    expect(byCost).toContain("rank 1/2 by cost");
-    expect(byTokens).toContain("rank 2/2 by tokens");
+    expect(byCost).toContain("rank 1/2 by Spend");
+    expect(byTokens).toContain("rank 2/2 by Tokens");
     expect(byTokens).toContain("Effective");
   });
 });

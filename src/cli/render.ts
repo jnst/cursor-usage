@@ -72,7 +72,7 @@ function renderSummaryBlock(
       : "no data";
   const scope = [
     `${ctx.timeZone}, start ${ctx.startHour}:00`,
-    `metric ${metric}`,
+    `metric ${metric === "tokens" ? "Tokens" : "Spend"}`,
     ...(user ? [`user ${user}`] : []),
     ...(modelFamily ? [`model family ${modelFamily}`] : []),
   ].join(", ");
@@ -81,10 +81,10 @@ function renderSummaryBlock(
   const primary =
     metric === "tokens"
       ? { name: "Total Tokens", value: formatTokens(summary.totalTokens) }
-      : { name: "Total Cost", value: formatUsd(summary.totalCost) };
+      : { name: "Total Spend", value: formatUsd(summary.totalCost) };
   const secondary =
     metric === "tokens"
-      ? { name: "Total Cost", value: formatUsd(summary.totalCost) }
+      ? { name: "Total Spend", value: formatUsd(summary.totalCost) }
       : { name: "Total Tokens", value: formatTokens(summary.totalTokens) };
   const avg =
     metric === "tokens"
@@ -131,7 +131,7 @@ function renderEffectiveRateRanking(events: UsageEvent[], order: RankingOrder = 
   const rows = topUsersByEffectiveRate(events, 10, order);
   return [
     bold(`Users by Effective Rate (Top 10, ${order === "asc" ? "lowest" : "highest"} first)`),
-    dim("  Reported cost / total tokens; model and cache mix affect this rate."),
+    dim("  Reported Spend / total Tokens; model and cache mix affect this rate."),
     ...rows.map(
       (row, index) =>
         `  ${index + 1}. ${row.key}  ${formatUsdPerMTok(row.cost, row.totalTokens)}  ${formatUsd(row.cost)}  ${formatTokens(row.totalTokens)} tokens`,
@@ -181,7 +181,7 @@ export function renderStats(
 ): string {
   const summary = summarize(events, ctx);
   const total = metricTotal(summary, metric);
-  const metricName = metric === "tokens" ? "Tokens" : "Cost";
+  const metricName = metric === "tokens" ? "Tokens" : "Spend";
   const sections: string[][] = [renderSummaryBlock(summary, ctx, metric, user, modelFamily)];
 
   const charts: Record<StatsAxis, () => string[]> = {
@@ -284,13 +284,13 @@ function renderDailyWindowSummaryBlock(
   const primary =
     metric === "tokens"
       ? { name: "Tokens", value: formatTokens(s.totalTokens) }
-      : { name: "Cost", value: formatUsd(s.totalCost) };
+      : { name: "Spend", value: formatUsd(s.totalCost) };
   const secondary =
     metric === "tokens"
-      ? { name: "Cost", value: formatUsd(s.totalCost) }
+      ? { name: "Spend", value: formatUsd(s.totalCost) }
       : { name: "Total Tokens", value: formatTokens(s.totalTokens) };
   return [
-    `${bold(`Daily Window ${dailyWindow}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dailyWindowCount} by ${metric}, ${ctx.timeZone}, start ${ctx.startHour}:00)`)}`,
+    `${bold(`Daily Window ${dailyWindow}`)}  ${dim(`(${s.eventCount} events, rank ${rank}/${dailyWindowCount} by ${metric === "tokens" ? "Tokens" : "Spend"}, ${ctx.timeZone}, start ${ctx.startHour}:00)`)}`,
     "",
     `  ${label(primary.name)}${value(primary.value)}  ${label("of period")}${value(`${share}%`)}`,
     `  ${label(secondary.name)}${value(secondary.value)}  ${label("Effective")}${value(formatUsdPerMTok(s.totalCost, s.totalTokens))}`,
@@ -460,7 +460,7 @@ function renderCloudAgents(events: UsageEvent[]): string[] {
     bold("Cloud Agent ID Analysis"),
     dim("  Billable events in the selected scope; observation times are not runtime."),
     `  ${s.agentCount} IDs · ${s.eventCount} events · ${formatTokens(s.totalTokens)} tokens · ${formatUsd(s.totalCost)}`,
-    `  Mean ${formatUsd(s.meanCost)} · Median ${formatUsd(s.medianCost)} · Max ${formatUsd(s.maxCost)} · Top 10 cost share ${s.top10CostShare.toFixed(1)}%`,
+    `  Mean ${formatUsd(s.meanCost)} · Median ${formatUsd(s.medianCost)} · Max ${formatUsd(s.maxCost)} · Top 10 spend share ${s.top10CostShare.toFixed(1)}%`,
     ...agents.map(
       (a) =>
         `  ${a.key}  ${formatUsd(a.cost)}  ${formatTokens(a.totalTokens)} tokens  ${a.eventCount} events  users: ${a.users.join(", ")}  models: ${a.models.map((m) => `${m.key}: ${m.eventCount}`).join(", ")}  observed: ${a.firstObserved} – ${a.lastObserved}`,

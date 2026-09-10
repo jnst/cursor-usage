@@ -15,7 +15,7 @@ Runs on Node.js 20+ (`npx`) or [Bun](https://bun.sh) (`bunx`).
 - **Daily Window cost trends** — stacked bars by Model Family plus a cumulative line, with click-through to a per-window detail view
 - **Model Family grouping** — reasoning effort / thinking / fast variants are collapsed, and Auto (Cursor Router) is one slice; click it to see the actual Models the Router selected
 - **User breakdown & filter** — Top 10 costs per User; click a bar to focus the whole analysis on one User
-- **High Cost events** — the most expensive events at a glance, with Cloud Agent / Automation / Max Mode / Fast Mode Event Labels
+- **High Spend events** — the most expensive events at a glance, with Cloud Agent / Automation / Max Mode / Fast Mode Event Labels
 - **Daily Window detail** — hourly cost, Kind breakdown, and every event in the window
 - **CLI parity** — the same breakdowns in the terminal, or as JSON for scripting
 - **Screenshots & daily report** — capture the Overview or a shareable Daily Window PNG
@@ -30,7 +30,7 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
 
-Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model-family / per-user / per-kind costs, and every event in the window). Cost charts group Models by Model Family — variant suffixes such as reasoning effort and fast mode are collapsed, and usage routed through Auto (Cursor Router) is shown as one `Auto` slice. Click a slice in the Model Family pie to see the Models inside it; for `Auto` this reveals the actual Models the Router selected. Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
+Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model-family / per-user / per-kind costs, and every event in the window). Spend charts group Models by Model Family — variant suffixes such as reasoning effort and fast mode are collapsed, and usage routed through Auto (Cursor Router) is shown as one `Auto` slice. Click a slice in the Model Family pie to see the Models inside it; for `Auto` this reveals the actual Models the Router selected. Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
 
 The default port is 4321; if it is already in use, a free port is picked automatically. When `--port` is specified explicitly, that port is used as-is.
 
@@ -47,11 +47,11 @@ npx @jnst/cursor-usage stats team-usage-events.csv
 ```
 Cursor Usage  2026-06-01 – 2026-06-10  (610 events, 10 daily windows)
 
-  Total Cost    $1446.69      Total Tokens  1.1B
+  Total Spend    $1446.69      Total Tokens  1.1B
   Avg Daily     $144.67
   Models        8             Users         4
 
-Daily Window Cost
+Daily Window Spend
   2026-06-01  $147.44  ████████████████▊            10% 102.9M tok, 68 ev
   2026-06-02  $246.57  ████████████████████████████ 17% 180.0M tok, 79 ev
   ...
@@ -89,7 +89,7 @@ npx @jnst/cursor-usage stats usage.csv --user jnst@example.jp
 # See the Models inside one Model Family (e.g. what Auto routed to)
 npx @jnst/cursor-usage stats usage.csv --model-family Auto --by model
 
-# Rank and display by Token Count instead of Cost
+# Rank and display by Tokens instead of Spend
 npx @jnst/cursor-usage stats usage.csv --metric tokens
 ```
 
@@ -104,7 +104,7 @@ cursor-usage stats usage.csv
 
 The four User Top 10 panels use horizontal bars in a two-column, two-row layout,
 with independent high-to-low and low-to-high controls.
-Cost and Token Count default to highest first; Effective Rate defaults to lowest
+Spend and Tokens default to highest first; Effective Rate defaults to lowest
 first. CLI User rankings accept `--user-order asc|desc`, for example
 `stats usage.csv --by user-effective-rate --user-order desc` or
 `stats usage.csv --by user --metric tokens --user-order asc`.
@@ -113,13 +113,13 @@ first. CLI User rankings accept `--user-order asc|desc`, for example
 npx @jnst/cursor-usage stats usage.csv --by user-effective-rate
 ```
 
-Shows the ten Users with the lowest aggregate reported Cost per million tokens
-(`$ / MTok`), alongside Cost and Token Count. No Charge Events and Users with
-zero tokens or zero total reported Cost are excluded; there is no minimum usage threshold. Model and cache
+Shows the ten Users with the lowest aggregate reported Spend per million tokens
+(`$ / MTok`), alongside Spend and Tokens. No Charge Events and Users with
+zero tokens or zero total reported Spend are excluded; there is no minimum usage threshold. Model and cache
 mix affect this diagnostic, so it is not a productivity score. Overview and
 Daily Window JSON expose the same ranking as `topUsersByEffectiveRate`.
 
-The dashboard always shows Cost and Token Count together. Terminal
+The dashboard always shows Spend and Tokens together. Terminal
 `stats --metric cost|tokens` still selects ranking order; legacy screenshot
 `--metric` options and dashboard `metric` URL values are accepted but no longer
 switch the displayed Metric.
@@ -146,7 +146,7 @@ npx @jnst/cursor-usage screenshot team-usage-events.csv
 ```
 
 Captures the dashboard as a PNG next to the CSV. The default screenshot is an
-Overview. Cost and Token Count charts are stacked vertically at full width, with User Cost, Token Count,
+Overview. Spend and Tokens charts are stacked vertically at full width, with User Spend, Tokens,
 Effective Rate, and Cloud Agent Usage Rate Top 10 rankings in the same image (1400px wide). Model Family
 breakdowns and event details are always visible. Readability takes priority over
 fitting a fixed page height:
@@ -176,7 +176,7 @@ For a shareable report of the latest work session in the CSV, use
 `daily-report`. It captures the latest 5:00-start Daily Window with both Metrics
 and all four User rankings, and writes `daily-report.png` in the current
 directory. Model Family and Kind breakdowns are visible, along with the top 10
-events by Cost. The image captures the full page:
+events by Spend. The image captures the full page:
 
 ```bash
 npx @jnst/cursor-usage daily-report usage.csv
@@ -244,7 +244,7 @@ MIT
 
 ### Cloud Agent ID analysis
 
-The dashboard groups Cloud Agent IDs above the event table in a section that starts open and can be collapsed. Four charts compare Cost, Token Count, Event Count, and unique IDs per User. Summary cards show mean, median, maximum Cost and Top 10 Cost share; detail rows include Users, model event counts and first/last observations.
+The dashboard groups Cloud Agent IDs above the event table in a section that starts open and can be collapsed. Four charts compare Spend, Tokens, Event Count, and unique IDs per User. Summary cards show mean, median, maximum Spend and Top 10 Spend share; detail rows include Users, model event counts and first/last observations.
 
 Only Billable Events with a nonempty ID in the current period and filters are included. Observation timestamps do not measure runtime or task completion. Shared IDs count once per participating User. The cost visibility toggle masks individual and total costs while keeping mean and median visible.
 

@@ -1,6 +1,13 @@
 # Architecture Decision Records
 
-ADRs are kept in this file. Each record states the decision, the current implementation, and a one-line rationale. Keep Current State up to date; reference the owning ADR instead of duplicating details.
+ADRs record lasting design choices, their reasons, and constraints on future implementation—not a catalog of current behavior.
+
+## Writing Rules
+
+- Keep Decision, Current State, and Rationale to one sentence each by default.
+- Record a detail only when changing it would require reconsidering the design decision.
+- Keep adjustable UI sizes, layouts, scales, and display counts in implementation, not ADRs.
+- Current State shows how the decision applies, not a complete specification; reference code, owning ADRs, or CONTEXT.md for details.
 
 ## ADR-001: Use a User-Selectable Analysis Time Zone
 
@@ -8,27 +15,27 @@ ADRs are kept in this file. Each record states the decision, the current impleme
 
 Group Daily Windows and Hours in a user-selectable Analysis Time Zone.
 
-### Current State (Single Source of Truth)
+### Current State
 
-The Analysis Time Zone defaults to the user's environment and can be overridden for each analysis in the CLI and dashboard. It determines Daily Window and Hour boundaries.
+CLI and dashboard default to the user's time zone and allow an override that determines Daily Window and Hour boundaries.
 
 ### Rationale
 
 Analysis should follow the user's working calendar.
 
-## ADR-002: Keep Usage Data Local
+## ADR-002: Do Not Persist Usage Data
 
 ### Decision
 
-Process Usage Exports locally without implicit uploads or default persistence of usage data.
+Do not persist usage data, to protect users’ information.
 
-### Current State (Single Source of Truth)
+### Current State
 
-The dashboard parses CSV files in browser memory; the local server serves static assets, and the CLI reads local files. Usage Exports, parsed events, and derived cost/token data are not persisted in browser storage. Non-sensitive UI preferences may be persisted; usage-data persistence or explicit, opt-in transmission requires a separate decision.
+Imported CSV data and computed analysis results are processed in memory without application-managed storage.
 
 ### Rationale
 
-Usage Exports can contain sensitive user and usage information.
+Retained usage histories can expose users’ activity and spending.
 
 ## ADR-003: Do Not Treat cursor-usage as a Billing Audit Tool
 
@@ -36,9 +43,9 @@ Usage Exports can contain sensitive user and usage information.
 
 Analyze reported usage trends and costs without auditing billing.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Cost comes from the CSV `Cost` column, not reconstructed model prices. Pricing validation, invoice reconciliation, and accounting workflows are outside the product scope.
+Spend uses the CSV `Cost` column; reconstructed pricing, invoice reconciliation, and accounting are out of scope.
 
 ### Rationale
 
@@ -50,27 +57,27 @@ Reported usage supports trend analysis without establishing billing correctness.
 
 Encode analysis view state in URLs without including Usage Export data.
 
-### Current State (Single Source of Truth)
+### Current State
 
-URLs preserve view selections; recipients must load the same Usage Export locally. Daily Window links include the Daily Window Key, Analysis Time Zone, and non-midnight start hour so boundaries remain consistent across environments. Dashboard Metric compatibility is defined in ADR-011.
+Links preserve view selections and Daily Window boundaries, require recipients to load the same export, and follow ADR-011 for legacy Metric compatibility.
 
 ### Rationale
 
 A shared view should reproduce the same analysis boundaries while keeping usage data local.
 
-## ADR-005: Ground Analysis Features in the CLI
+## ADR-005: Build Analysis on a CLI-First Foundation
 
 ### Decision
 
-Provide every analysis capability in the CLI before or alongside the dashboard.
+Design and implement analysis for CLI execution first; the dashboard consumes the same analysis logic.
 
-### Current State (Single Source of Truth)
+### Current State
 
-CLI options expose Daily Window, User, Model Family, Analysis Time Zone, start hour, Selected Metric, No Charge Event inclusion, and specialized rankings and groupings. Browser-only interactions such as file dropping and chart layout do not require CLI equivalents.
+Shared analysis logic is independent of the browser, with CLI and dashboard serving as interfaces.
 
 ### Rationale
 
-Analysis must be reproducible in scripts, terminals, and support conversations.
+Analysis must remain executable and reproducible without a UI.
 
 ## ADR-006: Use Daily Windows Instead of Calendar Days
 
@@ -78,9 +85,9 @@ Analysis must be reproducible in scripts, terminals, and support conversations.
 
 Use Daily Windows starting at a selected hour for one-day analysis.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Daily Windows use the Analysis Time Zone and selected start hour; CLI options, URLs, and domain names use Daily Window terminology. General analysis defaults to midnight. Daily Reports use the latest Daily Window in the export and a 05:00 start hour.
+General analysis starts at midnight by default; Daily Reports default to the latest exported Daily Window and a 05:00 start, using the Analysis Time Zone from ADR-001.
 
 ### Rationale
 
@@ -92,9 +99,9 @@ Work sessions can continue past midnight.
 
 Group Model charts by Model Family and all Auto routing usage into one `Auto` family.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Normalization collapses reasoning-effort, thinking, and fast suffixes in any order, strips zero-width characters, and falls back to variant-stripped or raw identifiers for unknown Models. Auto identifiers and routed display names share one family. Original Models remain available in event tables and JSON; dashboard drilldown and CLI `--model-family Auto` expose Model-level detail.
+Charts use the Model Family and Auto definitions in CONTEXT.md while preserving original Models in event details, drilldown, and JSON.
 
 ### Rationale
 
@@ -104,29 +111,29 @@ Family grouping keeps charts readable despite variant proliferation and changing
 
 ### Decision
 
-Keep unit tests beside their implementation and cross-module tests in `tests/`.
+Use colocation: place unit tests beside the implementation they verify.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Unit tests use adjacent `*.test.ts` files. `tests/cli-metric.test.ts` covers CLI integration. `bun test` discovers both locations, and the published package ships only `dist/`.
+Unit tests share their target module’s directory; tests spanning multiple modules live in `tests/`.
 
 ### Rationale
 
-Colocation makes tests visible when their implementation changes.
+Keeping tests with their implementation makes them easier to find and maintain together.
 
 ## ADR-009: Rank and Display CLI Analysis by a Selected Metric
 
 ### Decision
 
-Let CLI analysis select Cost or Token Count as its primary Metric.
+Let CLI analysis select Spend or Tokens as its primary Metric.
 
-### Current State (Single Source of Truth)
+### Current State
 
-CLI `stats --metric cost|tokens` controls ranking and display order, defaulting to Cost. Effective Rate remains a diagnostic. Dashboard presentation is owned by ADR-011, which supersedes the original dashboard Metric switch.
+`stats --metric cost|tokens` controls ranking and primary display, defaulting to Spend; dashboard behavior follows ADR-011.
 
 ### Rationale
 
-Token Count distinguishes usage volume from reported Cost.
+Tokens distinguish usage volume from reported Spend.
 
 ## ADR-010: Period Charts Show Missing Daily Windows as Zero
 
@@ -134,108 +141,108 @@ Token Count distinguishes usage volume from reported Cost.
 
 Render missing time intervals as zero in period displays.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Daily Window charts and CLI series include every key from the first to last Active Daily Window; Hourly charts include every Hour in the window. Missing intervals have zero Cost, Token Count, and Event Count. Rankings, summaries, and averages still use Active Daily Windows, while category breakdowns remain sparse.
+Period series fill missing Daily Windows between the first and last active windows and missing Hours within each window with zeros; rankings, summaries, and averages use active windows, and category breakdowns stay sparse.
 
 ### Rationale
 
 Omitting idle intervals makes discontinuous activity look continuous.
 
-## ADR-011: Show Cost and Token Count Together for Sharing
+## ADR-011: Show Spend and Tokens Together for Sharing
 
 ### Decision
 
 Show both Metrics simultaneously in dashboard views and screenshots.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Overview and Daily Window views stack full-width Cost and Token Count charts with matching ranges and Model Family colors; overview charts share a legend and stack order. Summaries show both Metrics. The Model Family breakdown has a local Cost / Token Count toggle, including drilldown, defaulting to Cost for screenshots. Screenshot width is 1400 pixels with full-page capture; Daily Reports show the top ten events by Cost, and Daily Window exports support an explicit event limit. Legacy `metric` URLs and screenshot `--metric` remain accepted without hiding either Metric; new dashboard navigation omits `metric`. Current layout and disclosure behavior are owned by ADR-017 and ADR-015.
+Dashboard views expose both Metrics together; legacy Metric parameters remain compatible without hiding either Metric.
 
 ### Rationale
 
-One screenshot should communicate both reported Cost and usage volume.
+One screenshot should communicate both reported Spend and usage volume.
 
 ## ADR-012: Rank Users by Aggregate Effective Rate
 
 ### Decision
 
-Rank Users by aggregate reported Cost per million tokens, with independent ordering for each User ranking.
+Rank Users by aggregate reported Spend per million tokens, with independent ordering for each User ranking.
 
-### Current State (Single Source of Truth)
+### Current State
 
-`実行単価 Top 10` calculates `Cost / Token Count * 1,000,000` from Billable Events and shows supporting totals. Users with zero aggregate tokens or Cost are excluded using unrounded values; no minimum volume threshold applies. Rankings sort the full comparison set before taking ten, break ties by User identifier, and retain that set when a User is selected. `高い順` / `低い順` toggles are independent; Cost and Token Count default descending, Effective Rate ascending. CLI `--by user-effective-rate` and `--user-order asc|desc` share these rules; overview and Daily Window JSON expose `topUsersByEffectiveRate` and effective `userRankingOrder` values.
+Effective Rate uses the aggregate definition in CONTEXT.md and excludes zero unrounded Spend or Tokens without a minimum-volume threshold; selecting a User preserves the full ranking comparison set.
 
 ### Rationale
 
 Aggregate Effective Rate reveals reported unit-cost differences caused by Model and cache mix, not productivity or quality.
 
-## ADR-013: Show Cloud Agent Usage Rate by User
+## ADR-013: Compare Cloud Agent Adoption by User
 
 ### Decision
 
-Measure Cloud Agent usage as the share of each User's Billable Events with a Cloud Agent ID.
+Compare Cloud Agent adoption by the proportion of each User’s usage events that involve Cloud Agent.
 
-### Current State (Single Source of Truth)
+### Current State
 
-`Cloud Agent使用率 Top 10` defaults to descending order and follows the comparison-set and ordering rules in ADR-012. Each event counts once, including repeated IDs; Automation IDs alone do not qualify. Missing IDs count as non-Cloud events, Users with zero Cloud Agent events remain eligible, and Users without Billable Events are absent. Values and supporting counts are available through CLI `--by user-cloud-agent`, `--user-order`, and JSON `topUsersByCloudAgentUsage`. The display uses a fixed 0–100% scale; current ranking layout is owned by ADR-017.
+Usage Rate is the number of Billable Events with a Cloud Agent ID divided by that User’s total Billable Events.
 
 ### Rationale
 
-Event share describes Cloud Agent adoption independently of Cost and Token Count.
+Event proportions show adoption without being distorted by model prices or token volume.
 
-## ADR-014: Hide Displayed Costs for Sharing
+## ADR-014: Hide Spend When Sharing Usage
 
 ### Decision
 
-Allow totals and individual costs to be masked as a display preference.
+Let users hide total and event-level Spend when sharing usage analysis.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Costs default to visible. The dashboard toggle stays in memory across User and Daily Window navigation; screenshot and Daily Report exports accept `--hide-costs`. Hidden costs render directly as `***` across totals, cumulative values, details, and tooltips; monetary axis ticks are blank. Averages and Effective Rate remain visible, as do tokens, proportions, ordering, and chart shapes. CSV and CLI stats/JSON stay numeric. This is not redaction: visible rates and counts can reveal totals.
+The dashboard and screenshot exports can hide these amounts while calculations continue to use the original values.
 
 ### Rationale
 
-Users need shareable displays without changing the underlying analysis.
+Users can share usage trends without displaying total or event-level spending.
 
-## ADR-015: Keep Detail Sections Initially Open and Collapsible
+## ADR-016: Analyze Usage by Cloud Agent ID
 
 ### Decision
 
-Make detail sections collapsible while showing them by default.
+Aggregate Billable Events by Cloud Agent ID within the selected analysis period and filters.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Event tables and Cloud Agent analysis use native disclosures that start open in overview, Daily Window views, and screenshots. Collapsing them does not change event selection, deduplication, or aggregation.
+Events sharing an ID are combined across Users and Daily Windows to calculate Spend, Tokens, and Event Count for that ID.
 
 ### Rationale
 
-Users can shorten the page without hiding detail on initial viewing.
+Per-ID totals make each Cloud Agent’s usage visible.
 
-## ADR-016: Group Cloud Agent IDs Within the Current Analysis Scope
+## ADR-018: Prefer Official Cursor Terminology
 
 ### Decision
 
-Group Billable Events by Cloud Agent ID within the current period and filters.
+Match official Cursor terminology wherever possible; translation rules belong to CONTEXT.md.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Trimmed, nonempty IDs form groups across Users and Daily Windows, including zero-cost groups and excluding No Charge Events. Above the event table, four Top 10 charts show per-ID Cost, Token Count, Event Count, and unique IDs per User; shared IDs count once per participating User. Summaries include group count, totals, mean/median/max Cost, and the top ten IDs' share of Cloud Agent Cost. Labels lead with first observation in the Analysis Time Zone; tooltips retain full IDs and supporting details. Detail rows show the highest-cost 20 groups with displayed/total counts, full IDs, Users, model event counts, and observation timestamps; ties use identifiers. Summaries, rankings, CLI `stats --by cloud-agent`, and JSON `cloudAgentAnalysis` use all groups, including model totals. Empty input produces zero summaries and an empty state. Cost masking includes maximum and per-ID costs but leaves mean and median visible; JSON stays numeric. Groups and observed timestamps do not establish task completion, success, lifetime cost, or runtime.
+Metric labels use Spend / Tokens in English and 支出 / トークン in Japanese.
 
 ### Rationale
 
-Grouping repeated IDs reveals concentrated Cloud Agent usage within the available export scope.
+Familiar terms reduce the effort of learning cursor-usage.
 
-## ADR-017: Use Ranked Rows with Background Bars for User Top 10
+## ADR-019: Deliver Value Beyond Cursor's Official Usage Screen
 
 ### Decision
 
-Present User rankings as readable ranked rows alongside a responsive Model Family breakdown.
+Provide quality and value beyond Cursor's official usage screen.
 
-### Current State (Single Source of Truth)
+### Current State
 
-Rows show rank, selectable full User identifier, a right-aligned primary value, supporting metrics, and a subtle background bar. Bars scale to the maximum displayed value except Cloud Agent Usage Rate, which uses 100%. Ordering, comparison sets, and cost visibility follow ADR-012 through ADR-014. The page maximum is 2000 pixels. Viewports of at least 1800 pixels show the Model Family panel and four rankings in one row; medium widths place the Model Family panel across two rows beside the rankings, then smaller widths use two and one columns. Donuts scale with panel width in a square area, and the complete wrapping legend stays in normal flow at content height.
+Use the official experience as the baseline when evaluating features and UI improvements.
 
 ### Rationale
 
-Full identifiers and responsive sizing keep rankings readable across viewport sizes.
+cursor-usage needs a reason to be chosen over the official screen.
