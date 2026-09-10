@@ -1,13 +1,13 @@
 # Architecture Decision Records
 
-ADRs record lasting design choices, their reasons, and constraints on future implementation—not a catalog of current behavior.
+ADRs record decisions, the current state as a Single Source of Truth, and the background and intent behind each decision.
 
 ## Writing Rules
 
-- Keep Decision, Current State, and Rationale to one sentence each by default.
-- Record a detail only when changing it would require reconsidering the design decision.
-- Keep adjustable UI sizes, layouts, scales, and display counts in implementation, not ADRs.
-- Current State shows how the decision applies, not a complete specification; reference code, owning ADRs, or CONTEXT.md for details.
+- Decision: State what was decided in one sentence—the conclusion only.
+- Current State (Single Source of Truth): Describe what is actually implemented and in use now. Keep it up to date as the implementation changes. Do not present planned or intended behavior as current fact.
+- Rationale: Summarize the background and intent behind the decision in one sentence. Do not reproduce the full discussion.
+- Record architectural structure and behavioral policies; omit transitional parameter values and low-level implementation steps.
 
 ## ADR-001: Use a User-Selectable Analysis Time Zone
 
