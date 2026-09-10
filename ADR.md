@@ -17,7 +17,7 @@ Group Daily Windows and Hours in a user-selectable Analysis Time Zone.
 
 ### Current State
 
-CLI and dashboard default to the user's time zone and allow an override that determines Daily Window and Hour boundaries.
+CLI stats and screenshot commands accept an Analysis Time Zone override, and the dashboard accepts it through URL view state; otherwise they use the user's time zone. The Daily Report command uses the user's time zone without an override.
 
 ### Rationale
 
@@ -27,11 +27,11 @@ Analysis should follow the user's working calendar.
 
 ### Decision
 
-Do not persist usage data, to protect users’ information.
+Do not persist usage data.
 
 ### Current State
 
-Imported CSV data and computed analysis results are processed in memory without application-managed storage.
+Imported CSV data and computed analysis results are processed in memory without application-managed history storage. Users can explicitly export analysis as JSON or PNG.
 
 ### Rationale
 
@@ -87,7 +87,7 @@ Use Daily Windows starting at a selected hour for one-day analysis.
 
 ### Current State
 
-General analysis starts at midnight by default; Daily Reports default to the latest exported Daily Window and a 05:00 start, using the Analysis Time Zone from ADR-001.
+CLI stats and screenshot commands and dashboard URL view state support a selected Daily Window start hour. The Daily Report command uses a fixed early-morning start and selects the latest Daily Window containing Billable Events.
 
 ### Rationale
 
@@ -101,7 +101,7 @@ Group Model charts by Model Family and all Auto routing usage into one `Auto` fa
 
 ### Current State
 
-Charts use the Model Family and Auto definitions in CONTEXT.md while preserving original Models in event details, drilldown, and JSON.
+Charts group Models according to the Model Family and Auto definitions in CONTEXT.md. CLI detail views and JSON preserve original Model identifiers; dashboard event tables display Fast Mode as an Event Label separately from the Model name.
 
 ### Rationale
 
@@ -199,7 +199,7 @@ Let users hide total and event-level Spend when sharing usage analysis.
 
 ### Current State
 
-The dashboard and screenshot exports can hide these amounts while calculations continue to use the original values.
+The dashboard and screenshot exports can hide total and event-level Spend while calculations continue to use the original values. Averages and Effective Rate remain visible.
 
 ### Rationale
 
@@ -227,7 +227,7 @@ Match official Cursor terminology wherever possible; translation rules belong to
 
 ### Current State
 
-Metric labels use Spend / Tokens in English and 支出 / トークン in Japanese.
+CLI metric labels use Spend / Tokens; the dashboard mixes English labels with Japanese labels such as 支出 / トークン and has no language selector. Some labels still differ from CONTEXT.md, including 実効レート where the glossary specifies 実行単価.
 
 ### Rationale
 
@@ -241,7 +241,7 @@ Provide quality and value beyond Cursor's official usage screen.
 
 ### Current State
 
-Use the official experience as the baseline when evaluating features and UI improvements.
+The tool provides CLI analysis, Daily Windows with configurable boundaries, shareable dashboard images with Spend hiding, and analysis by Cloud Agent ID.
 
 ### Rationale
 
