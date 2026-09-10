@@ -31,24 +31,20 @@ import {
   formatUsd,
   formatUsdPerMTok,
 } from "../../src/core/format.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { CloudAgentAnalysis } from "./CloudAgentAnalysis.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
 import { EventsTable } from "./EventsTable.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
-import {
-  BAR_SIZE,
-  COLORS,
-  EFFECTIVE_RATE_HOVER_LABEL,
-  metricHoverLabel,
-  modelFamilyColors,
-} from "./shared.ts";
+import { BAR_SIZE, COLORS, modelFamilyColors } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
 import { UserRankings } from "./UserRankings.tsx";
 
 const CUMULATIVE_KEY = "cumulative";
 
 function DailyWindowAxisTick({ x, y, payload, fill }: XAxisTickContentProps) {
-  const { date, weekday } = formatDailyWindowAxis(String(payload.value));
+  const { language } = useLanguage();
+  const { date, weekday } = formatDailyWindowAxis(String(payload.value), language);
   return (
     <text x={x} y={y} textAnchor="middle" fill={fill} fontSize={12}>
       <tspan x={x} dy={12}>
@@ -63,8 +59,8 @@ function DailyWindowAxisTick({ x, y, payload, fill }: XAxisTickContentProps) {
 
 /**
  * Daily tooltip: stacked families (bar bottom → top), then the day-level
- * rows. Only the family list scrolls, so 合計 / 支出 or トークン / 実効レート /
- * 累積 stay visible when many families share a day.
+ * rows. Only the family list scrolls, so totals, Metrics, Effective Rate and
+ * cumulative values stay visible when many families share a Daily Window.
  */
 function DailyMetricTooltip({
   metric,
@@ -72,6 +68,7 @@ function DailyMetricTooltip({
   label,
   active,
 }: TooltipContentProps & { metric: Metric }) {
+  const { t } = useLanguage();
   const { formatValue: formatMetric } = useCostVisibility();
   if (!active || !payload?.length) return null;
 
@@ -114,15 +111,17 @@ function DailyMetricTooltip({
       )}
       <ul className="chart-tooltip-summary">
         <li>
-          <span className="chart-tooltip-name">合計</span>
+          <span className="chart-tooltip-name">{t("Total")}</span>
           <span className="chart-tooltip-value">{formatMetric(total, metric)}</span>
         </li>
         <li>
-          <span className="chart-tooltip-name">{metricHoverLabel(otherMetric)}</span>
+          <span className="chart-tooltip-name">
+            {t(otherMetric === "tokens" ? "Tokens" : "Spend")}
+          </span>
           <span className="chart-tooltip-value">{formatMetric(otherTotal, otherMetric)}</span>
         </li>
         <li>
-          <span className="chart-tooltip-name">{EFFECTIVE_RATE_HOVER_LABEL}</span>
+          <span className="chart-tooltip-name">{t("Effective Rate")}</span>
           <span className="chart-tooltip-value">{formatUsdPerMTok(totalCost, totalTokens)}</span>
         </li>
         {cumulativeItem && (
@@ -139,35 +138,36 @@ function DailyMetricTooltip({
 }
 
 function OverviewSummary({ events, ctx }: { events: UsageEvent[]; ctx: AnalysisContext }) {
+  const { t } = useLanguage();
   const { formatCost } = useCostVisibility();
   const s = useMemo(() => summarize(events, ctx), [events, ctx]);
   return (
     <SummaryCards
       cards={[
         {
-          label: "Total Spend",
+          label: t("Total Spend"),
           value: formatCost(s.totalCost),
           sub: formatDailyWindowRange(s.firstDailyWindow, s.lastDailyWindow),
         },
         {
-          label: "Total Tokens",
+          label: t("Total Tokens"),
           value: formatTokens(s.totalTokens),
-          sub: `${s.eventCount} events`,
+          sub: t("eventCount", { count: s.eventCount }),
         },
         {
-          label: "Effective Rate",
+          label: t("Effective Rate"),
           value: formatUsdPerMTok(s.totalCost, s.totalTokens),
           sub: "$ / MTok",
         },
         {
-          label: "Avg Daily Spend",
+          label: t("Avg Daily Spend"),
           value: formatUsd(s.avgCostPerActiveDailyWindow),
-          sub: `${s.dailyWindowCount} active windows`,
+          sub: t("activeWindows", { count: s.dailyWindowCount }),
         },
         {
-          label: "Avg Daily Tokens",
+          label: t("Avg Daily Tokens"),
           value: formatTokens(s.dailyWindowCount ? s.totalTokens / s.dailyWindowCount : 0),
-          sub: `${s.modelCount} models · ${s.userCount} users`,
+          sub: t("modelsUsers", { models: s.modelCount, users: s.userCount }),
         },
       ]}
     />
@@ -191,6 +191,7 @@ function DailyChart({
   showControls: boolean;
   onSelectDailyWindow?: (dailyWindow: string) => void;
 }) {
+  const { t } = useLanguage();
   const { formatAxisValue: formatMetric } = useCostVisibility();
   const families = useMemo(() => byModelFamily(events).map((f) => f.key), [events]);
   const data = useMemo(() => {
@@ -224,9 +225,9 @@ function DailyChart({
   return (
     <div className="panel wide">
       <h3>
-        日別{metric === "tokens" ? "トークン" : "支出"}推移
+        {t(metric === "tokens" ? "Tokens by Daily Window" : "Spend by Daily Window")}
         {showControls && onSelectDailyWindow && (
-          <span className="hint">バーをクリックで詳細へ</span>
+          <span className="hint">{t("Click a bar for details")}</span>
         )}
       </h3>
       <ResponsiveContainer width="100%" height={320}>
@@ -238,7 +239,7 @@ function DailyChart({
             height={40}
             interval={0}
             minTickGap={0}
-            tick={DailyWindowAxisTick}
+            tick={(props) => <DailyWindowAxisTick {...props} />}
           />
           <YAxis
             yAxisId="metric"
@@ -277,7 +278,7 @@ function DailyChart({
           <Line
             yAxisId="cumulative"
             dataKey={CUMULATIVE_KEY}
-            name="累積"
+            name={t("Cumulative")}
             stroke="#e6edf3"
             strokeWidth={2}
             dot={false}
@@ -313,6 +314,7 @@ export function Overview({
   onSelectUser?: (user: string) => void;
   selectedUser: string | null;
 }) {
+  const { t } = useLanguage();
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
   const families = useMemo(() => byModelFamily(events), [events]);
   const top = useMemo(
@@ -324,7 +326,7 @@ export function Overview({
   );
   return (
     <>
-      {selectedUser && <p className="meta">選択中のユーザー: {selectedUser}</p>}
+      {selectedUser && <p className="meta">{t("selectedUser", { user: selectedUser })}</p>}
       <OverviewSummary events={events} ctx={ctx} />
       <div className="grid">
         {(["cost", "tokens"] as const).map((metric) => (
@@ -339,7 +341,7 @@ export function Overview({
             onSelectDailyWindow={onSelectDailyWindow}
           />
         ))}
-        <div className="family-legend wide" aria-label="モデル分類の共通凡例">
+        <div className="family-legend wide" aria-label={t("Shared Model Family legend")}>
           {families.map((family) => (
             <span key={family.key}>
               <i style={{ background: familyColors.get(family.key) }} />
@@ -348,7 +350,7 @@ export function Overview({
           ))}
           <span>
             <i style={{ background: "#e6edf3" }} />
-            累積（右軸）
+            {t("Cumulative (right axis)")}
           </span>
         </div>
         <div className="breakdown-grid wide">
@@ -371,8 +373,8 @@ export function Overview({
           <EventsTable
             events={top}
             timeZone={ctx.timeZone}
-            title="支出・トークン上位イベント 各 Top 20（重複を除く）"
-            timeHeader={`日時 (${ctx.timeZone})`}
+            title={t("Top 20 events each by Spend and Tokens (duplicates removed)")}
+            timeHeader={t("dateTime", { zone: ctx.timeZone })}
             formatTimestamp={formatDateTime}
           />
         </div>

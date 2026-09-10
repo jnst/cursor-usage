@@ -8,6 +8,7 @@ import {
   topUsersByCloudAgentUsage,
   type RankingOrder,
 } from "../../src/core/aggregate.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { UserRankingChart, type UserRankingMetric } from "./UserRankingChart.tsx";
 
 /** All rankings use the same comparison set, even when a User is selected. */
@@ -22,6 +23,7 @@ export function UserRankings({
   showControls: boolean;
   onSelectUser?: (user: string) => void;
 }) {
+  const { t } = useLanguage();
   const [orders, setOrders] = useState<Record<UserRankingMetric, RankingOrder>>({
     cost: "desc",
     tokens: "desc",
@@ -31,27 +33,27 @@ export function UserRankings({
   const rankings = useMemo(
     () => [
       {
-        title: "支出 Top 10",
+        title: t("Top 10 by Spend"),
         rows: byUser(events, "cost", orders.cost).slice(0, 10),
         metric: "cost" as const,
       },
       {
-        title: "トークン Top 10",
+        title: t("Top 10 by Tokens"),
         rows: byUser(events, "tokens", orders.tokens).slice(0, 10),
         metric: "tokens" as const,
       },
       {
-        title: "実行単価 Top 10",
+        title: t("Top 10 by Effective Rate"),
         rows: topUsersByEffectiveRate(events, 10, orders.rate),
         metric: "rate" as const,
       },
       {
-        title: "Cloud Agent使用率 Top 10",
+        title: t("Top 10 by Cloud Agent Usage Rate"),
         rows: topUsersByCloudAgentUsage(events, 10, orders.cloud),
         metric: "cloud" as const,
       },
     ],
-    [events, orders],
+    [events, orders, t],
   );
   return (
     <div className="user-rankings wide">
@@ -60,7 +62,11 @@ export function UserRankings({
           <div className="ranking-header">
             <h3>{title}</h3>
             {showControls && (
-              <div className="model-metric-toggle" role="group" aria-label={`${title}の並び順`}>
+              <div
+                className="model-metric-toggle"
+                role="group"
+                aria-label={t("rankingOrder", { title })}
+              >
                 {(["desc", "asc"] as const).map((order) => (
                   <button
                     type="button"
@@ -68,7 +74,7 @@ export function UserRankings({
                     aria-pressed={orders[metric] === order}
                     onClick={() => setOrders((current) => ({ ...current, [metric]: order }))}
                   >
-                    {order === "desc" ? "高い順" : "低い順"}
+                    {t(order === "desc" ? "Highest first" : "Lowest first")}
                   </button>
                 ))}
               </div>
@@ -76,12 +82,14 @@ export function UserRankings({
           </div>
           <p className="ranking-note">
             {metric === "cloud"
-              ? "Cloud Agent IDありの課金イベント数 ÷ 全課金イベント数。"
+              ? t("Billable Events with a Cloud Agent ID ÷ all Billable Events.")
               : metric === "rate"
-                ? "合計支出 ÷ 合計トークン × 100万。モデル・キャッシュ利用で変わります。"
+                ? t("Total Spend ÷ Total Tokens × 1 million. Varies with Model and cache usage.")
                 : showControls
-                  ? "同じ期間の全ユーザーを比較。ユーザー名で選択／解除。"
-                  : "同じ期間の全ユーザーを比較。"}
+                  ? t(
+                      "Compare all Users in the same period. Select a User name to filter or clear the filter.",
+                    )
+                  : t("Compare all Users in the same period.")}
           </p>
           {rows.length > 0 && (
             <UserRankingChart
@@ -92,7 +100,7 @@ export function UserRankings({
               onSelectUser={onSelectUser}
             />
           )}
-          {rows.length === 0 && <p className="meta">対象ユーザーはいません。</p>}
+          {rows.length === 0 && <p className="meta">{t("No eligible Users.")}</p>}
         </section>
       ))}
     </div>

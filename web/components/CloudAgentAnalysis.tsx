@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 
 import { analyzeCloudAgents } from "../../src/core/cloud-agent.ts";
 import { formatDateTime, formatTokens, formatUsd } from "../../src/core/format.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
 import { SummaryCards } from "./SummaryCards.tsx";
 
@@ -21,6 +22,7 @@ function Ranking({
   color: string;
   hideAxis?: boolean;
 }) {
+  const { t } = useLanguage();
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const top = [...rows]
     .sort((a, b) => b.value - a.value || a.key.localeCompare(b.key))
@@ -71,7 +73,7 @@ function Ranking({
                           <div className="chart-tooltip-label">{payload[0]?.payload.label}</div>
                           <dl>
                             <div>
-                              <dt>Cloud Agent ID 数</dt>
+                              <dt>{t("Cloud Agent ID Count")}</dt>
                               <dd>{format(Number(payload[0]?.value))}</dd>
                             </div>
                           </dl>
@@ -97,6 +99,7 @@ export function CloudAgentAnalysis({
   events: UsageEvent[];
   ctx: AnalysisContext;
 }) {
+  const { t, language } = useLanguage();
   const { agents, summary: s, byUser } = useMemo(() => analyzeCloudAgents(events), [events]);
   const { formatCost, hidden } = useCostVisibility();
   const agentRow = (a: (typeof agents)[number], value: number) => ({
@@ -108,7 +111,7 @@ export function CloudAgentAnalysis({
         <div className="cloud-agent-tooltip-heading">Cloud Agent</div>
         <dl>
           <div>
-            <dt>ユーザー</dt>
+            <dt>{t("User")}</dt>
             <dd>
               {a.users.map((user) => (
                 <span className="cloud-agent-tooltip-user" key={user}>
@@ -118,42 +121,42 @@ export function CloudAgentAnalysis({
             </dd>
           </div>
           <div>
-            <dt>支出</dt>
+            <dt>{t("Spend")}</dt>
             <dd>{formatCost(a.cost)}</dd>
           </div>
           <div>
-            <dt>トークン</dt>
+            <dt>{t("Tokens")}</dt>
             <dd>{formatTokens(a.totalTokens)}</dd>
           </div>
           <div>
-            <dt>イベント数</dt>
-            <dd>{a.eventCount.toLocaleString()}</dd>
+            <dt>{t("Event Count")}</dt>
+            <dd>{a.eventCount.toLocaleString(language)}</dd>
           </div>
           <div>
-            <dt>最初の観測</dt>
+            <dt>{t("First observed")}</dt>
             <dd>{formatDateTime(new Date(a.firstObserved), ctx.timeZone)}</dd>
           </div>
           <div>
-            <dt>最後の観測</dt>
+            <dt>{t("Last observed")}</dt>
             <dd>{formatDateTime(new Date(a.lastObserved), ctx.timeZone)}</dd>
           </div>
           <div>
-            <dt>タイムゾーン</dt>
+            <dt>{t("Analysis Time Zone")}</dt>
             <dd>{ctx.timeZone}</dd>
           </div>
         </dl>
-        <div className="cloud-agent-tooltip-section">モデル別イベント数</div>
+        <div className="cloud-agent-tooltip-section">{t("Events by Model")}</div>
         <dl>
           {a.models.slice(0, 4).map((model) => (
             <div key={model.key}>
               <dt>{model.key}</dt>
-              <dd>{model.eventCount.toLocaleString()}</dd>
+              <dd>{model.eventCount.toLocaleString(language)}</dd>
             </div>
           ))}
         </dl>
         {a.models.length > 4 && (
           <div className="cloud-agent-tooltip-more">
-            ほか {a.models.length - 4} モデル（集計一覧に表示）
+            {t("moreModels", { count: a.models.length - 4 })}
           </div>
         )}
         <div className="cloud-agent-tooltip-section">Cloud Agent ID</div>
@@ -163,89 +166,90 @@ export function CloudAgentAnalysis({
   });
   return (
     <details className="panel wide analysis-disclosure" open>
-      <summary>Cloud Agent ID 別の分析</summary>
+      <summary>{t("Analysis by Cloud Agent ID")}</summary>
       <p className="meta">
-        現在の期間・絞り込み内の課金イベントを ID
-        ごとに集計。観測日時は稼働時間やタスクの完了を表しません。
+        {t(
+          "Billable Events are grouped by ID within the current period and filters. Observed timestamps do not represent runtime or task completion.",
+        )}
       </p>
       {agents.length === 0 ? (
-        <p className="meta">Cloud Agent ID を持つ課金イベントはありません。</p>
+        <p className="meta">{t("There are no Billable Events with a Cloud Agent ID.")}</p>
       ) : (
         <>
           <SummaryCards
             cards={[
               {
-                label: "Cloud Agent ID 数",
+                label: t("Cloud Agent ID Count"),
                 value: String(s.agentCount),
-                sub: `${s.eventCount} events / ${formatTokens(s.totalTokens)} tokens`,
+                sub: t("eventsTokens", {
+                  count: s.eventCount,
+                  tokens: formatTokens(s.totalTokens),
+                }),
               },
               {
-                label: "Cloud Agent 合計支出",
+                label: t("Cloud Agent Total Spend"),
                 value: formatCost(s.totalCost),
-                sub: "ID があるイベントのみ",
+                sub: t("Only events with an ID"),
               },
               {
-                label: "ID あたり平均支出",
+                label: t("Average Spend per ID"),
                 value: formatUsd(s.meanCost),
-                sub: `中央値 ${formatUsd(s.medianCost)}`,
+                sub: t("median", { value: formatUsd(s.medianCost) }),
               },
               {
-                label: "ID あたり最大支出",
+                label: t("Maximum Spend per ID"),
                 value: formatCost(s.maxCost),
-                sub: `支出上位 10 ID の占有率 ${s.top10CostShare.toFixed(1)}%`,
+                sub: t("cloudShare", { share: s.top10CostShare.toFixed(1) }),
               },
             ]}
           />
-          <p className="meta">
-            グラフの日時は最初の観測 ({ctx.timeZone})。ホバーでユーザーと ID を確認できます。
-          </p>
+          <p className="meta">{t("cloudChartHint", { zone: ctx.timeZone })}</p>
           <div className="user-rankings">
             <Ranking
-              title="Cloud Agent 支出 Top 10"
+              title={t("Top 10 Cloud Agent IDs by Spend")}
               hideAxis={hidden}
               rows={agents.map((a) => agentRow(a, a.cost))}
               format={formatCost}
               color="#58a6ff"
             />
             <Ranking
-              title="Cloud Agent トークン Top 10"
+              title={t("Top 10 Cloud Agent IDs by Tokens")}
               rows={agents.map((a) => agentRow(a, a.totalTokens))}
               format={formatTokens}
               color="#3fb950"
             />
             <Ranking
-              title="Cloud Agent イベント数 Top 10"
+              title={t("Top 10 Cloud Agent IDs by Event Count")}
               rows={agents.map((a) => agentRow(a, a.eventCount))}
-              format={(v) => v.toLocaleString()}
+              format={(v) => v.toLocaleString(language)}
               color="#d2a8ff"
             />
             <Ranking
-              title="ユーザー別 Cloud Agent ID 数 Top 10"
+              title={t("Top 10 Users by Cloud Agent ID Count")}
               rows={byUser.map((a) => ({ key: a.key, label: a.key, value: a.agentCount }))}
-              format={(v) => v.toLocaleString()}
+              format={(v) => v.toLocaleString(language)}
               color="#f0883e"
             />
           </div>
           <p className="meta">
-            ユーザー別の ID 数は、同じ ID が複数ユーザーに現れる場合、各ユーザーで 1 件と数えます。
+            {t("An ID shared by multiple Users is counted once for each User.")}
           </p>
-          <h3>Cloud Agent 集計一覧（支出上位 20 件）</h3>
+          <h3>{t("Cloud Agent summary (top 20 by Spend)")}</h3>
           <p className="meta">
-            1 行は 1 つの ID の集計です。全 {agents.length} 件中 {Math.min(20, agents.length)}{" "}
-            件を表示。
+            {t("cloudRows", { count: Math.min(20, agents.length), total: agents.length })}
           </p>
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>最初の観測 ({ctx.timeZone})</th>
-                  <th>ユーザー</th>
-                  <th>イベント数</th>
-                  <th>支出</th>
-                  <th>トークン</th>
-                  <th>モデル別イベント数</th>
+                  <th>{t("firstObserved", { zone: ctx.timeZone })}</th>
+                  <th>{t("User")}</th>
+                  <th>{t("Event Count")}</th>
+                  <th>{t("Spend")}</th>
+                  <th>{t("Tokens")}</th>
+                  <th>{t("Events by Model")}</th>
                   <th>Cloud Agent ID</th>
-                  <th>最後の観測 ({ctx.timeZone})</th>
+                  <th>{t("lastObserved", { zone: ctx.timeZone })}</th>
                 </tr>
               </thead>
               <tbody>

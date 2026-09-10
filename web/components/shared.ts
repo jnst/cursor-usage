@@ -1,4 +1,4 @@
-import type { Metric, UsageEvent } from "../../src/core/types.ts";
+import type { UsageEvent } from "../../src/core/types.ts";
 
 import { byModelFamily } from "../../src/core/aggregate.ts";
 
@@ -52,14 +52,3 @@ export const tooltipStyle = {
 } as const;
 
 export const tooltipItemStyle = { color: TOOLTIP_TEXT } as const;
-
-export function metricLabel(metric: Metric): string {
-  return metric === "tokens" ? "Tokens" : "Spend";
-}
-
-/** Japanese hover labels match the domain glossary and chart titles. */
-export function metricHoverLabel(metric: Metric): string {
-  return metric === "tokens" ? "トークン" : "支出";
-}
-
-export const EFFECTIVE_RATE_HOVER_LABEL = "実効レート";

@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 
 import { filterEvents } from "../core/aggregate.ts";
+import { isLanguage, preferredLanguage, type Language } from "../core/language.ts";
 import { parseUsageCsv } from "../core/parse.ts";
 import {
   defaultAnalysisTimeZone,
@@ -30,7 +31,7 @@ Usage:
   cursor-usage [serve] [--port <n>] [--no-open]   Start the drag & drop dashboard (default)
   cursor-usage stats <csv> [options]              Show usage statistics in the terminal
   cursor-usage screenshot <csv> [options]         Capture the dashboard as a PNG
-  cursor-usage daily-report <csv>                 Capture a shareable daily report PNG
+  cursor-usage daily-report <csv> [options]       Capture a shareable daily report PNG
 
 Stats options:
   --by <daily-window|user|model|model-family|user-effective-rate|user-cloud-agent|cloud-agent>
@@ -47,6 +48,7 @@ Stats options:
   --include-no-charge             Include "Errored, No Charge" events
 
 Screenshot options:
+  --lang <ja|en>                 Display language (default: current environment)
   --hide-costs                   Mask totals and individual costs (averages/rates stay visible)
   --daily-window <YYYY-MM-DD>     Capture a Daily Window detail view
   --start-hour <0-23>             Daily Window start hour (default: 0)
@@ -56,6 +58,10 @@ Screenshot options:
   --timezone <iana-tz>            Analysis time zone (default: current environment)
   --metric <cost|tokens>          Accepted for compatibility; PNG always shows both metrics
   --include-no-charge             Include "Errored, No Charge" events
+
+Daily Report options:
+  --lang <ja|en>                 Display language (default: current environment)
+  --hide-costs                   Mask totals and individual costs (averages/rates stay visible)
 
 Serve options:
   --port <n>              Fixed port to listen on
@@ -100,6 +106,19 @@ const SHARED_ANALYSIS_OPTIONS = {
   metric: { type: "string" },
   "include-no-charge": { type: "boolean", default: false },
 } as const;
+
+function parseLanguage(value: string | undefined): Language {
+  if (value === undefined) {
+    return preferredLanguage([
+      process.env.LC_ALL ||
+        process.env.LC_MESSAGES ||
+        process.env.LANG ||
+        Intl.DateTimeFormat().resolvedOptions().locale,
+    ]);
+  }
+  if (!isLanguage(value)) fail(`invalid --lang value: ${value} (expected ja or en)`);
+  return value;
+}
 
 function parseMetric(value: string | undefined): Metric {
   if (value === undefined) return "cost";
@@ -217,6 +236,7 @@ async function runScreenshot(args: string[]): Promise<void> {
     allowPositionals: true,
     options: {
       ...SHARED_ANALYSIS_OPTIONS,
+      lang: { type: "string" },
       "event-limit": { type: "string" },
       "hide-costs": { type: "boolean", default: false },
       out: { type: "string" },
@@ -228,6 +248,7 @@ async function runScreenshot(args: string[]): Promise<void> {
 
   const ctx = parseAnalysisContext(values.timezone, values["start-hour"]);
   const dailyWindow = parseDailyWindow(values["daily-window"]);
+  const language = parseLanguage(values.lang);
   const eventLimit = parseEventLimit(values["event-limit"]);
   const metric = parseMetric(values.metric);
 
@@ -242,6 +263,7 @@ async function runScreenshot(args: string[]): Promise<void> {
     dailyWindow,
     eventLimit,
     dailyReport: false,
+    language,
     hideCosts: values["hide-costs"],
     out: values.out,
     user: values.user,
@@ -254,13 +276,14 @@ async function runDailyReport(args: string[]): Promise<void> {
   const { positionals, values } = parseArgs({
     args,
     allowPositionals: true,
-    options: { "hide-costs": { type: "boolean", default: false } },
+    options: { lang: { type: "string" }, "hide-costs": { type: "boolean", default: false } },
   });
 
   const csvPath = positionals[0];
   if (!csvPath) fail("daily-report requires a path to a CSV file");
   if (positionals.length > 1) fail(`unexpected argument: ${positionals[1]}`);
 
+  const language = parseLanguage(values.lang);
   const ctx: AnalysisContext = { timeZone: defaultAnalysisTimeZone(), startHour: 5 };
   const events = await readUsageEvents(
     csvPath,
@@ -277,6 +300,7 @@ async function runDailyReport(args: string[]): Promise<void> {
     dailyWindow,
     eventLimit: 10,
     dailyReport: true,
+    language,
     hideCosts: values["hide-costs"],
   });
   console.log(`wrote ${path}`);

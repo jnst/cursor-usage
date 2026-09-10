@@ -60,6 +60,11 @@ describe("formatDailyWindowAxis", () => {
   });
 });
 
+it("localizes weekdays without changing the Daily Window date", () => {
+  expect(formatDailyWindowAxis("2026-08-14", "en")).toEqual({ date: "8/14", weekday: "Fri" });
+  expect(formatDailyWindowAxis("2026-08-14", "ja")).toEqual({ date: "8/14", weekday: "金" });
+});
+
 describe("formatDailyWindowRange", () => {
   it("uses full ISO dates for range bounds", () => {
     expect(formatDailyWindowRange("2026-07-29", "2026-08-24")).toBe("2026-07-29 - 2026-08-24");

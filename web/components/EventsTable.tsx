@@ -1,6 +1,7 @@
 import type { UsageEvent } from "../../src/core/types.ts";
 
 import { formatTokens } from "../../src/core/format.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
 import { ModelCell } from "./ModelCell.tsx";
 
@@ -36,6 +37,7 @@ export function EventsTable({
   formatTimestamp: (date: Date, timeZone: string) => string;
   wrapClassName?: string;
 }) {
+  const { t } = useLanguage();
   const { formatCost } = useCostVisibility();
   return (
     <details className="panel wide analysis-disclosure" open>
@@ -45,14 +47,14 @@ export function EventsTable({
           <thead>
             <tr>
               <th>{timeHeader}</th>
-              <th>ユーザー</th>
-              <th>モデル</th>
-              <th>種別</th>
-              <th className="num">Input</th>
-              <th className="num">Cache Read</th>
-              <th className="num">Output</th>
-              <th className="num">Total</th>
-              <th className="num">Spend</th>
+              <th>{t("User")}</th>
+              <th>{t("Model")}</th>
+              <th>{t("Kind")}</th>
+              <th className="num">{t("Input")}</th>
+              <th className="num">{t("Cache Read")}</th>
+              <th className="num">{t("Output")}</th>
+              <th className="num">{t("Total")}</th>
+              <th className="num">{t("Spend")}</th>
             </tr>
           </thead>
           <tbody>

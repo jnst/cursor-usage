@@ -1,3 +1,4 @@
+import type { Language } from "./language.ts";
 import type { Metric } from "./types.ts";
 
 import { dateTimeParts } from "./time.ts";
@@ -65,21 +66,27 @@ export function formatMetric(
   return metric === "tokens" ? formatTokens(value) : formatUsd(value, options);
 }
 
-const WEEKDAYS_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
+const WEEKDAYS = {
+  ja: ["日", "月", "火", "水", "木", "金", "土"],
+  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+} as const;
 
 /**
  * Formats a Daily Window Key for a dense chart axis.
  *
- * The axis shows `8/14` (no leading zeros) plus a Japanese weekday. The Daily
+ * The axis shows `8/14` (no leading zeros) plus a localized weekday. The Daily
  * Window Key is already a calendar date, so the weekday is that date's
  * weekday — not a time-zone conversion of an instant. Hover and titles keep
  * the full `YYYY-MM-DD` key.
  */
-export function formatDailyWindowAxis(dailyWindowKey: string): { date: string; weekday: string } {
+export function formatDailyWindowAxis(
+  dailyWindowKey: string,
+  language: Language = "ja",
+): { date: string; weekday: string } {
   const [year, month, day] = dailyWindowKey.split("-").map(Number);
   if (!year || !month || !day) return { date: dailyWindowKey, weekday: "" };
   const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  return { date: `${month}/${day}`, weekday: WEEKDAYS_JA[weekday] ?? "" };
+  return { date: `${month}/${day}`, weekday: WEEKDAYS[language][weekday] ?? "" };
 }
 
 /**

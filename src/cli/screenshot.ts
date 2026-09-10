@@ -1,3 +1,4 @@
+import type { Language } from "../core/language.ts";
 import type { AnalysisContext, Metric, UsageEvent } from "../core/types.ts";
 
 import { basename, dirname, extname, join } from "node:path";
@@ -16,6 +17,7 @@ interface ScreenshotOptions {
   user?: string;
   metric?: Metric;
   hideCosts?: boolean;
+  language?: Language;
 }
 
 interface BrowserLike {
@@ -113,6 +115,7 @@ export async function writeScreenshot(options: ScreenshotOptions): Promise<strin
       content: [
         `window.__CURSOR_USAGE_EVENTS__ = ${JSON.stringify(serializeEvents(options.events))};`,
         "window.__CURSOR_USAGE_SCREENSHOT__ = true;",
+        `window.__CURSOR_USAGE_LANGUAGE__ = ${JSON.stringify(options.language ?? "en")};`,
         `window.__CURSOR_USAGE_HIDE_COSTS__ = ${options.hideCosts === true};`,
       ].join("\n"),
     });

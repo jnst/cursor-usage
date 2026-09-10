@@ -3,6 +3,7 @@ import type { Metric } from "../../src/core/types.ts";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 
 import { formatMetric, formatUsd } from "../../src/core/format.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 
 export const HIDDEN_COST = "***";
 const Context = createContext({ hidden: false, toggle: () => {} });
@@ -38,13 +39,14 @@ export function useCostVisibility() {
 }
 
 export function CostVisibilityToggle() {
+  const { t } = useLanguage();
   const { hidden, toggle } = useCostVisibility();
   return (
     <button
       type="button"
       className="reload-button cost-visibility-toggle"
-      aria-label={hidden ? "金額を表示" : "金額を隠す"}
-      title={hidden ? "金額を表示" : "金額を隠す"}
+      aria-label={t(hidden ? "Show Spend" : "Hide Spend")}
+      title={t(hidden ? "Show Spend" : "Hide Spend")}
       aria-pressed={hidden}
       onClick={toggle}
     >

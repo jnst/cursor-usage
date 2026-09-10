@@ -1,8 +1,11 @@
 import { type DragEvent, useRef, useState } from "react";
 
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
+
 interface Props {
   onCsvText: (text: string) => void;
   error: string | null;
+  onReadError: () => void;
 }
 
 /**
@@ -11,13 +14,14 @@ interface Props {
  * The selected file is read locally and passed upward as text; this component
  * does not upload or persist the CSV contents.
  */
-export function DropZone({ onCsvText, error }: Props) {
+export function DropZone({ onCsvText, error, onReadError }: Props) {
+  const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
   const readFile = (file: File | undefined) => {
     if (!file) return;
-    file.text().then(onCsvText);
+    file.text().then(onCsvText).catch(onReadError);
   };
 
   const onDrop = (e: DragEvent) => {
@@ -38,12 +42,13 @@ export function DropZone({ onCsvText, error }: Props) {
       onDrop={onDrop}
     >
       <div className="icon">📊</div>
-      <h2>CSVをここにドラッグ&ドロップ</h2>
+      <h2>{t("Drop a CSV here")}</h2>
       <p>
-        Cursorダッシュボードからエクスポートした usage events CSV
-        を読み込みます。データはブラウザ内で処理され、どこにも送信されません。
+        {t(
+          "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.",
+        )}
       </p>
-      <p className="meta">クリックでファイル選択もできます</p>
+      <p className="meta">{t("You can also click to choose a file")}</p>
       {error && <p className="error">{error}</p>}
       <input
         ref={inputRef}
