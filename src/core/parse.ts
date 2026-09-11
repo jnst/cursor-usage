@@ -7,7 +7,7 @@ import type { UsageEvent } from "./types.ts";
  * Usage Export: quoted fields, embedded commas, escaped quotes, and newlines
  * inside quoted fields.
  */
-export function parseCsv(text: string): string[][] {
+export function parseCsv(text: string, strict = false): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -33,6 +33,9 @@ export function parseCsv(text: string): string[][] {
           i += 2;
           continue;
         }
+        if (strict && i + 1 < text.length && ![",", "\r", "\n"].includes(text[i + 1]!)) {
+          throw new Error("Invalid CSV: unexpected text after a quoted field");
+        }
         inQuotes = false;
         i++;
         continue;
@@ -42,6 +45,7 @@ export function parseCsv(text: string): string[][] {
       continue;
     }
     if (ch === '"') {
+      if (strict && field.length > 0) throw new Error("Invalid CSV: unexpected quote");
       inQuotes = true;
       i++;
       continue;
@@ -63,6 +67,7 @@ export function parseCsv(text: string): string[][] {
     field += ch;
     i++;
   }
+  if (strict && inQuotes) throw new Error("Invalid CSV: unterminated quoted field");
   if (field.length > 0 || row.length > 0) pushRow();
   return rows;
 }

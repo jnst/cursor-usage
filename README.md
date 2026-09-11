@@ -41,6 +41,29 @@ The default port is 4321; if it is already in use, a free port is picked automat
 npx @jnst/cursor-usage serve --port 8080 --no-open
 ```
 
+### Remove confidential values from CSV
+
+```bash
+npx @jnst/cursor-usage sanitize usage.csv
+npx @jnst/cursor-usage sanitize usage.csv --out sanitized.csv
+```
+
+`sanitize` replaces `User` email addresses with Japanese surname aliases such as
+`sato@example.jp`, adding numeric suffixes as needed. Repeated addresses keep the
+same alias, and original domains map consistently to `example.jp`, `example.com`,
+`example.dev`, and `example.net`, then numbered subdomains of `example.net`.
+
+`Cost` and the token columns are independently multiplied by random factors from
+0.9 to 1.1, then truncated to integers. Zero stays zero; this also means small
+Spend amounts can become zero. Totals are perturbed independently of token
+components. All other columns, including dates and agent/automation IDs, retain
+their values. This command transforms the specified fields, not arbitrary
+confidential text in other columns.
+
+The default output is `<input>-sanitized.csv` beside the input. Existing files
+are never overwritten. Invalid email or numeric fields cause an error without
+printing their contents or writing output.
+
 ### Terminal stats
 
 ```bash

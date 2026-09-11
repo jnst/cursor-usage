@@ -261,7 +261,7 @@ The dashboard uses a saved explicit language choice or the first supported brows
 
 Users need to read and share the same analysis in their preferred language.
 
-## ADR-021: Remove Confidential Information from Usage Exports Through the CLI
+## ADR-021: Remove Confidential Information from CSV Through the CLI
 
 ### Decision
 
