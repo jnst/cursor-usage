@@ -220,6 +220,8 @@ bun scripts/generate-dummy-csv.ts > dummy-usage.csv
 
 ### Release
 
+Run releases from `main`; other branches and detached HEAD are rejected before authentication or any release steps, including with `--dry-run`.
+
 The release command verifies, versions, publishes, pushes commits/tags, and creates a
 GitHub Release with generated notes:
 
