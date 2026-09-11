@@ -75,6 +75,15 @@ function ensureNpmAuth() {
   run("npm", ["whoami"]);
 }
 
+function ensureMainBranch() {
+  const branch = output("git", ["branch", "--show-current"]);
+  if (branch !== "main") {
+    console.error(`Releases must run on main. Current checkout: ${branch || "detached HEAD"}.`);
+    console.error("Switch to main before running the release command.");
+    process.exit(1);
+  }
+}
+
 function ensureCleanWorkingTree() {
   const status = output("git", ["status", "--porcelain"]);
   if (status) {
@@ -111,6 +120,7 @@ function githubReleaseExists(tag: string): boolean {
 
 const release = parseArgs(process.argv.slice(2));
 
+ensureMainBranch();
 ensureCleanWorkingTree();
 
 ensureNpmAuth();
