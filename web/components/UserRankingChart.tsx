@@ -1,6 +1,7 @@
 import type { BucketStat } from "../../src/core/types.ts";
 
 import { formatTokens, formatUsdPerMTok } from "../../src/core/format.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
 
 export type UserRankingMetric = "cost" | "tokens" | "rate" | "cloud";
@@ -19,6 +20,7 @@ export function UserRankingChart({
   showControls: boolean;
   onSelectUser?: (user: string) => void;
 }) {
+  const { t } = useLanguage();
   const { formatCost } = useCostVisibility();
   const valueOf = (row: Row) =>
     metric === "cost"
@@ -75,15 +77,28 @@ export function UserRankingChart({
               <div className="ranking-support">
                 {metric !== "cloud" ? (
                   <>
-                    {metric !== "cost" && <span>支出 {formatCost(row.cost)}</span>}
-                    {metric !== "tokens" && <span>トークン {formatTokens(row.totalTokens)}</span>}
+                    {metric !== "cost" && (
+                      <span>
+                        {t("Spend")} {formatCost(row.cost)}
+                      </span>
+                    )}
+                    {metric !== "tokens" && (
+                      <span>
+                        {t("Tokens")} {formatTokens(row.totalTokens)}
+                      </span>
+                    )}
                     {metric !== "rate" && (
-                      <span>実行単価 {formatUsdPerMTok(row.cost, row.totalTokens)}</span>
+                      <span>
+                        {t("Effective Rate")} {formatUsdPerMTok(row.cost, row.totalTokens)}
+                      </span>
                     )}
                   </>
                 ) : (
                   <span>
-                    Cloud Agentイベント {row.cloudAgentEventCount ?? 0} / {row.eventCount}
+                    {t("cloudEvents", {
+                      count: row.cloudAgentEventCount ?? 0,
+                      total: row.eventCount,
+                    })}
                   </span>
                 )}
               </div>

@@ -1,8 +1,11 @@
+import type { Language } from "../src/core/language.ts";
+import type { MessageKey } from "./i18n/messages.ts";
+
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { filterEvents } from "../src/core/aggregate.ts";
-import { parseUsageCsv } from "../src/core/parse.ts";
+import { parseUsageCsv, MissingColumnError } from "../src/core/parse.ts";
 import {
   defaultAnalysisTimeZone,
   isValidDailyWindowKey,
@@ -13,7 +16,9 @@ import { type AnalysisContext, type UsageEvent } from "../src/core/types.ts";
 import { CostVisibilityProvider, CostVisibilityToggle } from "./components/CostVisibility.tsx";
 import { DailyWindowView } from "./components/DailyWindowView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
+import { LanguageSelector } from "./components/LanguageSelector.tsx";
 import { Overview } from "./components/Overview.tsx";
+import { LanguageProvider, initialLanguage, useLanguage } from "./i18n/LanguageProvider.tsx";
 
 type SerializedUsageEvent = Omit<UsageEvent, "date"> & { date: string };
 
@@ -22,6 +27,7 @@ declare global {
     __CURSOR_USAGE_EVENTS__?: SerializedUsageEvent[];
     __CURSOR_USAGE_SCREENSHOT__?: boolean;
     __CURSOR_USAGE_HIDE_COSTS__?: boolean;
+    __CURSOR_USAGE_LANGUAGE__?: Language;
   }
 }
 
@@ -109,8 +115,11 @@ function useDailyWindowRoute(): {
 }
 
 function App() {
+  const { t } = useLanguage();
   const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(() => initialEvents());
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ key: MessageKey; params?: Record<string, string> } | null>(
+    null,
+  );
   const showControls = window.__CURSOR_USAGE_SCREENSHOT__ !== true;
   const {
     selectedDailyWindow,
@@ -125,13 +134,17 @@ function App() {
     try {
       const parsed = parseUsageCsv(text);
       if (parsed.length === 0) {
-        setError("CSVから利用イベントを読み取れませんでした。");
+        setError({ key: "No Usage Events could be read from the CSV." });
         return;
       }
       setError(null);
       setAllEvents(parsed);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(
+        e instanceof MissingColumnError
+          ? { key: "missingColumn", params: { column: e.column } }
+          : { key: "Could not load the CSV." },
+      );
     }
   };
 
@@ -165,13 +178,16 @@ function App() {
           Cursor Usage
         </h1>
         {events && (
-          <>
-            <span className="meta">
-              {events.length} 課金イベント
-              {noChargeCount > 0 && ` (No Charge ${noChargeCount}件を除外)`}
-            </span>
-            {showControls && (
-              <div className="header-actions">
+          <span className="meta">
+            {t("billableCount", { count: events.length })}
+            {noChargeCount > 0 && t("excludedCount", { count: noChargeCount })}
+          </span>
+        )}
+        {showControls && (
+          <div className="header-actions">
+            <LanguageSelector />
+            {events && (
+              <>
                 <CostVisibilityToggle />
                 <button
                   type="button"
@@ -183,11 +199,11 @@ function App() {
                     setError(null);
                   }}
                 >
-                  別のCSVを読み込む
+                  {t("Load another CSV")}
                 </button>
-              </div>
+              </>
             )}
-          </>
+          </div>
         )}
       </div>
       {events ? (
@@ -216,7 +232,11 @@ function App() {
           />
         )
       ) : (
-        <DropZone onCsvText={onCsvText} error={error} />
+        <DropZone
+          onCsvText={onCsvText}
+          error={error ? t(error.key, error.params) : null}
+          onReadError={() => setError({ key: "Could not read the file. Please choose it again." })}
+        />
       )}
     </div>
   );
@@ -224,8 +244,12 @@ function App() {
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element not found.");
+const language = initialLanguage();
+document.documentElement.lang = language;
 createRoot(root).render(
-  <CostVisibilityProvider>
-    <App />
-  </CostVisibilityProvider>,
+  <LanguageProvider initial={language}>
+    <CostVisibilityProvider>
+      <App />
+    </CostVisibilityProvider>
+  </LanguageProvider>,
 );

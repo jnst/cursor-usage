@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { Cell, DefaultTooltipContent, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { byModel, byModelFamily, eventsInModelFamily } from "../../src/core/aggregate.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
-import { COLORS, metricHoverLabel, metricLabel, tooltipItemStyle, tooltipStyle } from "./shared.ts";
+import { COLORS, tooltipItemStyle, tooltipStyle } from "./shared.ts";
 
 /**
  * Model Family pie with a Model-level drilldown.
@@ -23,6 +24,7 @@ export function ModelFamilyPanel({
   familyColors: Map<string, string>;
   showControls: boolean;
 }) {
+  const { t } = useLanguage();
   const { formatValue: formatMetric } = useCostVisibility();
   const [metric, setMetric] = useState<Metric>("cost");
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
@@ -38,9 +40,9 @@ export function ModelFamilyPanel({
     () => (selectedFamily ? byModel(eventsInModelFamily(events, selectedFamily), metric) : []),
     [events, selectedFamily, metric],
   );
-  const label = metricLabel(metric);
+  const label = t(metric === "tokens" ? "Tokens" : "Spend");
   const metricToggle = showControls && (
-    <div className="model-metric-toggle" role="group" aria-label="モデル別の表示指標">
+    <div className="model-metric-toggle" role="group" aria-label={t("Metric for Model breakdown")}>
       {(["cost", "tokens"] as const).map((value) => (
         <button
           key={value}
@@ -48,7 +50,7 @@ export function ModelFamilyPanel({
           aria-pressed={metric === value}
           onClick={() => setMetric(value)}
         >
-          {value === "cost" ? "支出" : "トークン"}
+          {t(value === "cost" ? "Spend" : "Tokens")}
         </button>
       ))}
     </div>
@@ -70,14 +72,14 @@ export function ModelFamilyPanel({
             type="button"
             className="panel-back"
             onClick={() => setSelectedFamily(null)}
-            aria-label="モデル分類へ戻る"
+            aria-label={t("Back to Model Families")}
           >
             ←
           </button>
-          {selectedFamily} の内訳
+          {t("familyBreakdown", { family: selectedFamily })}
           <span className="hint">
-            {formatMetric(familyTotal, metric)} ・ モデル別
-            {selectedFamily === "Auto" ? " (Auto の実モデル)" : ""}
+            {t("byModel", { value: formatMetric(familyTotal, metric) })}
+            {selectedFamily === "Auto" ? t(" (Models routed through Auto)") : ""}
           </span>
         </h3>
         {metricToggle}
@@ -85,15 +87,15 @@ export function ModelFamilyPanel({
           <table>
             <thead>
               <tr>
-                <th>モデル</th>
-                <th className="num">イベント</th>
+                <th>{t("Model")}</th>
+                <th className="num">{t("Events")}</th>
                 <th className="num">{label}</th>
               </tr>
             </thead>
             <tbody>
               {models.length === 0 ? (
                 <tr>
-                  <td colSpan={3}>この分類のイベントはありません。</td>
+                  <td colSpan={3}>{t("There are no events in this Model Family.")}</td>
                 </tr>
               ) : (
                 models.map((m) => {
@@ -128,8 +130,8 @@ export function ModelFamilyPanel({
   return (
     <div className="panel model-family-panel">
       <h3>
-        モデル別{metric === "tokens" ? "トークン" : "支出"}
-        {showControls && <span className="hint">クリックで実モデルの内訳へ</span>}
+        {t(metric === "tokens" ? "Tokens by Model Family" : "Spend by Model Family")}
+        {showControls && <span className="hint">{t("Click for the Model breakdown")}</span>}
       </h3>
       {metricToggle}
       <div className="model-family-chart">
@@ -169,7 +171,7 @@ export function ModelFamilyPanel({
                   <DefaultTooltipContent
                     {...props}
                     label={String(item.name)}
-                    payload={[{ ...item, name: metricHoverLabel(metric) }]}
+                    payload={[{ ...item, name: t(metric === "tokens" ? "Tokens" : "Spend") }]}
                     formatter={(value) => formatMetric(Number(value), metric)}
                   />
                 );
@@ -178,7 +180,7 @@ export function ModelFamilyPanel({
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <ul className="model-family-legend" aria-label="モデル分類の凡例">
+      <ul className="model-family-legend" aria-label={t("Model Family legend")}>
         {families.map((family, i) => (
           <li key={family.key} title={family.key}>
             <i style={{ background: familyColors.get(family.key) ?? COLORS[i % COLORS.length] }} />

@@ -227,7 +227,7 @@ Match official Cursor terminology wherever possible; translation rules belong to
 
 ### Current State
 
-CLI metric labels use Spend / Tokens; the dashboard mixes English labels with Japanese labels such as 支出 / トークン and has no language selector. Some labels still differ from CONTEXT.md, including 実効レート where the glossary specifies 実行単価.
+CLI metric labels use Spend / Tokens; dashboard labels follow CONTEXT.md in the selected display language, including 支出 / トークン and 実行単価 in Japanese.
 
 ### Rationale
 
@@ -246,3 +246,17 @@ The tool provides CLI analysis, Daily Windows with configurable boundaries, shar
 ### Rationale
 
 cursor-usage needs a reason to be chosen over the official screen.
+
+## ADR-020: Support Japanese and English Display Languages
+
+### Decision
+
+Support Japanese and English display languages in the dashboard and screenshot exports, independently of analysis settings.
+
+### Current State
+
+The dashboard uses a saved explicit language choice or the first supported browser-preferred language, falling back to English. Only the language preference is persisted; switching languages preserves the loaded data and view selections. Screenshot and Daily Report commands accept `--lang ja|en` and otherwise use the environment's language, falling back to English. CLI help and terminal statistics remain in English.
+
+### Rationale
+
+Users need to read and share the same analysis in their preferred language.

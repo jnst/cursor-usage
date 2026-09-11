@@ -22,18 +22,12 @@ import {
 } from "../../src/core/aggregate.ts";
 import { formatTime, formatTokens, formatUsdPerMTok } from "../../src/core/format.ts";
 import { eventsInDailyWindow, orderedHours } from "../../src/core/time.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { CloudAgentAnalysis } from "./CloudAgentAnalysis.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
 import { EventsTable } from "./EventsTable.tsx";
 import { ModelFamilyPanel } from "./ModelFamilyPanel.tsx";
-import {
-  EFFECTIVE_RATE_HOVER_LABEL,
-  metricHoverLabel,
-  metricLabel,
-  modelFamilyColors,
-  tooltipItemStyle,
-  tooltipStyle,
-} from "./shared.ts";
+import { modelFamilyColors, tooltipItemStyle, tooltipStyle } from "./shared.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
 import { UserRankings } from "./UserRankings.tsx";
 
@@ -61,6 +55,7 @@ function DailyWindowSummaryCards({
   dailyWindow: string;
   ctx: AnalysisContext;
 }) {
+  const { t } = useLanguage();
   const s = summarize(dailyWindowEvents, ctx);
   const { formatCost: formatUsd } = useCostVisibility();
   const period = summarize(events, ctx);
@@ -75,24 +70,32 @@ function DailyWindowSummaryCards({
     <SummaryCards
       cards={[
         {
-          label: "Spend",
+          label: t("Spend"),
           value: formatUsd(s.totalCost),
-          sub: `期間全体の ${share(s.totalCost, period.totalCost)}% · 順位 ${rank("cost")} / ${windows.length}`,
+          sub: t("periodShare", {
+            share: share(s.totalCost, period.totalCost),
+            rank: rank("cost"),
+            count: windows.length,
+          }),
         },
         {
-          label: "Tokens",
+          label: t("Tokens"),
           value: formatTokens(s.totalTokens),
-          sub: `期間全体の ${share(s.totalTokens, period.totalTokens)}% · 順位 ${rank("tokens")} / ${windows.length}`,
+          sub: t("periodShare", {
+            share: share(s.totalTokens, period.totalTokens),
+            rank: rank("tokens"),
+            count: windows.length,
+          }),
         },
         {
-          label: "Effective Rate",
+          label: t("Effective Rate"),
           value: formatUsdPerMTok(s.totalCost, s.totalTokens),
           sub: "$ / MTok",
         },
         {
-          label: "Events",
+          label: t("Events"),
           value: String(s.eventCount),
-          sub: `${s.modelCount} models · ${s.userCount} users`,
+          sub: t("modelsUsers", { models: s.modelCount, users: s.userCount }),
         },
       ]}
     />
@@ -100,9 +103,10 @@ function DailyWindowSummaryCards({
 }
 
 /**
- * Hourly tooltip: selected Metric → other Metric → 実効レート.
+ * Hourly tooltip: selected Metric → other Metric → Effective Rate.
  */
 function HourlyMetricTooltip({ metric, ...props }: TooltipContentProps & { metric: Metric }) {
+  const { t } = useLanguage();
   const { formatValue: formatMetric } = useCostVisibility();
   const { active, payload } = props;
   if (!active || !payload?.length) return null;
@@ -118,13 +122,13 @@ function HourlyMetricTooltip({ metric, ...props }: TooltipContentProps & { metri
     {
       ...template,
       dataKey: metric === "tokens" ? "totalTokens" : "cost",
-      name: metricHoverLabel(metric),
+      name: t(metric === "tokens" ? "Tokens" : "Spend"),
       value: metric === "tokens" ? tokens : cost,
     },
     {
       ...template,
       dataKey: "other",
-      name: metricHoverLabel(otherMetric),
+      name: t(otherMetric === "tokens" ? "Tokens" : "Spend"),
       value: otherMetric === "tokens" ? tokens : cost,
       color: "#8b949e",
       fill: "#8b949e",
@@ -132,7 +136,7 @@ function HourlyMetricTooltip({ metric, ...props }: TooltipContentProps & { metri
     {
       ...template,
       dataKey: "rate",
-      name: EFFECTIVE_RATE_HOVER_LABEL,
+      name: t("Effective Rate"),
       value: formatUsdPerMTok(cost, tokens),
       color: "#8b949e",
       fill: "#8b949e",
@@ -165,6 +169,7 @@ function HourlyChart({
   ctx: AnalysisContext;
   metric: Metric;
 }) {
+  const { t } = useLanguage();
   const { formatAxisValue: formatMetric } = useCostVisibility();
   const data = useMemo(() => {
     const byHourMap = new Map(byHour(dailyWindowEvents, ctx).map((b) => [b.key, b]));
@@ -183,12 +188,12 @@ function HourlyChart({
     [scaleDayEvents, ctx, metric],
   );
   const dataKey = metric === "tokens" ? "totalTokens" : "cost";
-  const name = metricLabel(metric);
+  const name = t(metric === "tokens" ? "Tokens" : "Spend");
 
   return (
     <div className="panel wide">
       <h3>
-        時間帯別{metric === "tokens" ? "トークン" : "支出"} ({ctx.timeZone})
+        {t(metric === "tokens" ? "Tokens by Hour" : "Spend by Hour")} ({ctx.timeZone})
       </h3>
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data}>
@@ -221,19 +226,20 @@ function HourlyChart({
 }
 
 function KindBreakdown({ dailyWindowEvents }: { dailyWindowEvents: UsageEvent[] }) {
+  const { t } = useLanguage();
   const { formatCost: formatUsd } = useCostVisibility();
   const data = byKind(dailyWindowEvents);
   return (
     <div className="panel wide">
-      <h3>種別別内訳</h3>
+      <h3>{t("Breakdown by Kind")}</h3>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>種別</th>
-              <th className="num">イベント</th>
-              <th className="num">支出</th>
-              <th className="num">トークン</th>
+              <th>{t("Kind")}</th>
+              <th className="num">{t("Events")}</th>
+              <th className="num">{t("Spend")}</th>
+              <th className="num">{t("Tokens")}</th>
             </tr>
           </thead>
           <tbody>
@@ -271,6 +277,7 @@ export function DailyWindowView({
   onSelectDailyWindow,
   onSelectUser,
 }: Props) {
+  const { t } = useLanguage();
   const dailyWindows = useMemo(() => byDailyWindow(events, ctx).map((d) => d.key), [events, ctx]);
   const dailyWindowEvents = useMemo(
     () => eventsInDailyWindow(events, dailyWindow, ctx),
@@ -285,11 +292,14 @@ export function DailyWindowView({
     const sorted = [...dailyWindowEvents].sort((a, b) => b.cost - a.cost);
     return eventLimit === undefined ? sorted : sorted.slice(0, eventLimit);
   }, [dailyWindowEvents, eventLimit]);
-  const orderLabel = "支出降順";
   const eventTitle =
     eventLimit === undefined
-      ? `この Daily Window のイベント (${eventRows.length}件・${orderLabel})`
-      : `この Daily Window のイベント Top ${eventLimit} (${eventRows.length} of ${dailyWindowEvents.length}件・${orderLabel})`;
+      ? t("dailyEvents", { count: eventRows.length })
+      : t("dailyTopEvents", {
+          limit: eventLimit,
+          count: eventRows.length,
+          total: dailyWindowEvents.length,
+        });
   const idx = dailyWindows.indexOf(dailyWindow);
   const prevDailyWindow = idx > 0 ? dailyWindows[idx - 1] : undefined;
   const nextDailyWindow =
@@ -300,13 +310,17 @@ export function DailyWindowView({
       <div className="daily-window-nav">
         {showControls && (
           <button type="button" className="reload-button" onClick={onBack}>
-            ← 全体に戻る
+            ← {t("Back to overview")}
           </button>
         )}
         <div className="daily-window-title">
           <h2>{dailyWindow}</h2>
           <span className="meta">
-            {dailyWindowEvents.length} 課金イベント ({ctx.timeZone}, start {ctx.startHour}:00)
+            {t("dailyMeta", {
+              count: dailyWindowEvents.length,
+              zone: ctx.timeZone,
+              hour: ctx.startHour,
+            })}
           </span>
         </div>
         {showControls && (
@@ -317,7 +331,7 @@ export function DailyWindowView({
               disabled={!prevDailyWindow}
               onClick={() => prevDailyWindow && onSelectDailyWindow(prevDailyWindow)}
             >
-              ← 前の Daily Window
+              ← {t("Previous Daily Window")}
             </button>
             <button
               type="button"
@@ -325,7 +339,7 @@ export function DailyWindowView({
               disabled={!nextDailyWindow}
               onClick={() => nextDailyWindow && onSelectDailyWindow(nextDailyWindow)}
             >
-              次の Daily Window →
+              {t("Next Daily Window")} →
             </button>
           </div>
         )}
@@ -333,11 +347,11 @@ export function DailyWindowView({
 
       {dailyWindowEvents.length === 0 ? (
         <div className="panel wide">
-          <p className="meta">この Daily Window の課金イベントはありません。</p>
+          <p className="meta">{t("There are no Billable Events in this Daily Window.")}</p>
         </div>
       ) : (
         <>
-          {selectedUser && <p className="meta">選択中のユーザー: {selectedUser}</p>}
+          {selectedUser && <p className="meta">{t("selectedUser", { user: selectedUser })}</p>}
           <DailyWindowSummaryCards
             dailyWindowEvents={dailyWindowEvents}
             events={events}
@@ -376,7 +390,7 @@ export function DailyWindowView({
                 events={eventRows}
                 timeZone={ctx.timeZone}
                 title={eventTitle}
-                timeHeader={`時刻 (${ctx.timeZone})`}
+                timeHeader={t("clockTime", { zone: ctx.timeZone })}
                 formatTimestamp={formatTime}
                 wrapClassName="table-wrap"
               />

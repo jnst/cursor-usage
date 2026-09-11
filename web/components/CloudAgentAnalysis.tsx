@@ -5,7 +5,9 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 
 import { analyzeCloudAgents } from "../../src/core/cloud-agent.ts";
 import { formatDateTime, formatTokens, formatUsd } from "../../src/core/format.ts";
+import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
+import { topRankingRows } from "./ranking.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
 
 function Ranking({
@@ -21,10 +23,8 @@ function Ranking({
   color: string;
   hideAxis?: boolean;
 }) {
+  const { t } = useLanguage();
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
-  const top = [...rows]
-    .sort((a, b) => b.value - a.value || a.key.localeCompare(b.key))
-    .slice(0, 10);
   return (
     <section
       className="cloud-agent-chart"
@@ -33,8 +33,8 @@ function Ranking({
       <h3>{title}</h3>
       <div className="table-wrap">
         <div style={{ minWidth: 470 }}>
-          <ResponsiveContainer width="100%" height={Math.max(180, top.length * 30 + 40)}>
-            <BarChart data={top} layout="vertical" margin={{ right: 16 }}>
+          <ResponsiveContainer width="100%" height={Math.max(180, rows.length * 30 + 40)}>
+            <BarChart data={rows} layout="vertical" margin={{ right: 16 }}>
               <CartesianGrid stroke="#21262d" horizontal={false} />
               <XAxis
                 type="number"
@@ -71,7 +71,7 @@ function Ranking({
                           <div className="chart-tooltip-label">{payload[0]?.payload.label}</div>
                           <dl>
                             <div>
-                              <dt>Cloud Agent ID 数</dt>
+                              <dt>{t("Cloud Agent ID Count")}</dt>
                               <dd>{format(Number(payload[0]?.value))}</dd>
                             </div>
                           </dl>
@@ -90,6 +90,71 @@ function Ranking({
   );
 }
 
+type Agent = ReturnType<typeof analyzeCloudAgents>["agents"][number];
+
+/** Tooltip content is rendered only for the hovered ID. */
+function AgentTooltip({ a, ctx }: { a: Agent; ctx: AnalysisContext }) {
+  const { t, language } = useLanguage();
+  const { formatCost } = useCostVisibility();
+  return (
+    <>
+      <div className="cloud-agent-tooltip-heading">Cloud Agent</div>
+      <dl>
+        <div>
+          <dt>{t("User")}</dt>
+          <dd>
+            {a.users.map((user) => (
+              <span className="cloud-agent-tooltip-user" key={user}>
+                {user}
+              </span>
+            ))}
+          </dd>
+        </div>
+        <div>
+          <dt>{t("Spend")}</dt>
+          <dd>{formatCost(a.cost)}</dd>
+        </div>
+        <div>
+          <dt>{t("Tokens")}</dt>
+          <dd>{formatTokens(a.totalTokens)}</dd>
+        </div>
+        <div>
+          <dt>{t("Event Count")}</dt>
+          <dd>{a.eventCount.toLocaleString(language)}</dd>
+        </div>
+        <div>
+          <dt>{t("First observed")}</dt>
+          <dd>{formatDateTime(new Date(a.firstObserved), ctx.timeZone)}</dd>
+        </div>
+        <div>
+          <dt>{t("Last observed")}</dt>
+          <dd>{formatDateTime(new Date(a.lastObserved), ctx.timeZone)}</dd>
+        </div>
+        <div>
+          <dt>{t("Analysis Time Zone")}</dt>
+          <dd>{ctx.timeZone}</dd>
+        </div>
+      </dl>
+      <div className="cloud-agent-tooltip-section">{t("Events by Model")}</div>
+      <dl>
+        {a.models.slice(0, 4).map((model) => (
+          <div key={model.key}>
+            <dt>{model.key}</dt>
+            <dd>{model.eventCount.toLocaleString(language)}</dd>
+          </div>
+        ))}
+      </dl>
+      {a.models.length > 4 && (
+        <div className="cloud-agent-tooltip-more">
+          {t("moreModels", { count: a.models.length - 4 })}
+        </div>
+      )}
+      <div className="cloud-agent-tooltip-section">Cloud Agent ID</div>
+      <div className="cloud-agent-tooltip-id">{a.key}</div>
+    </>
+  );
+}
+
 export function CloudAgentAnalysis({
   events,
   ctx,
@@ -97,155 +162,111 @@ export function CloudAgentAnalysis({
   events: UsageEvent[];
   ctx: AnalysisContext;
 }) {
+  const { t, language } = useLanguage();
   const { agents, summary: s, byUser } = useMemo(() => analyzeCloudAgents(events), [events]);
   const { formatCost, hidden } = useCostVisibility();
+  // Rank raw data before constructing display rows, and retain it across language changes.
+  const ranked = useMemo(
+    () => ({
+      cost: topRankingRows(agents, (a) => a.cost),
+      tokens: topRankingRows(agents, (a) => a.totalTokens),
+      events: topRankingRows(agents, (a) => a.eventCount),
+      users: topRankingRows(byUser, (a) => a.agentCount),
+    }),
+    [agents, byUser],
+  );
   const agentRow = (a: (typeof agents)[number], value: number) => ({
     key: a.key,
     label: formatDateTime(new Date(a.firstObserved), ctx.timeZone),
     value,
-    detail: (
-      <>
-        <div className="cloud-agent-tooltip-heading">Cloud Agent</div>
-        <dl>
-          <div>
-            <dt>ユーザー</dt>
-            <dd>
-              {a.users.map((user) => (
-                <span className="cloud-agent-tooltip-user" key={user}>
-                  {user}
-                </span>
-              ))}
-            </dd>
-          </div>
-          <div>
-            <dt>支出</dt>
-            <dd>{formatCost(a.cost)}</dd>
-          </div>
-          <div>
-            <dt>トークン</dt>
-            <dd>{formatTokens(a.totalTokens)}</dd>
-          </div>
-          <div>
-            <dt>イベント数</dt>
-            <dd>{a.eventCount.toLocaleString()}</dd>
-          </div>
-          <div>
-            <dt>最初の観測</dt>
-            <dd>{formatDateTime(new Date(a.firstObserved), ctx.timeZone)}</dd>
-          </div>
-          <div>
-            <dt>最後の観測</dt>
-            <dd>{formatDateTime(new Date(a.lastObserved), ctx.timeZone)}</dd>
-          </div>
-          <div>
-            <dt>タイムゾーン</dt>
-            <dd>{ctx.timeZone}</dd>
-          </div>
-        </dl>
-        <div className="cloud-agent-tooltip-section">モデル別イベント数</div>
-        <dl>
-          {a.models.slice(0, 4).map((model) => (
-            <div key={model.key}>
-              <dt>{model.key}</dt>
-              <dd>{model.eventCount.toLocaleString()}</dd>
-            </div>
-          ))}
-        </dl>
-        {a.models.length > 4 && (
-          <div className="cloud-agent-tooltip-more">
-            ほか {a.models.length - 4} モデル（集計一覧に表示）
-          </div>
-        )}
-        <div className="cloud-agent-tooltip-section">Cloud Agent ID</div>
-        <div className="cloud-agent-tooltip-id">{a.key}</div>
-      </>
-    ),
+    detail: <AgentTooltip a={a} ctx={ctx} />,
   });
   return (
     <details className="panel wide analysis-disclosure" open>
-      <summary>Cloud Agent ID 別の分析</summary>
+      <summary>{t("Analysis by Cloud Agent ID")}</summary>
       <p className="meta">
-        現在の期間・絞り込み内の課金イベントを ID
-        ごとに集計。観測日時は稼働時間やタスクの完了を表しません。
+        {t(
+          "Billable Events are grouped by ID within the current period and filters. Observed timestamps do not represent runtime or task completion.",
+        )}
       </p>
       {agents.length === 0 ? (
-        <p className="meta">Cloud Agent ID を持つ課金イベントはありません。</p>
+        <p className="meta">{t("There are no Billable Events with a Cloud Agent ID.")}</p>
       ) : (
         <>
           <SummaryCards
             cards={[
               {
-                label: "Cloud Agent ID 数",
+                label: t("Cloud Agent ID Count"),
                 value: String(s.agentCount),
-                sub: `${s.eventCount} events / ${formatTokens(s.totalTokens)} tokens`,
+                sub: t("eventsTokens", {
+                  count: s.eventCount,
+                  tokens: formatTokens(s.totalTokens),
+                }),
               },
               {
-                label: "Cloud Agent 合計支出",
+                label: t("Cloud Agent Total Spend"),
                 value: formatCost(s.totalCost),
-                sub: "ID があるイベントのみ",
+                sub: t("Only events with an ID"),
               },
               {
-                label: "ID あたり平均支出",
+                label: t("Average Spend per ID"),
                 value: formatUsd(s.meanCost),
-                sub: `中央値 ${formatUsd(s.medianCost)}`,
+                sub: t("median", { value: formatUsd(s.medianCost) }),
               },
               {
-                label: "ID あたり最大支出",
+                label: t("Maximum Spend per ID"),
                 value: formatCost(s.maxCost),
-                sub: `支出上位 10 ID の占有率 ${s.top10CostShare.toFixed(1)}%`,
+                sub: t("cloudShare", { share: s.top10CostShare.toFixed(1) }),
               },
             ]}
           />
-          <p className="meta">
-            グラフの日時は最初の観測 ({ctx.timeZone})。ホバーでユーザーと ID を確認できます。
-          </p>
+          <p className="meta">{t("cloudChartHint", { zone: ctx.timeZone })}</p>
           <div className="user-rankings">
             <Ranking
-              title="Cloud Agent 支出 Top 10"
+              title={t("Top 10 Cloud Agent IDs by Spend")}
               hideAxis={hidden}
-              rows={agents.map((a) => agentRow(a, a.cost))}
+              rows={ranked.cost.map((a) => agentRow(a, a.cost))}
               format={formatCost}
               color="#58a6ff"
             />
             <Ranking
-              title="Cloud Agent トークン Top 10"
-              rows={agents.map((a) => agentRow(a, a.totalTokens))}
+              title={t("Top 10 Cloud Agent IDs by Tokens")}
+              rows={ranked.tokens.map((a) => agentRow(a, a.totalTokens))}
               format={formatTokens}
               color="#3fb950"
             />
             <Ranking
-              title="Cloud Agent イベント数 Top 10"
-              rows={agents.map((a) => agentRow(a, a.eventCount))}
-              format={(v) => v.toLocaleString()}
+              title={t("Top 10 Cloud Agent IDs by Event Count")}
+              rows={ranked.events.map((a) => agentRow(a, a.eventCount))}
+              format={(v) => v.toLocaleString(language)}
               color="#d2a8ff"
             />
             <Ranking
-              title="ユーザー別 Cloud Agent ID 数 Top 10"
-              rows={byUser.map((a) => ({ key: a.key, label: a.key, value: a.agentCount }))}
-              format={(v) => v.toLocaleString()}
+              title={t("Top 10 Users by Cloud Agent ID Count")}
+              rows={ranked.users.map((a) => ({ key: a.key, label: a.key, value: a.agentCount }))}
+              format={(v) => v.toLocaleString(language)}
               color="#f0883e"
             />
           </div>
           <p className="meta">
-            ユーザー別の ID 数は、同じ ID が複数ユーザーに現れる場合、各ユーザーで 1 件と数えます。
+            {t("An ID shared by multiple Users is counted once for each User.")}
           </p>
-          <h3>Cloud Agent 集計一覧（支出上位 20 件）</h3>
+          <h3>{t("Cloud Agent summary (top 20 by Spend)")}</h3>
           <p className="meta">
-            1 行は 1 つの ID の集計です。全 {agents.length} 件中 {Math.min(20, agents.length)}{" "}
-            件を表示。
+            {t("cloudRows", { count: Math.min(20, agents.length), total: agents.length })}
           </p>
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>最初の観測 ({ctx.timeZone})</th>
-                  <th>ユーザー</th>
-                  <th>イベント数</th>
-                  <th>支出</th>
-                  <th>トークン</th>
-                  <th>モデル別イベント数</th>
+                  <th>{t("firstObserved", { zone: ctx.timeZone })}</th>
+                  <th>{t("User")}</th>
+                  <th>{t("Event Count")}</th>
+                  <th>{t("Spend")}</th>
+                  <th>{t("Tokens")}</th>
+                  <th>{t("Events by Model")}</th>
                   <th>Cloud Agent ID</th>
-                  <th>最後の観測 ({ctx.timeZone})</th>
+                  <th>{t("lastObserved", { zone: ctx.timeZone })}</th>
                 </tr>
               </thead>
               <tbody>

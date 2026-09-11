@@ -83,6 +83,16 @@ const EXPECTED_COLUMNS = [
   "Cost",
 ] as const;
 
+/** Structured error lets presentation layers localize without parsing error text. */
+export class MissingColumnError extends Error {
+  constructor(public readonly column: string) {
+    super(
+      `Invalid CSV: missing column "${column}". Expected a Cursor usage-events export with columns: ${EXPECTED_COLUMNS.join(", ")}`,
+    );
+    this.name = "MissingColumnError";
+  }
+}
+
 function toNumber(value: string | undefined): number {
   if (!value) return 0;
   const n = Number(value);
@@ -105,9 +115,7 @@ export function parseUsageCsv(text: string): UsageEvent[] {
 
   for (const required of ["Date", "User", "Model", "Cost"]) {
     if (!indexOf.has(required)) {
-      throw new Error(
-        `Invalid CSV: missing column "${required}". Expected a Cursor usage-events export with columns: ${EXPECTED_COLUMNS.join(", ")}`,
-      );
+      throw new MissingColumnError(required);
     }
   }
 

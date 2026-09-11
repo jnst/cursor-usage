@@ -11,6 +11,7 @@ Runs on Node.js 20+ (`npx`) or [Bun](https://bun.sh) (`bunx`).
 
 ## Features
 
+- **Japanese and English** — choose the dashboard language from the globe icon; export PNGs in either language
 - **Local-only analysis** — drag & drop a Usage Export; data stays in the browser and is never sent anywhere
 - **Daily Window cost trends** — stacked bars by Model Family plus a cumulative line, with click-through to a per-window detail view
 - **Model Family grouping** — reasoning effort / thinking / fast variants are collapsed, and Auto (Cursor Router) is one slice; click it to see the actual Models the Router selected
@@ -29,6 +30,8 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 ```
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
+
+Use the globe icon in the upper right to choose **日本語** or **English**, even before loading a CSV. The first visit uses the first supported browser-preferred language, falling back to English. An explicit choice is saved for that browser origin and takes priority on subsequent visits; only the language preference is stored. Changing language preserves the loaded CSV, filters, and Spend visibility. The Analysis Time Zone, USD amounts, and CSV values are independent of the display language.
 
 Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model-family / per-user / per-kind costs, and every event in the window). Spend charts group Models by Model Family — variant suffixes such as reasoning effort and fast mode are collapsed, and usage routed through Auto (Cursor Router) is shown as one `Auto` slice. Click a slice in the Model Family pie to see the Models inside it; for `Auto` this reveals the actual Models the Router selected. Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
 
@@ -135,7 +138,16 @@ with the rate as a percentage and both event counts.
 
 ### Screenshots
 
-The dashboard's `金額を隠す` button masks totals, individual costs, axes, and
+Both `screenshot` and `daily-report` accept `--lang ja|en`:
+
+```bash
+npx @jnst/cursor-usage screenshot usage.csv --lang en
+npx @jnst/cursor-usage daily-report usage.csv --lang ja
+```
+
+Without `--lang`, the output language follows `LC_ALL`, `LC_MESSAGES`, then `LANG` (the first nonempty value), or the runtime locale when none is set; unsupported languages fall back to English. PNGs use the selected language and omit the language control. CLI help and terminal statistics remain in English.
+
+The dashboard's `Hide Spend` / `金額を隠す` button masks totals, individual costs, axes, and
 tooltip costs. Averages and Effective Rate stay visible. This is display masking,
 not data redaction; those values can sometimes be used to reconstruct totals.
 Use `screenshot usage.csv --hide-costs` or `daily-report usage.csv --hide-costs`
@@ -249,3 +261,7 @@ The dashboard groups Cloud Agent IDs above the event table in a section that sta
 Only Billable Events with a nonempty ID in the current period and filters are included. Observation timestamps do not measure runtime or task completion. Shared IDs count once per participating User. The cost visibility toggle masks individual and total costs while keeping mean and median visible.
 
 Use `cursor-usage stats usage.csv --by cloud-agent` for terminal analysis. Overview and Daily Window JSON include the same numeric results in `cloudAgentAnalysis`.
+
+### Browser verification
+
+Run `bun run test:browser` to build the dashboard and verify language selection, persistence, view preservation, and PNG exports in Chrome. This uses the same Chrome installation and `CHROME_PATH` / `PLAYWRIGHT_CHROME_CHANNEL` overrides as screenshot export.
