@@ -11,6 +11,7 @@ import {
   byModel,
   byModelFamily,
   byUser,
+  topUsersByCount,
   eventsInModelFamily,
   filterEvents,
   includeEmptyDailyWindowCosts,
@@ -357,5 +358,41 @@ describe("topUsersByEffectiveRate", () => {
     expect(rows).toHaveLength(10);
     expect(rows[0]!.key).toBe("user-00");
     expect(rows[9]!.key).toBe("user-09");
+  });
+});
+
+describe("topUsersByCount", () => {
+  const rows = [
+    event({ user: "a", model: "opus", totalTokens: 5_000_000 }),
+    event({ user: "a", model: "opus-fast", totalTokens: 4_999_999 }),
+    event({ user: "a", model: "opus-fast", totalTokens: 1 }),
+    event({ user: "b", model: "opus", totalTokens: 6_000_000 }),
+    event({ user: "b", model: "opus", totalTokens: 5_000_000 }),
+    event({ user: "a", model: "other", totalTokens: 8_000_000, kind: "Errored, No Charge" }),
+  ];
+  it("counts distinct raw models including variants and excludes no-charge rows", () => {
+    expect(topUsersByCount(rows, "models").map((r) => [r.key, r.count])).toEqual([
+      ["a", 2],
+      ["b", 1],
+    ]);
+  });
+  it("counts individual events at or above 5M rather than aggregate tokens", () => {
+    expect(topUsersByCount(rows, "largeEvents").map((r) => [r.key, r.count])).toEqual([
+      ["b", 2],
+      ["a", 1],
+    ]);
+  });
+  it("ranks event counts independently and supports ascending limits and ties", () => {
+    expect(topUsersByCount(rows, "events").map((r) => [r.key, r.count])).toEqual([
+      ["a", 3],
+      ["b", 2],
+    ]);
+    expect(topUsersByCount(rows, "events", 1, "asc")[0]?.key).toBe("b");
+    expect(topUsersByCount([], "events")).toEqual([]);
+    expect(
+      topUsersByCount([event({ user: "b" }), event({ user: "a" })], "models").map((r) => r.key),
+    ).toEqual(["a", "b"]);
+    const many = Array.from({ length: 12 }, (_, i) => event({ user: String(i).padStart(2, "0") }));
+    expect(topUsersByCount(many, "events")).toHaveLength(10);
   });
 });

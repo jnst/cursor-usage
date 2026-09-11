@@ -100,6 +100,27 @@ try {
   await upload(page);
   await page.getByText("Total Spend", { exact: true }).waitFor();
   assert.equal(await page.locator(".cards .value").first().innerText(), "$9.00");
+  for (const title of [
+    "Top 10 by Model Count",
+    "Top 10 by Events with 5M+ Tokens",
+    "Top 10 by Event Count",
+  ]) {
+    await page.getByRole("heading", { name: title, exact: true }).waitFor();
+  }
+  const modelRanking = page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "Top 10 by Model Count", exact: true }) });
+  assert.equal(await modelRanking.locator(".ranking-primary").first().innerText(), "2");
+  await modelRanking.getByRole("button", { name: "Lowest first", exact: true }).click();
+  assert.equal(await modelRanking.locator(".ranking-user").first().innerText(), "bob");
+  await modelRanking.getByRole("button", { name: "Highest first", exact: true }).click();
+  assert.equal(
+    await page
+      .locator(".breakdown-grid > .panel")
+      .evaluate((el) => getComputedStyle(el).gridRowStart),
+    "auto",
+  );
+
   assert((await page.locator("body").innerText()).includes("No Charge Events excluded: 1"));
   assert((await page.locator("body").innerText()).includes("Fri"));
   assert(!/[ぁ-んァ-ヶ一-龠]/.test(await page.locator("body").innerText()));
@@ -113,6 +134,7 @@ try {
   await page.screenshot({ path: join(output, "overview-en.png"), fullPage: true });
   await switchTo(page, "日本語");
   assert.equal(await page.locator(".cards .value").first().innerText(), "$9.00");
+
   assert((await page.locator("body").innerText()).includes("金"));
   assert(
     !/\b(Spend|Tokens|Daily Window|Effective Rate)\b/.test(await page.locator("body").innerText()),

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import {
   byUser,
+  topUsersByCount,
   topUsersByEffectiveRate,
   topUsersByCloudAgentUsage,
   type RankingOrder,
@@ -29,6 +30,9 @@ export function UserRankings({
     tokens: "desc",
     rate: "asc",
     cloud: "desc",
+    models: "desc",
+    largeEvents: "desc",
+    events: "desc",
   });
   const rankings = useMemo(
     () => [
@@ -43,9 +47,24 @@ export function UserRankings({
         metric: "tokens" as const,
       },
       {
+        title: "Top 10 by Event Count" as const,
+        rows: topUsersByCount(events, "events", 10, orders.events),
+        metric: "events" as const,
+      },
+      {
+        title: "Top 10 by Events with 5M+ Tokens" as const,
+        rows: topUsersByCount(events, "largeEvents", 10, orders.largeEvents),
+        metric: "largeEvents" as const,
+      },
+      {
         title: "Top 10 by Effective Rate" as const,
         rows: topUsersByEffectiveRate(events, 10, orders.rate),
         metric: "rate" as const,
+      },
+      {
+        title: "Top 10 by Model Count" as const,
+        rows: topUsersByCount(events, "models", 10, orders.models),
+        metric: "models" as const,
       },
       {
         title: "Top 10 by Cloud Agent Usage Rate" as const,
@@ -81,15 +100,21 @@ export function UserRankings({
             )}
           </div>
           <p className="ranking-note">
-            {metric === "cloud"
-              ? t("Billable Events with a Cloud Agent ID ÷ all Billable Events.")
-              : metric === "rate"
-                ? t("Total Spend ÷ Total Tokens × 1 million. Varies with Model and cache usage.")
-                : showControls
-                  ? t(
-                      "Compare all Users in the same period. Select a User name to filter or clear the filter.",
-                    )
-                  : t("Compare all Users in the same period.")}
+            {metric === "models"
+              ? t("Distinct Model identifiers, including all variants.")
+              : metric === "largeEvents"
+                ? t("Billable Events with at least 5 million Tokens each.")
+                : metric === "cloud"
+                  ? t("Billable Events with a Cloud Agent ID ÷ all Billable Events.")
+                  : metric === "rate"
+                    ? t(
+                        "Total Spend ÷ Total Tokens × 1 million. Varies with Model and cache usage.",
+                      )
+                    : metric === "cost"
+                      ? t("Total Spend on Billable Events per User in the selected period.")
+                      : metric === "tokens"
+                        ? t("Total Tokens consumed by each User in the selected period.")
+                        : t("Number of Billable Events per User in the selected period.")}
           </p>
           {rows.length > 0 && (
             <UserRankingChart
