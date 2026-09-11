@@ -1,6 +1,21 @@
 import type { Language } from "../../src/core/language.ts";
 
 export const en = {
+  "Total Spend on Billable Events per User in the selected period.":
+    "Total Spend on Billable Events per User in the selected period.",
+  "Total Tokens consumed by each User in the selected period.":
+    "Total Tokens consumed by each User in the selected period.",
+  "Number of Billable Events per User in the selected period.":
+    "Number of Billable Events per User in the selected period.",
+
+  "Top 10 by Model Count": "Top 10 by Model Count",
+  "Top 10 by Events with 5M+ Tokens": "Top 10 by Events with 5M+ Tokens",
+  "Top 10 by Event Count": "Top 10 by Event Count",
+  "Distinct Model identifiers, including all variants.":
+    "Distinct Model identifiers, including all variants.",
+  "Billable Events with at least 5 million Tokens each.":
+    "Billable Events with at least 5 million Tokens each.",
+
   Spend: "Spend",
   Tokens: "Tokens",
   "Total Spend": "Total Spend",
@@ -63,9 +78,6 @@ export const en = {
     "Billable Events with a Cloud Agent ID ÷ all Billable Events.",
   "Total Spend ÷ Total Tokens × 1 million. Varies with Model and cache usage.":
     "Total Spend ÷ Total Tokens × 1 million. Varies with Model and cache usage.",
-  "Compare all Users in the same period. Select a User name to filter or clear the filter.":
-    "Compare all Users in the same period. Select a User name to filter or clear the filter.",
-  "Compare all Users in the same period.": "Compare all Users in the same period.",
   "No eligible Users.": "No eligible Users.",
   "Cloud Agent ID Count": "Cloud Agent ID Count",
   "First observed": "First observed",
@@ -118,6 +130,21 @@ export const en = {
 
 export type MessageKey = keyof typeof en;
 const ja: Record<MessageKey, string> = {
+  "Total Spend on Billable Events per User in the selected period.":
+    "対象期間に各ユーザーの課金イベントで発生した支出の合計です。",
+  "Total Tokens consumed by each User in the selected period.":
+    "対象期間に各ユーザーが課金イベントで消費したトークンの合計です。",
+  "Number of Billable Events per User in the selected period.":
+    "対象期間に各ユーザーが実行した課金イベントの件数です。",
+
+  "Top 10 by Model Count": "使用モデル数 Top10",
+  "Top 10 by Events with 5M+ Tokens": "500万トークン以上のイベント数 Top10",
+  "Top 10 by Event Count": "イベント数 Top10",
+  "Distinct Model identifiers, including all variants.":
+    "対象期間に使用したモデルの数です。派生モデルもそれぞれ1つとして数えます。",
+  "Billable Events with at least 5 million Tokens each.":
+    "1件で500万トークン以上消費した課金イベントの回数です。",
+
   Spend: "支出",
   Tokens: "トークン",
   "Total Spend": "合計支出",
@@ -170,19 +197,16 @@ const ja: Record<MessageKey, string> = {
   "Tokens by Model Family": "モデルファミリー別トークン",
   "Click for the Model breakdown": "クリックでモデル別の内訳へ",
   " (Models routed through Auto)": "（Autoで使用されたモデル）",
-  "Top 10 by Spend": "支出 上位10件",
-  "Top 10 by Tokens": "トークン 上位10件",
-  "Top 10 by Effective Rate": "実行単価 上位10件",
-  "Top 10 by Cloud Agent Usage Rate": "Cloud Agent使用率 上位10件",
+  "Top 10 by Spend": "支出 Top10",
+  "Top 10 by Tokens": "トークン Top10",
+  "Top 10 by Effective Rate": "実行単価 Top10",
+  "Top 10 by Cloud Agent Usage Rate": "Cloud Agent使用率 Top10",
   "Highest first": "高い順",
   "Lowest first": "低い順",
   "Billable Events with a Cloud Agent ID ÷ all Billable Events.":
     "Cloud Agent IDありの課金イベント数 ÷ 全課金イベント数。",
   "Total Spend ÷ Total Tokens × 1 million. Varies with Model and cache usage.":
     "合計支出 ÷ 合計トークン × 100万。モデル・キャッシュ利用で変わります。",
-  "Compare all Users in the same period. Select a User name to filter or clear the filter.":
-    "同じ期間の全ユーザーを比較。ユーザー名で選択／解除。",
-  "Compare all Users in the same period.": "同じ期間の全ユーザーを比較。",
   "No eligible Users.": "対象ユーザーはいません。",
   "Cloud Agent ID Count": "Cloud Agent ID数",
   "First observed": "最初の観測",
@@ -198,10 +222,10 @@ const ja: Record<MessageKey, string> = {
   "Only events with an ID": "IDがある利用イベントのみ",
   "Average Spend per ID": "IDあたり平均支出",
   "Maximum Spend per ID": "IDあたり最大支出",
-  "Top 10 Cloud Agent IDs by Spend": "Cloud Agent 支出 上位10件",
-  "Top 10 Cloud Agent IDs by Tokens": "Cloud Agent トークン 上位10件",
-  "Top 10 Cloud Agent IDs by Event Count": "Cloud Agent イベント数 上位10件",
-  "Top 10 Users by Cloud Agent ID Count": "ユーザー別 Cloud Agent ID数 上位10件",
+  "Top 10 Cloud Agent IDs by Spend": "Cloud Agent 支出 Top10",
+  "Top 10 Cloud Agent IDs by Tokens": "Cloud Agent トークン Top10",
+  "Top 10 Cloud Agent IDs by Event Count": "Cloud Agent イベント数 Top10",
+  "Top 10 Users by Cloud Agent ID Count": "ユーザー別 Cloud Agent ID数 Top10",
   "An ID shared by multiple Users is counted once for each User.":
     "同じIDが複数ユーザーに現れる場合、各ユーザーで1件と数えます。",
   "Cloud Agent summary (top 20 by Spend)": "Cloud Agent 集計一覧（支出上位20件）",

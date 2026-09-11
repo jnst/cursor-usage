@@ -153,6 +153,40 @@ export function byUser(
   );
 }
 
+export type UserCountMetric = "models" | "largeEvents" | "events";
+
+/** Count raw Model identifiers and individual Billable Events, including the 5M boundary. */
+export function topUsersByCount(
+  events: UsageEvent[],
+  metric: UserCountMetric,
+  limit = 10,
+  order: RankingOrder = "desc",
+) {
+  const eligible = billable(events);
+  const models = new Map<string, Set<string>>();
+  const largeEvents = new Map<string, number>();
+  for (const event of eligible) {
+    const used = models.get(event.user) ?? new Set<string>();
+    used.add(event.model);
+    models.set(event.user, used);
+    if (event.totalTokens >= 5_000_000) {
+      largeEvents.set(event.user, (largeEvents.get(event.user) ?? 0) + 1);
+    }
+  }
+  return byUser(eligible)
+    .map((row) => ({
+      ...row,
+      count:
+        metric === "models"
+          ? (models.get(row.key)?.size ?? 0)
+          : metric === "largeEvents"
+            ? (largeEvents.get(row.key) ?? 0)
+            : row.eventCount,
+    }))
+    .sort((a, b) => (order === "asc" ? 1 : -1) * (a.count - b.count) || a.key.localeCompare(b.key))
+    .slice(0, limit);
+}
+
 /** Lowest aggregate $ / MTok first; No Charge, zero-token and zero-cost Users are ineligible. */
 export function topUsersByEffectiveRate(
   events: UsageEvent[],

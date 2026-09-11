@@ -4,8 +4,19 @@ import { formatTokens, formatUsdPerMTok } from "../../src/core/format.ts";
 import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
 
-export type UserRankingMetric = "cost" | "tokens" | "rate" | "cloud";
-type Row = BucketStat & { cloudAgentUsageRate?: number; cloudAgentEventCount?: number };
+export type UserRankingMetric =
+  | "cost"
+  | "tokens"
+  | "rate"
+  | "cloud"
+  | "models"
+  | "largeEvents"
+  | "events";
+type Row = BucketStat & {
+  count?: number;
+  cloudAgentUsageRate?: number;
+  cloudAgentEventCount?: number;
+};
 
 export function UserRankingChart({
   rows,
@@ -23,28 +34,32 @@ export function UserRankingChart({
   const { t } = useLanguage();
   const { formatCost } = useCostVisibility();
   const valueOf = (row: Row) =>
-    metric === "cost"
-      ? row.cost
-      : metric === "tokens"
-        ? row.totalTokens
-        : metric === "cloud"
-          ? (row.cloudAgentUsageRate ?? 0)
-          : row.totalTokens > 0
-            ? (row.cost / row.totalTokens) * 1_000_000
-            : 0;
+    metric === "models" || metric === "largeEvents" || metric === "events"
+      ? (row.count ?? 0)
+      : metric === "cost"
+        ? row.cost
+        : metric === "tokens"
+          ? row.totalTokens
+          : metric === "cloud"
+            ? (row.cloudAgentUsageRate ?? 0)
+            : row.totalTokens > 0
+              ? (row.cost / row.totalTokens) * 1_000_000
+              : 0;
   const max = metric === "cloud" ? 100 : Math.max(0, ...rows.map(valueOf));
   const selectable = showControls && !!onSelectUser;
   return (
     <ol className="user-ranking-list">
       {rows.map((row, index) => {
         const primary =
-          metric === "cost"
-            ? formatCost(row.cost)
-            : metric === "tokens"
-              ? formatTokens(row.totalTokens)
-              : metric === "cloud"
-                ? `${(row.cloudAgentUsageRate ?? 0).toFixed(1)}%`
-                : formatUsdPerMTok(row.cost, row.totalTokens);
+          metric === "models" || metric === "largeEvents" || metric === "events"
+            ? String(row.count ?? 0)
+            : metric === "cost"
+              ? formatCost(row.cost)
+              : metric === "tokens"
+                ? formatTokens(row.totalTokens)
+                : metric === "cloud"
+                  ? `${(row.cloudAgentUsageRate ?? 0).toFixed(1)}%`
+                  : formatUsdPerMTok(row.cost, row.totalTokens);
         return (
           <li
             key={row.key}
