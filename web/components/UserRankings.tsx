@@ -33,39 +33,39 @@ export function UserRankings({
   const rankings = useMemo(
     () => [
       {
-        title: t("Top 10 by Spend"),
+        title: "Top 10 by Spend" as const,
         rows: byUser(events, "cost", orders.cost).slice(0, 10),
         metric: "cost" as const,
       },
       {
-        title: t("Top 10 by Tokens"),
+        title: "Top 10 by Tokens" as const,
         rows: byUser(events, "tokens", orders.tokens).slice(0, 10),
         metric: "tokens" as const,
       },
       {
-        title: t("Top 10 by Effective Rate"),
+        title: "Top 10 by Effective Rate" as const,
         rows: topUsersByEffectiveRate(events, 10, orders.rate),
         metric: "rate" as const,
       },
       {
-        title: t("Top 10 by Cloud Agent Usage Rate"),
+        title: "Top 10 by Cloud Agent Usage Rate" as const,
         rows: topUsersByCloudAgentUsage(events, 10, orders.cloud),
         metric: "cloud" as const,
       },
     ],
-    [events, orders, t],
+    [events, orders],
   );
   return (
     <div className="user-rankings wide">
       {rankings.map(({ title, rows, metric }) => (
         <section className="panel" key={metric}>
           <div className="ranking-header">
-            <h3>{title}</h3>
+            <h3>{t(title)}</h3>
             {showControls && (
               <div
                 className="model-metric-toggle"
                 role="group"
-                aria-label={t("rankingOrder", { title })}
+                aria-label={t("rankingOrder", { title: t(title) })}
               >
                 {(["desc", "asc"] as const).map((order) => (
                   <button

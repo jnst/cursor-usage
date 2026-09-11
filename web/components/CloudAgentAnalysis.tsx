@@ -7,6 +7,7 @@ import { analyzeCloudAgents } from "../../src/core/cloud-agent.ts";
 import { formatDateTime, formatTokens, formatUsd } from "../../src/core/format.ts";
 import { useLanguage } from "../i18n/LanguageProvider.tsx";
 import { useCostVisibility } from "./CostVisibility.tsx";
+import { topRankingRows } from "./ranking.ts";
 import { SummaryCards } from "./SummaryCards.tsx";
 
 function Ranking({
@@ -24,9 +25,6 @@ function Ranking({
 }) {
   const { t } = useLanguage();
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
-  const top = [...rows]
-    .sort((a, b) => b.value - a.value || a.key.localeCompare(b.key))
-    .slice(0, 10);
   return (
     <section
       className="cloud-agent-chart"
@@ -35,8 +33,8 @@ function Ranking({
       <h3>{title}</h3>
       <div className="table-wrap">
         <div style={{ minWidth: 470 }}>
-          <ResponsiveContainer width="100%" height={Math.max(180, top.length * 30 + 40)}>
-            <BarChart data={top} layout="vertical" margin={{ right: 16 }}>
+          <ResponsiveContainer width="100%" height={Math.max(180, rows.length * 30 + 40)}>
+            <BarChart data={rows} layout="vertical" margin={{ right: 16 }}>
               <CartesianGrid stroke="#21262d" horizontal={false} />
               <XAxis
                 type="number"
@@ -92,6 +90,71 @@ function Ranking({
   );
 }
 
+type Agent = ReturnType<typeof analyzeCloudAgents>["agents"][number];
+
+/** Tooltip content is rendered only for the hovered ID. */
+function AgentTooltip({ a, ctx }: { a: Agent; ctx: AnalysisContext }) {
+  const { t, language } = useLanguage();
+  const { formatCost } = useCostVisibility();
+  return (
+    <>
+      <div className="cloud-agent-tooltip-heading">Cloud Agent</div>
+      <dl>
+        <div>
+          <dt>{t("User")}</dt>
+          <dd>
+            {a.users.map((user) => (
+              <span className="cloud-agent-tooltip-user" key={user}>
+                {user}
+              </span>
+            ))}
+          </dd>
+        </div>
+        <div>
+          <dt>{t("Spend")}</dt>
+          <dd>{formatCost(a.cost)}</dd>
+        </div>
+        <div>
+          <dt>{t("Tokens")}</dt>
+          <dd>{formatTokens(a.totalTokens)}</dd>
+        </div>
+        <div>
+          <dt>{t("Event Count")}</dt>
+          <dd>{a.eventCount.toLocaleString(language)}</dd>
+        </div>
+        <div>
+          <dt>{t("First observed")}</dt>
+          <dd>{formatDateTime(new Date(a.firstObserved), ctx.timeZone)}</dd>
+        </div>
+        <div>
+          <dt>{t("Last observed")}</dt>
+          <dd>{formatDateTime(new Date(a.lastObserved), ctx.timeZone)}</dd>
+        </div>
+        <div>
+          <dt>{t("Analysis Time Zone")}</dt>
+          <dd>{ctx.timeZone}</dd>
+        </div>
+      </dl>
+      <div className="cloud-agent-tooltip-section">{t("Events by Model")}</div>
+      <dl>
+        {a.models.slice(0, 4).map((model) => (
+          <div key={model.key}>
+            <dt>{model.key}</dt>
+            <dd>{model.eventCount.toLocaleString(language)}</dd>
+          </div>
+        ))}
+      </dl>
+      {a.models.length > 4 && (
+        <div className="cloud-agent-tooltip-more">
+          {t("moreModels", { count: a.models.length - 4 })}
+        </div>
+      )}
+      <div className="cloud-agent-tooltip-section">Cloud Agent ID</div>
+      <div className="cloud-agent-tooltip-id">{a.key}</div>
+    </>
+  );
+}
+
 export function CloudAgentAnalysis({
   events,
   ctx,
@@ -102,67 +165,21 @@ export function CloudAgentAnalysis({
   const { t, language } = useLanguage();
   const { agents, summary: s, byUser } = useMemo(() => analyzeCloudAgents(events), [events]);
   const { formatCost, hidden } = useCostVisibility();
+  // Rank raw data before constructing display rows, and retain it across language changes.
+  const ranked = useMemo(
+    () => ({
+      cost: topRankingRows(agents, (a) => a.cost),
+      tokens: topRankingRows(agents, (a) => a.totalTokens),
+      events: topRankingRows(agents, (a) => a.eventCount),
+      users: topRankingRows(byUser, (a) => a.agentCount),
+    }),
+    [agents, byUser],
+  );
   const agentRow = (a: (typeof agents)[number], value: number) => ({
     key: a.key,
     label: formatDateTime(new Date(a.firstObserved), ctx.timeZone),
     value,
-    detail: (
-      <>
-        <div className="cloud-agent-tooltip-heading">Cloud Agent</div>
-        <dl>
-          <div>
-            <dt>{t("User")}</dt>
-            <dd>
-              {a.users.map((user) => (
-                <span className="cloud-agent-tooltip-user" key={user}>
-                  {user}
-                </span>
-              ))}
-            </dd>
-          </div>
-          <div>
-            <dt>{t("Spend")}</dt>
-            <dd>{formatCost(a.cost)}</dd>
-          </div>
-          <div>
-            <dt>{t("Tokens")}</dt>
-            <dd>{formatTokens(a.totalTokens)}</dd>
-          </div>
-          <div>
-            <dt>{t("Event Count")}</dt>
-            <dd>{a.eventCount.toLocaleString(language)}</dd>
-          </div>
-          <div>
-            <dt>{t("First observed")}</dt>
-            <dd>{formatDateTime(new Date(a.firstObserved), ctx.timeZone)}</dd>
-          </div>
-          <div>
-            <dt>{t("Last observed")}</dt>
-            <dd>{formatDateTime(new Date(a.lastObserved), ctx.timeZone)}</dd>
-          </div>
-          <div>
-            <dt>{t("Analysis Time Zone")}</dt>
-            <dd>{ctx.timeZone}</dd>
-          </div>
-        </dl>
-        <div className="cloud-agent-tooltip-section">{t("Events by Model")}</div>
-        <dl>
-          {a.models.slice(0, 4).map((model) => (
-            <div key={model.key}>
-              <dt>{model.key}</dt>
-              <dd>{model.eventCount.toLocaleString(language)}</dd>
-            </div>
-          ))}
-        </dl>
-        {a.models.length > 4 && (
-          <div className="cloud-agent-tooltip-more">
-            {t("moreModels", { count: a.models.length - 4 })}
-          </div>
-        )}
-        <div className="cloud-agent-tooltip-section">Cloud Agent ID</div>
-        <div className="cloud-agent-tooltip-id">{a.key}</div>
-      </>
-    ),
+    detail: <AgentTooltip a={a} ctx={ctx} />,
   });
   return (
     <details className="panel wide analysis-disclosure" open>
@@ -208,25 +225,25 @@ export function CloudAgentAnalysis({
             <Ranking
               title={t("Top 10 Cloud Agent IDs by Spend")}
               hideAxis={hidden}
-              rows={agents.map((a) => agentRow(a, a.cost))}
+              rows={ranked.cost.map((a) => agentRow(a, a.cost))}
               format={formatCost}
               color="#58a6ff"
             />
             <Ranking
               title={t("Top 10 Cloud Agent IDs by Tokens")}
-              rows={agents.map((a) => agentRow(a, a.totalTokens))}
+              rows={ranked.tokens.map((a) => agentRow(a, a.totalTokens))}
               format={formatTokens}
               color="#3fb950"
             />
             <Ranking
               title={t("Top 10 Cloud Agent IDs by Event Count")}
-              rows={agents.map((a) => agentRow(a, a.eventCount))}
+              rows={ranked.events.map((a) => agentRow(a, a.eventCount))}
               format={(v) => v.toLocaleString(language)}
               color="#d2a8ff"
             />
             <Ranking
               title={t("Top 10 Users by Cloud Agent ID Count")}
-              rows={byUser.map((a) => ({ key: a.key, label: a.key, value: a.agentCount }))}
+              rows={ranked.users.map((a) => ({ key: a.key, label: a.key, value: a.agentCount }))}
               format={(v) => v.toLocaleString(language)}
               color="#f0883e"
             />

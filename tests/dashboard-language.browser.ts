@@ -103,6 +103,13 @@ try {
   assert((await page.locator("body").innerText()).includes("No Charge Events excluded: 1"));
   assert((await page.locator("body").innerText()).includes("Fri"));
   assert(!/[ぁ-んァ-ヶ一-龠]/.test(await page.locator("body").innerText()));
+  await page
+    .locator(".cloud-agent-chart .recharts-rectangle:not(.recharts-tooltip-cursor)")
+    .first()
+    .hover();
+  await page.locator(".cloud-agent-tooltip:visible").getByText("User", { exact: true }).waitFor();
+  assert((await page.locator(".cloud-agent-tooltip:visible").innerText()).includes("agent-a"));
+  await page.mouse.move(0, 0);
   await page.screenshot({ path: join(output, "overview-en.png"), fullPage: true });
   await switchTo(page, "日本語");
   assert.equal(await page.locator(".cards .value").first().innerText(), "$9.00");
@@ -110,6 +117,15 @@ try {
   assert(
     !/\b(Spend|Tokens|Daily Window|Effective Rate)\b/.test(await page.locator("body").innerText()),
   );
+  await page
+    .locator(".cloud-agent-chart .recharts-rectangle:not(.recharts-tooltip-cursor)")
+    .first()
+    .hover();
+  await page
+    .locator(".cloud-agent-tooltip:visible")
+    .getByText("ユーザー", { exact: true })
+    .waitFor();
+  await page.mouse.move(0, 0);
   await page.screenshot({ path: join(output, "overview-ja.png"), fullPage: true });
   await toggle.click();
   await page.screenshot({
