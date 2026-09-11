@@ -55,7 +55,7 @@ same alias, and original domains map consistently to `example.jp`, `example.com`
 
 `Cost` and the token columns are independently multiplied by random factors from
 0.9 to 1.1, then truncated to integers. Zero stays zero; this also means small
-Spend amounts can become zero. Totals are perturbed independently of token
+Spend amounts can become zero. `-` and `Free` in `Cost` are preserved as nonnumeric amount labels. Totals are perturbed independently of token
 components. All other columns, including dates and agent/automation IDs, retain
 their values. This command transforms the specified fields, not arbitrary
 confidential text in other columns.

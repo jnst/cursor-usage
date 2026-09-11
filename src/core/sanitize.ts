@@ -80,6 +80,7 @@ export function sanitizeCsv(text: string, random: () => number = Math.random): s
         }
         if (!NUMERIC_COLUMNS.has(columns[column]!)) return value;
         if (!value.trim()) return value;
+        if (columns[column] === "Cost" && ["-", "Free"].includes(value.trim())) return value;
         const number = Number(value);
         if (!Number.isFinite(number) || number < 0) {
           throw new Error(

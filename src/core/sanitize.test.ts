@@ -42,6 +42,40 @@ describe("sanitizeCsv", () => {
     expect(parseCsv(output)[1]![7]).toBe('a "quote"\nand comma, here');
   });
 
+  it("preserves missing Cost markers in Included events while sanitizing other values", () => {
+    const input = [
+      "Date,User,Cloud Agent ID,Automation ID,Kind,Model,Max Mode,Input (w/ Cache Write),Input (w/o Cache Write),Cache Read,Output Tokens,Total Tokens,Cost",
+      '"2026-08-28T23:59:15.656Z","first@company.invalid","","","Included","Cursor Grok 4.6 (Auto Balanced)","No","0","110775","471552","21213","603540","-"',
+      '"2026-08-28T23:14:54.110Z","second@company.invalid","","","Included","cursor-grok-4.5-high","No","0","2090","48512","134","50736","-"',
+      '"2026-08-28T23:14:30.155Z","second@company.invalid","","","Included","cursor-grok-4.5-high","No","0","7719","40832","1087","49638","-"',
+    ].join("\n");
+    const output = sanitizeCsv(input, () => 0);
+    const rows = parseCsv(output).slice(1);
+    expect(rows.map((row) => row[12])).toEqual(["-", "-", "-"]);
+    expect(rows.map((row) => row[1])).toEqual([
+      "sato@example.jp",
+      "suzuki@example.jp",
+      "suzuki@example.jp",
+    ]);
+    expect(rows[0]![11]).toBe("543186");
+    expect(parseUsageCsv(output)).toHaveLength(3);
+    expect(parseUsageCsv(output).every((event) => event.cost === 0)).toBe(true);
+    expect(() => sanitizeCsv("User,Output Tokens\na@company.invalid,-")).toThrow();
+  });
+
+  it("preserves Free Cost and empty token fields while replacing the User", () => {
+    const input = [
+      "Date,User,Cloud Agent ID,Automation ID,Kind,Model,Max Mode,Input (w/ Cache Write),Input (w/o Cache Write),Cache Read,Output Tokens,Total Tokens,Cost",
+      '"2026-08-28T16:36:00.131Z","user@company.invalid","","","On-Demand","gpt-5.6-sol-medium","No","","","","","","Free"',
+    ].join("\n");
+    const output = sanitizeCsv(input);
+    const row = parseCsv(output)[1]!;
+    expect(row[1]).toBe("sato@example.jp");
+    expect(row.slice(7)).toEqual(["", "", "", "", "", "Free"]);
+    expect(parseUsageCsv(output)[0]!.cost).toBe(0);
+    expect(() => sanitizeCsv("User,Output Tokens\na@company.invalid,Free")).toThrow();
+  });
+
   it("preserves blank fields and handles header-only exports", () => {
     expect(sanitizeCsv("User,Cost\n,\n")).toBe("User,Cost\n,\n");
     expect(sanitizeCsv("User,Cost\n")).toBe("User,Cost\n");
