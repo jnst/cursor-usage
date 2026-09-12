@@ -50,7 +50,7 @@ npx @jnst/cursor-usage sanitize usage.csv --out sanitized.csv
 
 `sanitize` replaces `User` email addresses with Japanese surname aliases such as
 `sato@example.jp`, adding numeric suffixes as needed. Repeated addresses keep the
-same alias, and original domains map consistently to `example.jp`, `example.com`,
+same alias. Blank and `N/A` Users are preserved. Original domains map consistently to `example.jp`, `example.com`,
 `example.dev`, and `example.net`, then numbered subdomains of `example.net`.
 
 `Cost` and the token columns are independently multiplied by random factors from

@@ -76,6 +76,19 @@ describe("sanitizeCsv", () => {
     expect(() => sanitizeCsv("User,Output Tokens\na@company.invalid,Free")).toThrow();
   });
 
+  it("preserves N/A Users without consuming aliases and still perturbs their metrics", () => {
+    const input = [
+      "Date,User,Cloud Agent ID,Automation ID,Kind,Model,Max Mode,Input (w/ Cache Write),Input (w/o Cache Write),Cache Read,Output Tokens,Total Tokens,Cost",
+      '"2026-08-28T14:56:02.163Z","N/A","bc-test","automation-test","On-Demand","composer-2.5","No","0","81526","719600","4304","805430","0.20"',
+      '"2026-08-28T14:57:02.163Z","person@company.invalid","","","Included","composer-2.5","No","0","100","0","0","100","-"',
+    ].join("\n");
+    const rows = parseCsv(sanitizeCsv(input, () => 0));
+    expect(rows[1]![1]).toBe("N/A");
+    expect(rows[1]!.slice(2, 4)).toEqual(["bc-test", "automation-test"]);
+    expect(rows[1]!.slice(11)).toEqual(["724887", "0"]);
+    expect(rows[2]![1]).toBe("sato@example.jp");
+  });
+
   it("preserves blank fields and handles header-only exports", () => {
     expect(sanitizeCsv("User,Cost\n,\n")).toBe("User,Cost\n,\n");
     expect(sanitizeCsv("User,Cost\n")).toBe("User,Cost\n");

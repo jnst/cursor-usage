@@ -61,6 +61,7 @@ export function sanitizeCsv(text: string, random: () => number = Math.random): s
         if (column === userIndex) {
           const email = value.trim();
           if (!email) return "";
+          if (email === "N/A") return value;
           const match = /^[^\s@]+@([^\s@]+)$/.exec(email);
           if (!match) throw new Error(`Invalid CSV: invalid User email at row ${index + 2}`);
           let replacement = users.get(email);
