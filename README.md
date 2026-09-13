@@ -54,8 +54,8 @@ same alias. Blank and `N/A` Users are preserved. Original domains map consistent
 `example.dev`, and `example.net`, then numbered subdomains of `example.net`.
 
 `Cost` and the token columns are independently multiplied by random factors from
-0.9 to 1.1, then truncated to integers. Zero stays zero; this also means small
-Spend amounts can become zero. `-` and `Free` in `Cost` are preserved as nonnumeric amount labels. Totals are perturbed independently of token
+0.9 to 1.1. Cost is rounded to two decimal places using `toFixed(2)`, matching
+USD display formatting, while token counts are truncated to integers. Zero stays zero. `-` and `Free` in `Cost` are preserved as nonnumeric amount labels. Totals are perturbed independently of token
 components. All other columns, including dates and agent/automation IDs, retain
 their values. This command transforms the specified fields, not arbitrary
 confidential text in other columns.

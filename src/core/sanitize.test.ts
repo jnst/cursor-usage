@@ -20,14 +20,26 @@ describe("sanitizeCsv", () => {
     expect(csv).not.toContain("company");
   });
 
-  it("perturbs every metric and truncates fractions, including Spend", () => {
+  it("rounds Spend to cents and truncates token fractions", () => {
     const csv =
       "User,Cost,Input (w/ Cache Write),Input (w/o Cache Write),Cache Read,Output Tokens,Total Tokens\na@b.invalid,12.9,101,0,23,7,131";
     const low = parseCsv(sanitizeCsv(csv, () => 0))[1]!;
     const high = parseCsv(sanitizeCsv(csv, () => 1))[1]!;
-    expect(low.slice(1)).toEqual(["11", "90", "0", "20", "6", "117"]);
-    expect(high.slice(1)).toEqual(["14", "111", "0", "25", "7", "144"]);
-    expect(parseCsv(sanitizeCsv("User,Cost\na@b.invalid,0.09", () => 0.5))[1]![1]).toBe("0");
+    expect(low.slice(1)).toEqual(["11.61", "90", "0", "20", "6", "117"]);
+    expect(high.slice(1)).toEqual(["14.19", "111", "0", "25", "7", "144"]);
+    expect(parseCsv(sanitizeCsv("User,Cost\na@b.invalid,0.09", () => 0.5))[1]![1]).toBe("0.09");
+  });
+
+  it("keeps Cost output finite and bounded while rounding small amounts", () => {
+    const rows = parseCsv(
+      sanitizeCsv("User,Cost\na@b.invalid,0\na@b.invalid,0.20\na@b.invalid,9.999", () => 0.5),
+    );
+    expect(rows.slice(1).map((row) => row[1])).toEqual(["0.00", "0.20", "10.00"]);
+    for (const number of ["1e308", "1e20"]) {
+      expect(() => sanitizeCsv(`User,Cost\na@b.invalid,${number}`, () => 1)).toThrow(
+        /out of range/,
+      );
+    }
   });
 
   it("preserves quoted metadata, row order, and compatibility with analysis", () => {
@@ -85,7 +97,7 @@ describe("sanitizeCsv", () => {
     const rows = parseCsv(sanitizeCsv(input, () => 0));
     expect(rows[1]![1]).toBe("N/A");
     expect(rows[1]!.slice(2, 4)).toEqual(["bc-test", "automation-test"]);
-    expect(rows[1]!.slice(11)).toEqual(["724887", "0"]);
+    expect(rows[1]!.slice(11)).toEqual(["724887", "0.18"]);
     expect(rows[2]![1]).toBe("sato@example.jp");
   });
 

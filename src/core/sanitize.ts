@@ -88,13 +88,15 @@ export function sanitizeCsv(text: string, random: () => number = Math.random): s
             `Invalid CSV: invalid numeric value at row ${index + 2}, column ${column + 1}`,
           );
         }
-        const result = Math.trunc(number * (0.9 + random() * 0.2));
-        if (!Number.isSafeInteger(result)) {
+        const isCost = columns[column] === "Cost";
+        const result = number * (0.9 + random() * 0.2);
+        const limit = isCost ? Number.MAX_SAFE_INTEGER / 100 : Number.MAX_SAFE_INTEGER;
+        if (!Number.isFinite(result) || result > limit) {
           throw new Error(
             `Invalid CSV: numeric value out of range at row ${index + 2}, column ${column + 1}`,
           );
         }
-        return String(result);
+        return isCost ? result.toFixed(2) : String(Math.trunc(result));
       }),
     );
   }

@@ -4,6 +4,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { parseCsv } from "../src/core/parse.ts";
+
 it("sanitizes through the CLI and refuses to overwrite existing input or output", async () => {
   const dir = await mkdtemp(join(tmpdir(), "cursor-sanitize-"));
   const input = join(dir, "usage.csv");
@@ -13,9 +15,11 @@ it("sanitizes through the CLI and refuses to overwrite existing input or output"
   try {
     await writeFile(input, original);
     expect(run(input).status).toBe(0);
-    expect(await readFile(join(dir, "usage-sanitized.csv"), "utf8")).toBe(
-      "User,Cost\nsato@example.jp,0\n",
-    );
+    const row = parseCsv(await readFile(join(dir, "usage-sanitized.csv"), "utf8"))[1]!;
+    expect(row[0]).toBe("sato@example.jp");
+    expect(row[1]).toMatch(/^0\.\d{2}$/);
+    expect(Number(row[1])).toBeGreaterThanOrEqual(0.45);
+    expect(Number(row[1])).toBeLessThanOrEqual(0.55);
     expect(run(input).status).toBe(1);
     expect(run(input, "--out", input).status).toBe(1);
     expect(await readFile(input, "utf8")).toBe(original);

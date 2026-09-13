@@ -272,7 +272,7 @@ Provide a CLI tool that removes confidential information from a Usage Export by 
 - Replace User email addresses with common Japanese surnames in Roman letters, such as `sato@example.jp` and `suzuki@example.jp`; append numeric suffixes such as `sato1`, `sato2`, and `sato3` when the surname pool is exhausted so that thousands of Users remain distinct.
 - Keep replacements consistent within a conversion: the same original email maps to the same replacement, and different Users receive different addresses.
 - Replace original domains consistently with distinct example domains, starting with `example.jp` and using different suffixes such as `example.com`, `example.dev`, and `example.net` for additional domains; preserve domain grouping without retaining original domain names.
-- Perturb Spend and token counts with random multipliers close to one, such as 0.9–1.1, to retain approximate magnitudes while changing the reported values; truncate fractional parts of the resulting values and keep zero values at zero.
+- Perturb Spend and token counts with random multipliers close to one, such as 0.9–1.1, to retain approximate magnitudes while changing the reported values; round Spend to two decimal places using the same method as display formatting, truncate fractional token counts, and keep zero values at zero.
 
 ### Rationale
 
