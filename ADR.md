@@ -274,6 +274,7 @@ Provide a CLI tool that removes confidential information from a Usage Export by 
 - Replace original domains consistently with distinct example domains, starting with `example.jp` and using different suffixes such as `example.com`, `example.dev`, and `example.net` for additional domains; preserve domain grouping without retaining original domain names.
 - Replace nonempty Cloud Agent IDs and Automation IDs with new random UUIDs, retaining the `bc-` prefix where present; keep repeated IDs mapped consistently within a conversion and different IDs distinct.
 - Perturb Spend and token counts with random multipliers close to one, such as 0.9–1.1, to retain approximate magnitudes while changing the reported values; round Spend to two decimal places using the same method as display formatting, truncate fractional token counts, and keep zero values at zero.
+- Offer a separate dummy CSV import area in the dashboard that applies the same core transformation as the CLI and displays the converted data directly without creating an output file.
 
 ### Rationale
 

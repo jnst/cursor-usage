@@ -31,6 +31,13 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
 
+The smaller **Load as dummy CSV** area converts your CSV before displaying it:
+emails and agent/automation IDs are replaced, and Spend and Tokens are perturbed.
+It uses the same core transformation as CLI `sanitize`, entirely in the browser,
+without creating or downloading an output CSV. **Dummy data** stays visible in
+the header while viewing converted data. Both import areas accept a dropped file
+or a click to choose one.
+
 Use the globe icon in the upper right to choose **日本語** or **English**, even before loading a CSV. The first visit uses the first supported browser-preferred language, falling back to English. An explicit choice is saved for that browser origin and takes priority on subsequent visits; only the language preference is stored. Changing language preserves the loaded CSV, filters, and Spend visibility. The Analysis Time Zone, USD amounts, and CSV values are independent of the display language.
 
 Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model-family / per-user / per-kind costs, and every event in the window). Spend charts group Models by Model Family — variant suffixes such as reasoning effort and fast mode are collapsed, and usage routed through Auto (Cursor Router) is shown as one `Auto` slice. Click a slice in the Model Family pie to see the Models inside it; for `Auto` this reveals the actual Models the Router selected. Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
@@ -290,4 +297,4 @@ Use `cursor-usage stats usage.csv --by cloud-agent` for terminal analysis. Overv
 
 ### Browser verification
 
-Run `bun run test:browser` to build the dashboard and verify language selection, persistence, view preservation, and PNG exports in Chrome. This uses the same Chrome installation and `CHROME_PATH` / `PLAYWRIGHT_CHROME_CHANNEL` overrides as screenshot export.
+Run `bun run test:browser` to build the dashboard and verify language selection, persistence, view preservation, PNG exports, and normal/dummy CSV imports in Chrome. This uses the same Chrome installation and `CHROME_PATH` / `PLAYWRIGHT_CHROME_CHANNEL` overrides as screenshot export.

@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 
 import { filterEvents } from "../src/core/aggregate.ts";
 import { parseUsageCsv, MissingColumnError } from "../src/core/parse.ts";
+import { sanitizeCsv } from "../src/core/sanitize.ts";
 import {
   defaultAnalysisTimeZone,
   isValidDailyWindowKey,
@@ -117,6 +118,7 @@ function useDailyWindowRoute(): {
 function App() {
   const { t } = useLanguage();
   const [allEvents, setAllEvents] = useState<UsageEvent[] | null>(() => initialEvents());
+  const [isDummy, setIsDummy] = useState(false);
   const [error, setError] = useState<{ key: MessageKey; params?: Record<string, string> } | null>(
     null,
   );
@@ -130,20 +132,24 @@ function App() {
     setSelectedUser,
   } = useDailyWindowRoute();
 
-  const onCsvText = (text: string) => {
+  const onCsvText = (text: string, asDummy: boolean) => {
     try {
-      const parsed = parseUsageCsv(text);
+      const parsed = parseUsageCsv(asDummy ? sanitizeCsv(text) : text);
       if (parsed.length === 0) {
         setError({ key: "No Usage Events could be read from the CSV." });
         return;
       }
       setError(null);
       setAllEvents(parsed);
+      setIsDummy(asDummy);
+      if (asDummy) setSelectedUser(null);
     } catch (e) {
       setError(
         e instanceof MissingColumnError
           ? { key: "missingColumn", params: { column: e.column } }
-          : { key: "Could not load the CSV." },
+          : {
+              key: asDummy ? "Could not convert the CSV to dummy data." : "Could not load the CSV.",
+            },
       );
     }
   };
@@ -177,6 +183,7 @@ function App() {
           </svg>
           Cursor Usage
         </h1>
+        {events && isDummy && <span className="dummy-data-label">{t("Dummy data")}</span>}
         {events && (
           <span className="meta">
             {t("billableCount", { count: events.length })}
@@ -196,6 +203,7 @@ function App() {
                     setSelectedDailyWindow(null);
                     setSelectedUser(null);
                     setAllEvents(null);
+                    setIsDummy(false);
                     setError(null);
                   }}
                 >

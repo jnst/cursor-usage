@@ -46,6 +46,12 @@ export const en = {
   "Show Spend": "Show Spend",
   "Load another CSV": "Load another CSV",
   "Drop a CSV here": "Drop a CSV here",
+  "Load as dummy CSV": "Load as dummy CSV",
+  "Replace emails, IDs, Spend, and Tokens with dummy values before displaying.":
+    "Replace emails, IDs, Spend, and Tokens with dummy values before displaying.",
+  "Reading CSV…": "Reading CSV…",
+  "Dummy data": "Dummy data",
+  "Could not convert the CSV to dummy data.": "Could not convert the CSV to dummy data.",
   "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.":
     "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.",
   "You can also click to choose a file": "You can also click to choose a file",
@@ -175,6 +181,12 @@ const ja: Record<MessageKey, string> = {
   "Show Spend": "金額を表示",
   "Load another CSV": "別のCSVを読み込む",
   "Drop a CSV here": "CSVをここにドラッグ＆ドロップ",
+  "Load as dummy CSV": "ダミーCSVとして読み込む",
+  "Replace emails, IDs, Spend, and Tokens with dummy values before displaying.":
+    "メールアドレス・ID・支出・トークン数をダミーの値に変換して表示します。",
+  "Reading CSV…": "CSVを読み込み中…",
+  "Dummy data": "ダミーデータ",
+  "Could not convert the CSV to dummy data.": "CSVをダミーデータに変換できませんでした。",
   "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.":
     "Cursorダッシュボードから利用履歴エクスポートのCSVを読み込みます。データはブラウザ内で処理され、どこにも送信されません。",
   "You can also click to choose a file": "クリックでファイル選択もできます",

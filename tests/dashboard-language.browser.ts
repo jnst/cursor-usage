@@ -45,7 +45,7 @@ async function openPage(preferences: string[], saved?: string, blocked = false) 
   const page = await context.newPage();
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(server.url);
-  await page.locator(".dropzone").waitFor();
+  await page.locator(".dropzone").first().waitFor();
   return page;
 }
 async function switchTo(page: Page, language: "日本語" | "English") {
