@@ -3,26 +3,25 @@ import { type DragEvent, useRef, useState } from "react";
 import { useLanguage } from "../i18n/LanguageProvider.tsx";
 
 interface Props {
-  onCsvText: (text: string, asDummy: boolean) => void;
+  onCsvText: (text: string) => void;
   error: string | null;
   onReadError: () => void;
 }
 
-/** Reads a local file for either normal import or the shared dummy transformation. */
+/** Read the selected file locally; transformation is deferred until requested in the dashboard. */
 export function DropZone({ onCsvText, error, onReadError }: Props) {
   const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
-  const selectedMode = useRef(false);
   const reading = useRef(false);
   const [isReading, setIsReading] = useState(false);
-  const [dragOver, setDragOver] = useState<boolean | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
-  const readFile = async (file: File | undefined, asDummy: boolean) => {
+  const readFile = async (file: File | undefined) => {
     if (!file || reading.current) return;
     reading.current = true;
     setIsReading(true);
     try {
-      onCsvText(await file.text(), asDummy);
+      onCsvText(await file.text());
     } catch {
       onReadError();
     } finally {
@@ -31,56 +30,43 @@ export function DropZone({ onCsvText, error, onReadError }: Props) {
     }
   };
 
-  const onDrop = (e: DragEvent, asDummy: boolean) => {
+  const onDrop = (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragOver(null);
-    void readFile(e.dataTransfer.files[0], asDummy);
+    setDragOver(false);
+    void readFile(e.dataTransfer.files[0]);
   };
 
   return (
     <div className="csv-import" aria-busy={isReading}>
-      <div className="csv-import-targets">
-        {[false, true].map((asDummy) => {
-          const id = asDummy ? "dummy-csv" : "original-csv";
-          return (
-            <div
-              key={id}
-              className={`dropzone${asDummy ? " dropzone-dummy" : ""}${dragOver === asDummy ? " dragover" : ""}`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "copy";
-                if (!reading.current) setDragOver(asDummy);
-              }}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={(e) => onDrop(e, asDummy)}
-            >
-              <div className="icon" aria-hidden="true">
-                {asDummy ? "🎭" : "📊"}
-              </div>
-              <h2 id={`${id}-title`}>{t(asDummy ? "Load as dummy CSV" : "Drop a CSV here")}</h2>
-              <p id={`${id}-description`}>
-                {t(
-                  asDummy
-                    ? "Replace emails, IDs, Spend, and Tokens with dummy values before displaying."
-                    : "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.",
-                )}
-              </p>
-              <p className="meta">{t("You can also click to choose a file")}</p>
-              <button
-                type="button"
-                className="dropzone-select"
-                aria-labelledby={`${id}-title`}
-                aria-describedby={`${id}-description`}
-                disabled={isReading}
-                onClick={() => {
-                  selectedMode.current = asDummy;
-                  inputRef.current?.click();
-                }}
-              />
-            </div>
-          );
-        })}
+      <div
+        className={`dropzone${dragOver ? " dragover" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          if (!reading.current) setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+      >
+        <div className="icon" aria-hidden="true">
+          📊
+        </div>
+        <h2 id="csv-title">{t("Drop a CSV here")}</h2>
+        <p id="csv-description">
+          {t(
+            "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.",
+          )}
+        </p>
+        <p className="meta">{t("You can also click to choose a file")}</p>
+        <button
+          type="button"
+          className="dropzone-select"
+          aria-labelledby="csv-title"
+          aria-describedby="csv-description"
+          disabled={isReading}
+          onClick={() => inputRef.current?.click()}
+        />
       </div>
       {isReading && (
         <p className="import-status" role="status">
@@ -100,7 +86,7 @@ export function DropZone({ onCsvText, error, onReadError }: Props) {
         onChange={(e) => {
           const file = e.currentTarget.files?.[0];
           e.currentTarget.value = "";
-          void readFile(file, selectedMode.current);
+          void readFile(file);
         }}
       />
     </div>

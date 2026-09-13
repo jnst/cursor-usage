@@ -88,7 +88,8 @@ body {
   align-items: center;
   gap: 8px;
 }
-.cost-visibility-toggle {
+.cost-visibility-toggle,
+.dummy-data-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -98,12 +99,6 @@ body {
 }
 
 /* CSV import */
-.csv-import-targets {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
-  gap: 16px;
-  min-height: 70vh;
-}
 
 .dropzone {
   display: flex;
@@ -112,6 +107,7 @@ body {
   justify-content: center;
   gap: 12px;
   position: relative;
+  min-height: 70vh;
   border: 2px dashed var(--panel-border);
   border-radius: 16px;
   cursor: pointer;
@@ -142,11 +138,6 @@ body {
   margin: 0;
   color: var(--text-dim);
   max-width: 460px;
-}
-
-.dropzone-dummy {
-  padding: 28px 20px;
-  background: var(--panel);
 }
 
 .dropzone-select {
@@ -190,18 +181,35 @@ body {
 }
 
 @media (max-width: 700px) {
-  .csv-import-targets {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 2fr 1fr;
-  }
-
   .dropzone {
     padding: 28px 20px;
   }
+}
 
-  .dropzone-dummy .icon {
-    font-size: 30px;
-  }
+.dummy-data-toggle[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.dummy-data-toggle[aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.dummy-data-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.dummy-data-status,
+.dummy-data-error {
+  margin: 0 0 16px;
+  color: var(--text-dim);
+}
+
+.dummy-data-error {
+  color: #f85149;
 }
 
 /* Cards */

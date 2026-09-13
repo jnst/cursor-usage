@@ -31,12 +31,13 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
 
-The smaller **Load as dummy CSV** area converts your CSV before displaying it:
-emails and agent/automation IDs are replaced, and Spend and Tokens are perturbed.
-It uses the same core transformation as CLI `sanitize`, entirely in the browser,
-without creating or downloading an output CSV. **Dummy data** stays visible in
-the header while viewing converted data. Both import areas accept a dropped file
-or a click to choose one.
+After loading a CSV, use the **Show dummy data** icon toggle beside **Hide Spend**
+to replace emails and agent/automation IDs and perturb Spend and Tokens for display.
+The first activation loads and runs the same core transformation as CLI `sanitize`;
+initial CSV import does no dummy-data preparation. **Dummy data** appears in the
+header while active. Switching off restores original values, and switching on again
+reuses the same converted values. Loading another CSV resets the toggle and cache.
+The original CSV and cached result stay in memory; no output CSV is created.
 
 Use the globe icon in the upper right to choose **日本語** or **English**, even before loading a CSV. The first visit uses the first supported browser-preferred language, falling back to English. An explicit choice is saved for that browser origin and takes priority on subsequent visits; only the language preference is stored. Changing language preserves the loaded CSV, filters, and Spend visibility. The Analysis Time Zone, USD amounts, and CSV values are independent of the display language.
 
@@ -297,4 +298,4 @@ Use `cursor-usage stats usage.csv --by cloud-agent` for terminal analysis. Overv
 
 ### Browser verification
 
-Run `bun run test:browser` to build the dashboard and verify language selection, persistence, view preservation, PNG exports, and normal/dummy CSV imports in Chrome. This uses the same Chrome installation and `CHROME_PATH` / `PLAYWRIGHT_CHROME_CHANNEL` overrides as screenshot export.
+Run `bun run test:browser` to build the dashboard and verify language selection, persistence, view preservation, PNG exports, CSV import, and deferred dummy-data switching in Chrome. This uses the same Chrome installation and `CHROME_PATH` / `PLAYWRIGHT_CHROME_CHANNEL` overrides as screenshot export.

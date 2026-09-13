@@ -46,9 +46,8 @@ export const en = {
   "Show Spend": "Show Spend",
   "Load another CSV": "Load another CSV",
   "Drop a CSV here": "Drop a CSV here",
-  "Load as dummy CSV": "Load as dummy CSV",
-  "Replace emails, IDs, Spend, and Tokens with dummy values before displaying.":
-    "Replace emails, IDs, Spend, and Tokens with dummy values before displaying.",
+  "Show dummy data": "Show dummy data",
+  "Preparing dummy data…": "Preparing dummy data…",
   "Reading CSV…": "Reading CSV…",
   "Dummy data": "Dummy data",
   "Could not convert the CSV to dummy data.": "Could not convert the CSV to dummy data.",
@@ -181,9 +180,8 @@ const ja: Record<MessageKey, string> = {
   "Show Spend": "金額を表示",
   "Load another CSV": "別のCSVを読み込む",
   "Drop a CSV here": "CSVをここにドラッグ＆ドロップ",
-  "Load as dummy CSV": "ダミーCSVとして読み込む",
-  "Replace emails, IDs, Spend, and Tokens with dummy values before displaying.":
-    "メールアドレス・ID・支出・トークン数をダミーの値に変換して表示します。",
+  "Show dummy data": "ダミーデータを表示",
+  "Preparing dummy data…": "ダミーデータを準備中…",
   "Reading CSV…": "CSVを読み込み中…",
   "Dummy data": "ダミーデータ",
   "Could not convert the CSV to dummy data.": "CSVをダミーデータに変換できませんでした。",

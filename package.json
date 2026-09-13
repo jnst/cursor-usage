@@ -27,7 +27,7 @@
   "scripts": {
     "dev": "bun --hot src/server/dev.ts",
     "test": "bun test",
-    "test:browser": "bun run build && bun tests/dashboard-language.browser.ts && bun tests/dashboard-import.browser.ts",
+    "test:browser": "bun run build && bun tests/dashboard-language.browser.ts && bun tests/dashboard-dummy.browser.ts",
     "typecheck": "tsc --noEmit",
     "check": "vp check",
     "fix": "vp check --fix",

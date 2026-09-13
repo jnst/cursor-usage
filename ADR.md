@@ -274,8 +274,25 @@ Provide a CLI tool that removes confidential information from a Usage Export by 
 - Replace original domains consistently with distinct example domains, starting with `example.jp` and using different suffixes such as `example.com`, `example.dev`, and `example.net` for additional domains; preserve domain grouping without retaining original domain names.
 - Replace nonempty Cloud Agent IDs and Automation IDs with new random UUIDs, retaining the `bc-` prefix where present; keep repeated IDs mapped consistently within a conversion and different IDs distinct.
 - Perturb Spend and token counts with random multipliers close to one, such as 0.9–1.1, to retain approximate magnitudes while changing the reported values; round Spend to two decimal places using the same method as display formatting, truncate fractional token counts, and keep zero values at zero.
-- Offer a separate dummy CSV import area in the dashboard that applies the same core transformation as the CLI and displays the converted data directly without creating an output file.
+- Let the dashboard switch between original and dummy data using the same core transformation as the CLI; defer conversion according to ADR-022.
 
 ### Rationale
 
 Users need to remove original email addresses, organization domains, agent/automation IDs, and exact Spend and token counts from CSV data while preserving its usefulness for usage analysis.
+
+## ADR-022: Prepare Dashboard Dummy Data Only on Demand
+
+### Decision
+
+Defer loading and running the dummy-data transformation until the user first enables dummy display.
+
+### Current State
+
+- Import CSV normally and provide a dummy-data icon toggle beside the Spend visibility toggle after loading.
+- Load the shared transformation code and generate dummy data only on the first request, keeping this work out of initial import and rendering.
+- Keep the original data and cache the converted result in memory for the loaded CSV, so switching modes restores the original values or reuses the same dummy values without another conversion.
+- Discard the cached result when another CSV is loaded; ignore pending results for a previously loaded CSV.
+
+### Rationale
+
+Optional dummy-data preparation should not delay the initial dashboard display or change values on every toggle.
