@@ -6,6 +6,7 @@ const web = await Bun.build({
   entrypoints: ["web/index.html"],
   outdir: "dist/web",
   target: "browser",
+  splitting: true,
   define: { "process.env.NODE_ENV": '"production"' },
   jsx: { development: false },
   minify: true,

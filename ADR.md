@@ -1,11 +1,11 @@
 # Architecture Decision Records
 
-ADRs record decisions, the current state as a Single Source of Truth, and the background and intent behind each decision.
+ADRs are the Single Source of Truth for confirmed architectural decisions and their background and intent, regardless of implementation status.
 
 ## Writing Rules
 
 - Decision: State what was decided in one sentence—the conclusion only.
-- Current State (Single Source of Truth): Describe what is actually implemented and in use now. Keep it up to date as the implementation changes. Do not present planned or intended behavior as current fact.
+- Current State (Single Source of Truth): State the architectural decisions currently in effect, including their confirmed scope, behavior, and constraints, regardless of implementation status. Update this section when a decision changes. This section records what is decided today, not implementation progress, unresolved proposals, or general commentary.
 - Rationale: Summarize the background and intent behind the decision in one sentence. Do not reproduce the full discussion.
 - Record architectural structure and behavioral policies; omit transitional parameter values and low-level implementation steps.
 
@@ -260,3 +260,43 @@ The dashboard uses a saved explicit language choice or the first supported brows
 ### Rationale
 
 Users need to read and share the same analysis in their preferred language.
+
+## ADR-021: Remove Confidential Information from CSV Through the CLI
+
+### Decision
+
+Provide a CLI tool that removes confidential information from a Usage Export by replacing email addresses and agent/automation IDs and perturbing Spend and Tokens while retaining approximate usage patterns.
+
+### Current State
+
+- Replace User email addresses with common Japanese surnames in Roman letters, such as `sato@example.jp` and `suzuki@example.jp`; append numeric suffixes such as `sato1`, `sato2`, and `sato3` when the surname pool is exhausted so that thousands of Users remain distinct.
+- Keep replacements consistent within a conversion: the same original email maps to the same replacement, and different Users receive different addresses.
+- Replace original domains consistently with distinct example domains, starting with `example.jp` and using different suffixes such as `example.com`, `example.dev`, and `example.net` for additional domains; preserve domain grouping without retaining original domain names.
+- Replace nonempty Cloud Agent IDs and Automation IDs with new random UUIDs, retaining the `bc-` prefix where present; keep repeated IDs mapped consistently within a conversion and different IDs distinct.
+- Perturb Spend and token counts with random multipliers close to one, such as 0.9–1.1, to retain approximate magnitudes while changing the reported values; round Spend to two decimal places using the same method as display formatting, truncate fractional token counts, and keep zero values at zero.
+- Let the dashboard switch between original and dummy data using the same core transformation as the CLI; defer conversion according to ADR-022.
+
+### Rationale
+
+Users need to remove original email addresses, organization domains, agent/automation IDs, and exact Spend and token counts from CSV data while preserving its usefulness for usage analysis.
+
+## ADR-022: Prepare Dashboard Dummy Data Only on Demand
+
+### Decision
+
+Defer loading and running the dummy-data transformation until the user first enables dummy display.
+
+### Current State
+
+- Import CSV normally and provide a dummy-data icon toggle beside the Spend visibility toggle after loading.
+- Load the shared transformation code and generate dummy data only on the first request, keeping this work out of initial import and rendering.
+- Keep the original data and cache the converted result in memory for the loaded CSV, so switching modes restores the original values or reuses the same dummy values without another conversion.
+- Release the source CSV text after successful conversion, retaining both parsed datasets; keep the text after a failure so preparation can be retried.
+- Retain each dataset's rendered view and computed analysis for mode switches; keep the inactive view hidden and outside keyboard navigation. The toggle alone indicates the active mode.
+- Reuse calendar calculations across charts and mode switches, retaining them only while the corresponding data remains in memory.
+- Show a centered modal loading indicator before the first conversion starts and until the initial charts are ready, including when the transformation code is already cached by the browser; block background interaction and restore focus when preparation finishes.
+- Discard the cached result when another CSV is loaded; ignore pending results for a previously loaded CSV.
+
+### Rationale
+
+Optional dummy-data preparation should not delay the initial dashboard display or change values on every toggle.

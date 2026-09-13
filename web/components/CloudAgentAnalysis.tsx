@@ -25,8 +25,10 @@ function Ranking({
 }) {
   const { t } = useLanguage();
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  const [tooltipHost, setTooltipHost] = useState<HTMLElement | null>(null);
   return (
     <section
+      ref={setTooltipHost}
       className="cloud-agent-chart"
       onMouseMove={(event) => setPointer({ x: event.clientX, y: event.clientY })}
     >
@@ -55,7 +57,9 @@ function Ranking({
               />
               <Tooltip
                 cursor={{ fill: "#8b949e", fillOpacity: 0.12 }}
-                portal={document.body}
+                // Outside the scrolling table, but inside the dataset whose
+                // visibility and keyboard access this tooltip must follow.
+                portal={tooltipHost ?? undefined}
                 wrapperStyle={{
                   zIndex: 100,
                   pointerEvents: "none",

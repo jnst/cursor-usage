@@ -65,10 +65,10 @@ function dateTimeFormatter(timeZone: string): Intl.DateTimeFormat {
 }
 
 /**
- * Returns cached `Intl` date-time parts for an absolute timestamp.
+ * Returns `Intl` date-time parts using a cached formatter.
  *
- * Display formatters and Daily Window keying share this cache so a timestamp
- * is not formatted repeatedly per field.
+ * Grouping caches compact date/hour values separately to avoid retaining a
+ * full parts map for every Usage Event.
  */
 export function dateTimeParts(
   date: Date,
@@ -103,12 +103,31 @@ function assertStartHour(startHour: number): void {
   }
 }
 
-function localDateKeyAndHour(date: Date, timeZone: string): { dateKey: string; hour: number } {
+type LocalCalendar = {
+  timestamp: number;
+  timeZone: string;
+  dateKey: string;
+  hour: string;
+  previousDateKey?: string;
+};
+
+// Weak keys release the cache with the loaded events. Retain only the latest
+// time zone per Date, and check the timestamp because Date objects are mutable.
+const localCalendars = new WeakMap<Date, LocalCalendar>();
+
+function localDateKeyAndHour(date: Date, timeZone: string): LocalCalendar {
+  const timestamp = date.getTime();
+  const cached = localCalendars.get(date);
+  if (cached?.timestamp === timestamp && cached.timeZone === timeZone) return cached;
   const parts = dateTimeParts(date, timeZone);
-  return {
+  const calendar = {
+    timestamp,
+    timeZone,
     dateKey: [parts.get("year"), parts.get("month"), parts.get("day")].join("-"),
-    hour: Number(parts.get("hour") ?? 0),
+    hour: parts.get("hour") ?? "00",
   };
+  localCalendars.set(date, calendar);
+  return calendar;
 }
 
 function dateParts(dateKey: string): { year: number; month: number; date: number } {
@@ -152,8 +171,10 @@ export function dailyWindowKeysInRange(first: string, last: string): string[] {
 export function dailyWindowKeyOf(date: Date, ctx: Partial<AnalysisContext> = {}): string {
   const { timeZone, startHour } = resolveAnalysisContext(ctx);
   assertStartHour(startHour);
-  const { dateKey, hour } = localDateKeyAndHour(date, timeZone);
-  return hour < startHour ? addDays(dateKey, -1) : dateKey;
+  const calendar = localDateKeyAndHour(date, timeZone);
+  return Number(calendar.hour) < startHour
+    ? (calendar.previousDateKey ??= addDays(calendar.dateKey, -1))
+    : calendar.dateKey;
 }
 
 /**
@@ -164,7 +185,7 @@ export function dailyWindowKeyOf(date: Date, ctx: Partial<AnalysisContext> = {})
  */
 export function hourOf(date: Date, ctx: Partial<AnalysisContext> = {}): string {
   const { timeZone } = resolveAnalysisContext(ctx);
-  return dateTimeParts(date, timeZone).get("hour") ?? "";
+  return localDateKeyAndHour(date, timeZone).hour;
 }
 
 /**

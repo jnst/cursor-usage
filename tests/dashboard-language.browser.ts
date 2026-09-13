@@ -45,7 +45,7 @@ async function openPage(preferences: string[], saved?: string, blocked = false) 
   const page = await context.newPage();
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(server.url);
-  await page.locator(".dropzone").waitFor();
+  await page.locator(".dropzone").first().waitFor();
   return page;
 }
 async function switchTo(page: Page, language: "日本語" | "English") {
@@ -77,6 +77,7 @@ try {
   const toggle = page.getByRole("button", { name: "言語 / Language", exact: true });
   await toggle.focus();
   await page.keyboard.press("Enter");
+  assert.equal(await page.getByRole("tooltip").count(), 0);
   await page.keyboard.press("Tab");
   assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "日本語✓");
   await page.keyboard.press("Escape");

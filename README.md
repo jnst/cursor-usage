@@ -31,6 +31,16 @@ npx @jnst/cursor-usage   # or: bunx @jnst/cursor-usage
 
 Starts a local server and opens your browser. Drag & drop a CSV exported from Cursor onto the page. All data is processed in the browser and never sent anywhere.
 
+After loading a CSV, use the **Show dummy data** icon toggle beside **Hide Spend**
+to replace emails and agent/automation IDs and perturb Spend and Tokens for display.
+The first activation loads and runs the same core transformation as CLI `sanitize`;
+initial CSV import does no dummy-data preparation. A centered loading dialog blocks
+background interaction until preparation and the initial chart rendering finish.
+The toggle indicates whether dummy data is active. Switching off restores original
+values, and switching on again reuses the same converted values and rendered charts.
+Loading another CSV resets the toggle and releases both views. The original CSV and
+cached result stay in memory; no output CSV is created.
+
 Use the globe icon in the upper right to choose **日本語** or **English**, even before loading a CSV. The first visit uses the first supported browser-preferred language, falling back to English. An explicit choice is saved for that browser origin and takes priority on subsequent visits; only the language preference is stored. Changing language preserves the loaded CSV, filters, and Spend visibility. The Analysis Time Zone, USD amounts, and CSV values are independent of the display language.
 
 Click any bar in the Daily Window cost chart to drill into that window (hourly breakdown, per-model-family / per-user / per-kind costs, and every event in the window). Spend charts group Models by Model Family — variant suffixes such as reasoning effort and fast mode are collapsed, and usage routed through Auto (Cursor Router) is shown as one `Auto` slice. Click a slice in the Model Family pie to see the Models inside it; for `Auto` this reveals the actual Models the Router selected. Click a user bar to filter the current analysis to that User; the selected User remains visible while other users are dimmed, and clicking the selected user again clears the filter. The selected Daily Window, user, and analysis time zone are reflected in the URL hash (`#daily-window=YYYY-MM-DD&user=jnst%40example.jp&timezone=Asia%2FTokyo`), so the browser back button and shareable links work after loading the same CSV.
@@ -40,6 +50,30 @@ The default port is 4321; if it is already in use, a free port is picked automat
 ```bash
 npx @jnst/cursor-usage serve --port 8080 --no-open
 ```
+
+### Remove confidential values from CSV
+
+```bash
+npx @jnst/cursor-usage sanitize usage.csv
+npx @jnst/cursor-usage sanitize usage.csv --out sanitized.csv
+```
+
+`sanitize` replaces `User` email addresses with Japanese surname aliases such as
+`sato@example.jp`, adding numeric suffixes as needed. Repeated addresses keep the
+same alias. Blank and `N/A` Users are preserved. Original domains map consistently to `example.jp`, `example.com`,
+`example.dev`, and `example.net`, then numbered subdomains of `example.net`.
+
+`Cost` and the token columns are independently multiplied by random factors from
+0.9 to 1.1. Cost is rounded to two decimal places using `toFixed(2)`, matching
+USD display formatting, while token counts are truncated to integers. Zero stays zero. `-` and `Free` in `Cost` are preserved as nonnumeric amount labels. Totals are perturbed independently of token
+components. Cloud Agent IDs and Automation IDs are replaced with new random
+UUIDs, preserving repeated IDs and the `bc-` prefix where present. Empty IDs and
+`N/A` stay unchanged. All other columns, including dates, retain their values. This command transforms the specified fields, not arbitrary
+confidential text in other columns.
+
+The default output is `<input>-sanitized.csv` beside the input. Existing files
+are never overwritten. Invalid email or numeric fields cause an error without
+printing their contents or writing output.
 
 ### Terminal stats
 
@@ -266,4 +300,4 @@ Use `cursor-usage stats usage.csv --by cloud-agent` for terminal analysis. Overv
 
 ### Browser verification
 
-Run `bun run test:browser` to build the dashboard and verify language selection, persistence, view preservation, and PNG exports in Chrome. This uses the same Chrome installation and `CHROME_PATH` / `PLAYWRIGHT_CHROME_CHANNEL` overrides as screenshot export.
+Run `bun run test:browser` to build the dashboard and verify language selection, persistence, view preservation, PNG exports, CSV import, and deferred dummy-data switching in Chrome. This uses the same Chrome installation and `CHROME_PATH` / `PLAYWRIGHT_CHROME_CHANNEL` overrides as screenshot export.

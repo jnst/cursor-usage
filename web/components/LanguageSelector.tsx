@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { type Language } from "../../src/core/language.ts";
 import { useLanguage } from "../i18n/LanguageProvider.tsx";
+import { TooltipButton } from "./TooltipButton.tsx";
 
 /** A disclosure with native buttons; Tab moves between the language choices. */
 export function LanguageSelector() {
@@ -39,12 +40,12 @@ export function LanguageSelector() {
         }
       }}
     >
-      <button
+      <TooltipButton
         ref={trigger}
         type="button"
         className="reload-button language-toggle"
         aria-label="言語 / Language"
-        title="言語 / Language"
+        tooltipSuppressed={open}
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen((value) => !value)}
@@ -62,7 +63,7 @@ export function LanguageSelector() {
           <ellipse cx="12" cy="12" rx="4" ry="9" />
           <path d="M3 12h18" />
         </svg>
-      </button>
+      </TooltipButton>
       <div
         id={id}
         className="language-options"

@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 import { formatMetric, formatUsd } from "../../src/core/format.ts";
 import { useLanguage } from "../i18n/LanguageProvider.tsx";
+import { TooltipButton } from "./TooltipButton.tsx";
 
 export const HIDDEN_COST = "***";
 const Context = createContext({ hidden: false, toggle: () => {} });
@@ -42,11 +43,10 @@ export function CostVisibilityToggle() {
   const { t } = useLanguage();
   const { hidden, toggle } = useCostVisibility();
   return (
-    <button
+    <TooltipButton
       type="button"
       className="reload-button cost-visibility-toggle"
       aria-label={t(hidden ? "Show Spend" : "Hide Spend")}
-      title={t(hidden ? "Show Spend" : "Hide Spend")}
       aria-pressed={hidden}
       onClick={toggle}
     >
@@ -63,6 +63,6 @@ export function CostVisibilityToggle() {
         <circle cx="12" cy="12" r="3" />
         {hidden && <path d="m3 3 18 18" />}
       </svg>
-    </button>
+    </TooltipButton>
   );
 }

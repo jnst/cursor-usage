@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 import type { AnalysisContext, Metric } from "../core/types.ts";
 
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import { parse, join } from "node:path";
 import { parseArgs } from "node:util";
 
 import { filterEvents } from "../core/aggregate.ts";
 import { isLanguage, preferredLanguage, type Language } from "../core/language.ts";
 import { parseUsageCsv } from "../core/parse.ts";
+import { sanitizeCsv } from "../core/sanitize.ts";
 import {
   defaultAnalysisTimeZone,
   isValidDailyWindowKey,
@@ -29,9 +31,13 @@ const HELP = `cursor-usage — visualize Cursor usage-events CSV
 
 Usage:
   cursor-usage [serve] [--port <n>] [--no-open]   Start the drag & drop dashboard (default)
+  cursor-usage sanitize <csv> [options]           Remove confidential values from CSV
   cursor-usage stats <csv> [options]              Show usage statistics in the terminal
   cursor-usage screenshot <csv> [options]         Capture the dashboard as a PNG
   cursor-usage daily-report <csv> [options]       Capture a shareable daily report PNG
+
+Sanitize options:
+  --out <path>                    Output CSV (default: <input>-sanitized.csv)
 
 Stats options:
   --by <daily-window|user|model|model-family|user-effective-rate|user-cloud-agent|cloud-agent>
@@ -306,6 +312,37 @@ async function runDailyReport(args: string[]): Promise<void> {
   console.log(`wrote ${path}`);
 }
 
+async function runSanitize(args: string[]): Promise<void> {
+  const { values, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: { out: { type: "string" } },
+  });
+  const csvPath = positionals[0];
+  if (!csvPath) fail("sanitize requires a path to a CSV file");
+  if (positionals.length > 1) fail("sanitize accepts exactly one CSV file");
+  const input = parse(csvPath);
+  const output = values.out ?? join(input.dir, `${input.name}-sanitized.csv`);
+  let csv: string;
+  try {
+    csv = await readFile(csvPath, "utf8");
+  } catch {
+    fail("could not read input CSV");
+  }
+  let sanitized: string;
+  try {
+    sanitized = sanitizeCsv(csv);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : "could not sanitize CSV");
+  }
+  try {
+    await writeFile(output, sanitized, { flag: "wx" });
+  } catch {
+    fail("could not write output CSV; choose a new --out path that does not already exist");
+  }
+  console.log(`wrote ${output}`);
+}
+
 function runServe(args: string[]): void {
   const { values } = parseArgs({
     args,
@@ -337,6 +374,9 @@ async function main(): Promise<void> {
 
   const [command, ...rest] = argv;
   switch (command) {
+    case "sanitize":
+      await runSanitize(rest);
+      break;
     case "stats":
       await runStats(rest);
       break;

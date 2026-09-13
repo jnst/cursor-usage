@@ -1,4 +1,10 @@
-import type { AnalysisContext, Metric, UsageEvent } from "../../src/core/types.ts";
+import type {
+  AnalysisContext,
+  BucketStat,
+  DailyWindowCostStat,
+  Metric,
+  UsageEvent,
+} from "../../src/core/types.ts";
 
 import { useMemo } from "react";
 import {
@@ -175,17 +181,17 @@ function OverviewSummary({ events, ctx }: { events: UsageEvent[]; ctx: AnalysisC
 }
 
 function DailyChart({
-  events,
-  scaleEvents,
-  ctx,
+  dailyWindows,
+  scaleDailyWindows,
+  families,
   metric,
   familyColors,
   showControls,
   onSelectDailyWindow,
 }: {
-  events: UsageEvent[];
-  scaleEvents: UsageEvent[];
-  ctx: AnalysisContext;
+  dailyWindows: DailyWindowCostStat[];
+  scaleDailyWindows: DailyWindowCostStat[];
+  families: BucketStat[];
   metric: Metric;
   familyColors: Map<string, string>;
   showControls: boolean;
@@ -193,10 +199,9 @@ function DailyChart({
 }) {
   const { t } = useLanguage();
   const { formatAxisValue: formatMetric } = useCostVisibility();
-  const families = useMemo(() => byModelFamily(events).map((f) => f.key), [events]);
   const data = useMemo(() => {
     let cumulative = 0;
-    return includeEmptyDailyWindowCosts(byDailyWindowAndModelFamily(events, ctx)).map((d) => {
+    return dailyWindows.map((d) => {
       const total = dailyWindowMetricTotal(d, metric);
       cumulative += total;
       return {
@@ -208,15 +213,14 @@ function DailyChart({
         cumulative,
       };
     });
-  }, [events, ctx, metric]);
+  }, [dailyWindows, metric]);
   const scale = useMemo(() => {
-    const dailyWindows = byDailyWindowAndModelFamily(scaleEvents, ctx);
-    const totals = dailyWindows.map((d) => dailyWindowMetricTotal(d, metric));
+    const totals = scaleDailyWindows.map((d) => dailyWindowMetricTotal(d, metric));
     return {
       maxDaily: Math.max(...totals, 0),
       total: totals.reduce((sum, value) => sum + value, 0),
     };
-  }, [scaleEvents, ctx, metric]);
+  }, [scaleDailyWindows, metric]);
 
   const handleClick = (payload: { dailyWindow?: string } | undefined) => {
     if (payload?.dailyWindow) onSelectDailyWindow?.(payload.dailyWindow);
@@ -263,11 +267,11 @@ function DailyChart({
           />
           {families.map((family, i) => (
             <Bar
-              key={family}
+              key={family.key}
               yAxisId="metric"
-              dataKey={family}
+              dataKey={family.key}
               stackId="metric"
-              fill={familyColors.get(family) ?? COLORS[i % COLORS.length]}
+              fill={familyColors.get(family.key) ?? COLORS[i % COLORS.length]}
               cursor={showControls && onSelectDailyWindow ? "pointer" : undefined}
               onClick={(payload) => handleClick(payload as { dailyWindow?: string } | undefined)}
               isAnimationActive={false}
@@ -317,6 +321,16 @@ export function Overview({
   const { t } = useLanguage();
   const familyColors = useMemo(() => modelFamilyColors(userEvents), [userEvents]);
   const families = useMemo(() => byModelFamily(events), [events]);
+  // Spend, Tokens, and their axes share the same aggregate rows. Without a
+  // User filter, the comparison set is also identical to the displayed set.
+  const dailyWindows = useMemo(
+    () => includeEmptyDailyWindowCosts(byDailyWindowAndModelFamily(events, ctx)),
+    [events, ctx],
+  );
+  const scaleDailyWindows = useMemo(
+    () => (userEvents === events ? dailyWindows : byDailyWindowAndModelFamily(userEvents, ctx)),
+    [userEvents, events, dailyWindows, ctx],
+  );
   const top = useMemo(
     () =>
       [...new Set([...topEvents(events, 20, "cost"), ...topEvents(events, 20, "tokens")])].sort(
@@ -332,9 +346,9 @@ export function Overview({
         {(["cost", "tokens"] as const).map((metric) => (
           <DailyChart
             key={metric}
-            events={events}
-            scaleEvents={userEvents}
-            ctx={ctx}
+            dailyWindows={dailyWindows}
+            scaleDailyWindows={scaleDailyWindows}
+            families={families}
             metric={metric}
             familyColors={familyColors}
             showControls={showControls}
