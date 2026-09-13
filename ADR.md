@@ -265,15 +265,16 @@ Users need to read and share the same analysis in their preferred language.
 
 ### Decision
 
-Provide a CLI tool that removes confidential information from a Usage Export by replacing email addresses and perturbing Spend and Tokens while retaining approximate usage patterns.
+Provide a CLI tool that removes confidential information from a Usage Export by replacing email addresses and agent/automation IDs and perturbing Spend and Tokens while retaining approximate usage patterns.
 
 ### Current State
 
 - Replace User email addresses with common Japanese surnames in Roman letters, such as `sato@example.jp` and `suzuki@example.jp`; append numeric suffixes such as `sato1`, `sato2`, and `sato3` when the surname pool is exhausted so that thousands of Users remain distinct.
 - Keep replacements consistent within a conversion: the same original email maps to the same replacement, and different Users receive different addresses.
 - Replace original domains consistently with distinct example domains, starting with `example.jp` and using different suffixes such as `example.com`, `example.dev`, and `example.net` for additional domains; preserve domain grouping without retaining original domain names.
+- Replace nonempty Cloud Agent IDs and Automation IDs with new random UUIDs, retaining the `bc-` prefix where present; keep repeated IDs mapped consistently within a conversion and different IDs distinct.
 - Perturb Spend and token counts with random multipliers close to one, such as 0.9–1.1, to retain approximate magnitudes while changing the reported values; round Spend to two decimal places using the same method as display formatting, truncate fractional token counts, and keep zero values at zero.
 
 ### Rationale
 
-Users need to remove original email addresses, organization domains, and exact Spend and token counts from CSV data while preserving its usefulness for usage analysis.
+Users need to remove original email addresses, organization domains, agent/automation IDs, and exact Spend and token counts from CSV data while preserving its usefulness for usage analysis.

@@ -23,6 +23,7 @@ const SURNAMES = [
   "saito",
 ];
 const DOMAINS = ["example.jp", "example.com", "example.dev", "example.net"];
+const ID_COLUMNS = new Set(["Cloud Agent ID", "Automation ID"]);
 const NUMERIC_COLUMNS = new Set([
   "Cost",
   "Input (w/ Cache Write)",
@@ -49,6 +50,16 @@ export function sanitizeCsv(text: string, random: () => number = Math.random): s
   if (userIndex < 0) throw new Error('Invalid CSV: missing column "User"');
   const users = new Map<string, string>();
   const domains = new Map<string, string>();
+  const ids = new Map<string, string>();
+  // Exclude both source IDs and assigned replacements when generating an alias.
+  const usedIds = new Set<string>();
+  const idColumns = columns.flatMap((name, index) => (ID_COLUMNS.has(name) ? [index] : []));
+  for (const row of rows.slice(1)) {
+    for (const column of idColumns) {
+      const id = row[column]?.trim();
+      if (id) usedIds.add(id);
+    }
+  }
   const output = [header];
 
   for (const [index, row] of rows.slice(1).entries()) {
@@ -76,6 +87,20 @@ export function sanitizeCsv(text: string, random: () => number = Math.random): s
             const suffix = Math.floor(users.size / SURNAMES.length);
             replacement = `${SURNAMES[users.size % SURNAMES.length]}${suffix || ""}@${domain}`;
             users.set(email, replacement);
+          }
+          return replacement;
+        }
+        if (ID_COLUMNS.has(columns[column]!)) {
+          const id = value.trim();
+          if (!id || id === "N/A") return value;
+          let replacement = ids.get(id);
+          if (!replacement) {
+            const prefix = id.startsWith("bc-") ? "bc-" : "";
+            do {
+              replacement = `${prefix}${globalThis.crypto.randomUUID()}`;
+            } while (usedIds.has(replacement));
+            ids.set(id, replacement);
+            usedIds.add(replacement);
           }
           return replacement;
         }

@@ -3,6 +3,8 @@ import { describe, expect, it } from "bun:test";
 import { parseCsv, parseUsageCsv } from "./parse.ts";
 import { sanitizeCsv } from "./sanitize.ts";
 
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 describe("sanitizeCsv", () => {
   it("keeps repeated Users and domain groups consistent without alias collisions at scale", () => {
     const emails = Array.from({ length: 5000 }, (_, i) => `private${i}@company${i % 7}.invalid`);
@@ -18,6 +20,45 @@ describe("sanitizeCsv", () => {
     expect(rows[7]![0]!.split("@")[1]).toBe("example.jp");
     expect(csv).not.toContain("private");
     expect(csv).not.toContain("company");
+  });
+
+  it("replaces IDs consistently across rows while retaining prefixes and missing markers", () => {
+    const input = [
+      "User,Cloud Agent ID,Automation ID",
+      "first@company.invalid,bc-original,original-automation",
+      "second@company.invalid, bc-original ,original-automation",
+      "first@company.invalid,other-agent,other-automation",
+      "N/A,,N/A",
+    ].join("\n");
+    const output = sanitizeCsv(input);
+    const rows = parseCsv(output).slice(1);
+    expect(rows[0]![1]).toStartWith("bc-");
+    expect(rows[0]![1]!.slice(3)).toMatch(UUID_V4);
+    expect(rows[0]![2]).toMatch(UUID_V4);
+    expect(rows[1]!.slice(1)).toEqual(rows[0]!.slice(1));
+    expect(rows[2]![1]).toMatch(UUID_V4);
+    expect(rows[2]![2]).toMatch(UUID_V4);
+    expect(new Set([...rows[0]!.slice(1), ...rows[2]!.slice(1)]).size).toBe(4);
+    expect(rows[3]!.slice(1)).toEqual(["", "N/A"]);
+    expect(output).not.toContain("original");
+    expect(output).not.toContain("other-agent");
+    expect(output).not.toContain("other-automation");
+    expect(parseCsv(sanitizeCsv(input))[1]![1]).not.toBe(rows[0]![1]);
+  });
+
+  it("keeps thousands of distinct agent and automation IDs separate", () => {
+    const input = [
+      "User,Cloud Agent ID,Automation ID",
+      ...Array.from({ length: 5000 }, (_, i) => `N/A,bc-source-${i},source-${i}`),
+    ].join("\n");
+    const rows = parseCsv(sanitizeCsv(input)).slice(1);
+    expect(new Set(rows.flatMap((row) => row.slice(1))).size).toBe(10000);
+    expect(
+      rows.every(
+        (row) =>
+          row[1]!.startsWith("bc-") && UUID_V4.test(row[1]!.slice(3)) && UUID_V4.test(row[2]!),
+      ),
+    ).toBe(true);
   });
 
   it("rounds Spend to cents and truncates token fractions", () => {
@@ -50,7 +91,8 @@ describe("sanitizeCsv", () => {
     expect(event.user).toBe("sato@example.jp");
     expect(event.cost).toBe(5);
     expect(event.kind).toBe("Errored, No Charge");
-    expect(event.cloudAgentId).toBe("agent");
+    expect(event.cloudAgentId).toMatch(UUID_V4);
+    expect(event.cloudAgentId).not.toBe("agent");
     expect(parseCsv(output)[1]![7]).toBe('a "quote"\nand comma, here');
   });
 
@@ -96,7 +138,9 @@ describe("sanitizeCsv", () => {
     ].join("\n");
     const rows = parseCsv(sanitizeCsv(input, () => 0));
     expect(rows[1]![1]).toBe("N/A");
-    expect(rows[1]!.slice(2, 4)).toEqual(["bc-test", "automation-test"]);
+    expect(rows[1]![2]).toStartWith("bc-");
+    expect(rows[1]![2]!.slice(3)).toMatch(UUID_V4);
+    expect(rows[1]![3]).toMatch(UUID_V4);
     expect(rows[1]!.slice(11)).toEqual(["724887", "0.18"]);
     expect(rows[2]![1]).toBe("sato@example.jp");
   });

@@ -56,8 +56,9 @@ same alias. Blank and `N/A` Users are preserved. Original domains map consistent
 `Cost` and the token columns are independently multiplied by random factors from
 0.9 to 1.1. Cost is rounded to two decimal places using `toFixed(2)`, matching
 USD display formatting, while token counts are truncated to integers. Zero stays zero. `-` and `Free` in `Cost` are preserved as nonnumeric amount labels. Totals are perturbed independently of token
-components. All other columns, including dates and agent/automation IDs, retain
-their values. This command transforms the specified fields, not arbitrary
+components. Cloud Agent IDs and Automation IDs are replaced with new random
+UUIDs, preserving repeated IDs and the `bc-` prefix where present. Empty IDs and
+`N/A` stay unchanged. All other columns, including dates, retain their values. This command transforms the specified fields, not arbitrary
 confidential text in other columns.
 
 The default output is `<input>-sanitized.csv` beside the input. Existing files
