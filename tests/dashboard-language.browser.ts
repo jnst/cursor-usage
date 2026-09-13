@@ -77,6 +77,7 @@ try {
   const toggle = page.getByRole("button", { name: "言語 / Language", exact: true });
   await toggle.focus();
   await page.keyboard.press("Enter");
+  assert.equal(await page.getByRole("tooltip").count(), 0);
   await page.keyboard.press("Tab");
   assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "日本語✓");
   await page.keyboard.press("Escape");

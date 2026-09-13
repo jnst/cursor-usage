@@ -98,6 +98,27 @@ body {
   padding: 0;
 }
 
+.button-tooltip {
+  position: fixed;
+  inset: auto;
+  z-index: 100;
+  margin: 0;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 16px));
+  padding: 7px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px #0006;
+}
+
+.button-tooltip[data-open="false"] {
+  display: none;
+}
+
 /* CSV import */
 
 .dropzone {

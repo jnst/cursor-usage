@@ -94,6 +94,36 @@ function installCounters() {
 }
 const calls = (page: Page) => page.evaluate(() => Reflect.get(window, "uuidCalls") as number);
 
+async function checkHeaderTooltips(page: Page, labels: string[]) {
+  for (const label of labels) {
+    const button = page.getByRole("button", { name: label, exact: true });
+    const tooltip = page.getByRole("tooltip");
+    await button.hover();
+    await tooltip.waitFor();
+    assert.equal(await tooltip.innerText(), label);
+    const anchor = await button.boundingBox();
+    const popup = await tooltip.boundingBox();
+    assert(anchor && popup);
+    assert(Math.abs(anchor.x + anchor.width / 2 - popup.x - popup.width / 2) < 1);
+    assert.equal(await button.getAttribute("title"), null, "avoid duplicate native tooltips");
+    assert.equal(await button.getAttribute("aria-describedby"), await tooltip.getAttribute("id"));
+    await tooltip.hover();
+    await page.waitForTimeout(180);
+    assert(await tooltip.isVisible(), "help remains readable while the pointer is over it");
+    await page.keyboard.press("Escape");
+    await tooltip.waitFor({ state: "hidden" });
+
+    await page.mouse.move(0, 0);
+    await button.focus();
+    await tooltip.waitFor();
+    assert.equal(await tooltip.innerText(), label);
+    await page.keyboard.press("Escape");
+    await tooltip.waitFor({ state: "hidden" });
+    assert(await button.evaluate((element) => document.activeElement === element));
+  }
+  await page.locator("h1").click();
+}
+
 try {
   for (const locale of ["ja-JP", "en-US"]) {
     const ja = locale === "ja-JP";
@@ -141,6 +171,18 @@ try {
     assert.equal(costBounds.y, dummyBounds.y);
     assert(dummyBounds.x > costBounds.x && dummyBounds.x - costBounds.x - costBounds.width < 16);
 
+    await checkHeaderTooltips(page, ["言語 / Language", hide, toggleName]);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await toggle.hover();
+    const tooltip = page.getByRole("tooltip");
+    await tooltip.waitFor();
+    const tooltipBounds = await tooltip.boundingBox();
+    assert(tooltipBounds && tooltipBounds.x >= 8 && tooltipBounds.x + tooltipBounds.width <= 367);
+    await page.screenshot({ path: join(output, `tooltip-mobile-${locale}.png`) });
+    await page.keyboard.press("Escape");
+    await page.setViewportSize({ width: 1400, height: 1000 });
+    await page.mouse.move(0, 0);
+
     // Hold the first module request to check progress, focus, and delayed work.
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
@@ -158,6 +200,7 @@ try {
     assert.equal(await toggle.getAttribute("aria-disabled"), "true");
     const loading = page.getByRole("dialog", { name: preparing, exact: true });
     await loading.waitFor();
+    assert.equal(await page.getByRole("tooltip").count(), 0);
     assert(await loading.evaluate((dialog) => dialog.contains(document.activeElement)));
     const loadingBounds = await loading.boundingBox();
     assert(loadingBounds);
@@ -303,6 +346,11 @@ try {
 
     // Spend visibility and dummy display are independent.
     await page.getByRole("button", { name: hide, exact: true }).click();
+    await page.mouse.move(0, 0);
+    await page.getByRole("button", { name: show, exact: true }).hover();
+    await page.getByRole("tooltip").waitFor();
+    assert.equal(await page.getByRole("tooltip").innerText(), show);
+    await page.keyboard.press("Escape");
     await toggle.click();
     assert.equal(
       await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
