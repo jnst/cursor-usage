@@ -56,7 +56,11 @@ export function useDummyData(onModeChange: () => void) {
       const converted = parseUsageCsv(sanitizeCsv(current.text));
       current.converted = converted;
       onChange.current();
-      setState({ events: converted, preparing: false, failed: false });
+      setState({ events: converted, preparing: true, failed: false });
+      // Keep the modal in place through the first chart layout and paint.
+      await afterPaint();
+      if (source.current === current)
+        setState({ events: converted, preparing: false, failed: false });
     } catch {
       if (source.current === current) {
         setState({ events: null, preparing: false, failed: true });
@@ -66,5 +70,11 @@ export function useDummyData(onModeChange: () => void) {
     }
   };
 
-  return { ...state, isDummy: state.events !== null, setCsv, toggle };
+  return {
+    ...state,
+    isDummy: state.events !== null,
+    cachedEvents: source.current?.converted ?? null,
+    setCsv,
+    toggle,
+  };
 }

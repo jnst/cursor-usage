@@ -1,7 +1,7 @@
 import type { Language } from "../src/core/language.ts";
 import type { MessageKey } from "./i18n/messages.ts";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { filterEvents } from "../src/core/aggregate.ts";
@@ -14,11 +14,11 @@ import {
 } from "../src/core/time.ts";
 import { type AnalysisContext, type UsageEvent } from "../src/core/types.ts";
 import { CostVisibilityProvider, CostVisibilityToggle } from "./components/CostVisibility.tsx";
-import { DailyWindowView } from "./components/DailyWindowView.tsx";
+import { DatasetView } from "./components/DatasetView.tsx";
 import { DropZone } from "./components/DropZone.tsx";
+import { DummyDataLoading } from "./components/DummyDataLoading.tsx";
 import { DummyDataToggle } from "./components/DummyDataToggle.tsx";
 import { LanguageSelector } from "./components/LanguageSelector.tsx";
-import { Overview } from "./components/Overview.tsx";
 import { LanguageProvider, initialLanguage, useLanguage } from "./i18n/LanguageProvider.tsx";
 import { useDummyData } from "./useDummyData.ts";
 
@@ -80,39 +80,51 @@ function useDailyWindowRoute(): {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [defaultTimeZone]);
 
-  const updateHash = (
-    dailyWindow: string | null,
-    user: string | null,
-    ctx: AnalysisContext,
-    eventLimit: number | null,
-  ) => {
-    if (
-      dailyWindow ||
-      user ||
-      ctx.timeZone !== defaultTimeZone ||
-      ctx.startHour !== 0 ||
-      eventLimit !== null
-    ) {
-      const params = new URLSearchParams({ timezone: ctx.timeZone });
-      if (dailyWindow) params.set("daily-window", dailyWindow);
-      if (user) params.set("user", user);
-      if (ctx.startHour !== 0) params.set("start-hour", String(ctx.startHour));
-      if (eventLimit !== null) params.set("event-limit", String(eventLimit));
-      window.location.hash = params.toString();
-    } else if (window.location.hash) {
-      window.history.pushState(null, "", window.location.pathname + window.location.search);
-    }
-    setRoute({ dailyWindow, user, ctx, eventLimit });
-  };
+  const updateHash = useCallback(
+    (
+      dailyWindow: string | null,
+      user: string | null,
+      ctx: AnalysisContext,
+      eventLimit: number | null,
+    ) => {
+      if (
+        dailyWindow ||
+        user ||
+        ctx.timeZone !== defaultTimeZone ||
+        ctx.startHour !== 0 ||
+        eventLimit !== null
+      ) {
+        const params = new URLSearchParams({ timezone: ctx.timeZone });
+        if (dailyWindow) params.set("daily-window", dailyWindow);
+        if (user) params.set("user", user);
+        if (ctx.startHour !== 0) params.set("start-hour", String(ctx.startHour));
+        if (eventLimit !== null) params.set("event-limit", String(eventLimit));
+        window.location.hash = params.toString();
+      } else if (window.location.hash) {
+        window.history.pushState(null, "", window.location.pathname + window.location.search);
+      }
+      setRoute({ dailyWindow, user, ctx, eventLimit });
+    },
+    [defaultTimeZone],
+  );
+
+  const setSelectedDailyWindow = useCallback(
+    (dailyWindow: string | null) =>
+      updateHash(dailyWindow, route.user, route.ctx, route.eventLimit),
+    [route, updateHash],
+  );
+  const setSelectedUser = useCallback(
+    (user: string | null) => updateHash(route.dailyWindow, user, route.ctx, route.eventLimit),
+    [route, updateHash],
+  );
 
   return {
     selectedDailyWindow: route.dailyWindow,
     selectedUser: route.user,
     ctx: route.ctx,
     eventLimit: route.eventLimit,
-    setSelectedDailyWindow: (dailyWindow) =>
-      updateHash(dailyWindow, route.user, route.ctx, route.eventLimit),
-    setSelectedUser: (user) => updateHash(route.dailyWindow, user, route.ctx, route.eventLimit),
+    setSelectedDailyWindow,
+    setSelectedUser,
   };
 }
 
@@ -132,7 +144,14 @@ function App() {
     setSelectedUser,
   } = useDailyWindowRoute();
 
-  const dummy = useDummyData(() => setSelectedUser(null));
+  const dummy = useDummyData(() => {
+    if (selectedUser !== null) setSelectedUser(null);
+  });
+  const onBack = useCallback(() => setSelectedDailyWindow(null), [setSelectedDailyWindow]);
+  const onSelectUser = useCallback(
+    (user: string) => setSelectedUser(user === selectedUser ? null : user),
+    [selectedUser, setSelectedUser],
+  );
 
   const onCsvText = (text: string) => {
     try {
@@ -190,7 +209,6 @@ function App() {
           </svg>
           Cursor Usage
         </h1>
-        {events && dummy.isDummy && <span className="dummy-data-label">{t("Dummy data")}</span>}
         {events && (
           <span className="meta">
             {t("billableCount", { count: events.length })}
@@ -226,41 +244,38 @@ function App() {
           </div>
         )}
       </div>
-      {events && dummy.preparing && (
-        <p className="dummy-data-status" role="status">
-          {t("Preparing dummy data…")}
-        </p>
-      )}
+      {events && dummy.preparing && <DummyDataLoading />}
       {events && dummy.failed && (
         <p className="dummy-data-error" role="alert">
           {t("Could not convert the CSV to dummy data.")}
         </p>
       )}
-      {events ? (
-        selectedDailyWindow ? (
-          <DailyWindowView
-            events={events}
-            dailyWindow={selectedDailyWindow}
-            ctx={ctx}
-            eventLimit={eventLimit ?? undefined}
-            showControls={showControls}
-            onBack={() => setSelectedDailyWindow(null)}
-            onSelectDailyWindow={setSelectedDailyWindow}
-            onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
-            selectedUser={selectedUser}
-            userEvents={userEvents ?? events}
-          />
-        ) : (
-          <Overview
-            events={events}
-            userEvents={userEvents ?? events}
-            ctx={ctx}
-            showControls={showControls}
-            onSelectDailyWindow={setSelectedDailyWindow}
-            onSelectUser={(user) => setSelectedUser(user === selectedUser ? null : user)}
-            selectedUser={selectedUser}
-          />
-        )
+      {allEvents ? (
+        <div className="dataset-views">
+          {([allEvents, dummy.cachedEvents] as const).map(
+            (dataset, index) =>
+              dataset && (
+                <div
+                  key={index}
+                  className="dataset-view"
+                  data-active={dummy.isDummy === (index === 1)}
+                  inert={dummy.isDummy !== (index === 1)}
+                >
+                  <DatasetView
+                    allEvents={dataset}
+                    dailyWindow={selectedDailyWindow}
+                    selectedUser={dummy.isDummy === (index === 1) ? selectedUser : null}
+                    ctx={ctx}
+                    eventLimit={eventLimit}
+                    showControls={showControls}
+                    onBack={onBack}
+                    onSelectDailyWindow={setSelectedDailyWindow}
+                    onSelectUser={onSelectUser}
+                  />
+                </div>
+              ),
+          )}
+        </div>
       ) : (
         <DropZone
           onCsvText={onCsvText}

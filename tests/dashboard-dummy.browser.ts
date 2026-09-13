@@ -54,13 +54,30 @@ async function drop(page: Page, label: string) {
   await data.dispose();
 }
 
+async function waitForDummy(page: Page) {
+  await page.waitForFunction(() => {
+    const toggle = document.querySelector(".dummy-data-toggle");
+    return (
+      toggle?.getAttribute("aria-pressed") === "true" &&
+      toggle.getAttribute("aria-disabled") === "false"
+    );
+  });
+  await page.locator(".dummy-data-loading").waitFor({ state: "detached" });
+}
+
 function installCounters() {
   Math.random = () => 0;
   Reflect.set(window, "uuidCalls", 0);
+  Reflect.set(window, "dateFormats", 0);
+  const formatToParts = Intl.DateTimeFormat.prototype.formatToParts;
+  Intl.DateTimeFormat.prototype.formatToParts = function (...args) {
+    Reflect.set(window, "dateFormats", Reflect.get(window, "dateFormats") + 1);
+    return formatToParts.apply(this, args);
+  };
   Reflect.set(window, "loadingFrames", 0);
   Reflect.set(window, "unpaintedConversions", 0);
   const frame = () => {
-    if (document.querySelector(".dummy-data-status")) {
+    if (document.querySelector(".dummy-data-loading[open]")) {
       Reflect.set(window, "loadingFrames", Reflect.get(window, "loadingFrames") + 1);
     }
     requestAnimationFrame(frame);
@@ -82,7 +99,6 @@ try {
     const ja = locale === "ja-JP";
     const original = ja ? "CSVをここにドラッグ＆ドロップ" : "Drop a CSV here";
     const toggleName = ja ? "ダミーデータを表示" : "Show dummy data";
-    const badge = ja ? "ダミーデータ" : "Dummy data";
     const preparing = ja ? "ダミーデータを準備中…" : "Preparing dummy data…";
     const reload = ja ? "別のCSVを読み込む" : "Load another CSV";
     const hide = ja ? "金額を隠す" : "Hide Spend";
@@ -109,7 +125,10 @@ try {
 
     await choose(page, original, true);
     await page.locator(".grid").first().waitFor();
-    assert.equal(await page.locator(".cards .value").first().innerText(), "$13.00");
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "$13.00",
+    );
     assert.equal(await toggle.getAttribute("aria-pressed"), "false");
     assert.equal(await calls(page), 0, "initial rendering must not generate dummy IDs");
     assert(
@@ -137,18 +156,72 @@ try {
     await requested;
     await page.getByRole("status").getByText(preparing, { exact: true }).waitFor();
     assert.equal(await toggle.getAttribute("aria-disabled"), "true");
-    assert(await toggle.evaluate((button) => button === document.activeElement));
+    const loading = page.getByRole("dialog", { name: preparing, exact: true });
+    await loading.waitFor();
+    assert(await loading.evaluate((dialog) => dialog.contains(document.activeElement)));
+    const loadingBounds = await loading.boundingBox();
+    assert(loadingBounds);
+    assert(Math.abs(loadingBounds.x + loadingBounds.width / 2 - 700) < 2);
+    assert(Math.abs(loadingBounds.y + loadingBounds.height / 2 - 500) < 2);
+    await page.keyboard.press("Tab");
+    assert(
+      await loading.evaluate(
+        (dialog) =>
+          dialog.contains(document.activeElement) || document.activeElement === document.body,
+      ),
+      "Tab may reach browser chrome, but must not focus the background page",
+    );
+    await page.keyboard.press("Escape");
+    assert(await loading.isVisible(), "Escape must not unblock an unfinished conversion");
+    const beforeBlockedClick = page.url();
+    await page.mouse.click(
+      costBounds.x + costBounds.width / 2,
+      costBounds.y + costBounds.height / 2,
+    );
+    assert.equal(page.url(), beforeBlockedClick);
+    assert.equal(await page.getByRole("button", { name: show, exact: true }).count(), 0);
+    assert.equal(
+      await page.evaluate(() => getComputedStyle(document.documentElement).overflow),
+      "hidden",
+    );
+    await page.screenshot({ path: join(output, `loading-${locale}.png`) });
+    await page.setViewportSize({ width: 375, height: 812 });
+    const mobileLoading = await loading.boundingBox();
+    assert(mobileLoading && mobileLoading.x >= 0 && mobileLoading.x + mobileLoading.width <= 375);
+    assert(Math.abs(mobileLoading.y + mobileLoading.height / 2 - 406) < 2);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    assert.equal(
+      await page
+        .locator(".loading-spinner")
+        .evaluate((spinner) => getComputedStyle(spinner).animationDuration),
+      "6s",
+    );
+    await page.screenshot({ path: join(output, `loading-mobile-${locale}.png`) });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.setViewportSize({ width: 1400, height: 1000 });
     assert.equal(await calls(page), 0);
     await page.evaluate(() => {
       location.hash =
         "daily-window=2026-08-14&user=first%40company.invalid&timezone=UTC&start-hour=5";
     });
-    await page.getByRole("heading", { name: "2026-08-14", exact: true }).waitFor();
+    await page.locator(".daily-window-title h2").waitFor();
     release();
-    await page.getByText(badge, { exact: true }).waitFor();
+    await waitForDummy(page);
     assert.equal(await toggle.getAttribute("aria-pressed"), "true");
     assert.equal(await toggle.getAttribute("aria-disabled"), "false");
-    assert.equal(await page.locator(".cards .value").first().innerText(), "$11.70");
+    assert(await toggle.evaluate((button) => button === document.activeElement));
+    assert.equal(await page.locator(".dummy-data-label").count(), 0);
+    assert.equal(
+      await page
+        .locator(".header")
+        .getByText(ja ? "ダミーデータ" : "Dummy data", { exact: true })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "$11.70",
+    );
     assert.equal(await calls(page), 2);
     const body = await page.locator("body").innerText();
     assert(body.includes("sato@example.jp"));
@@ -166,31 +239,101 @@ try {
     assert(!params.has("user"));
     await page.screenshot({ path: join(output, `dummy-${locale}.png`), fullPage: true });
 
-    // Restore exact originals; subsequent activations reuse the same values and IDs.
+    // Restore exact originals without replacing the prepared chart DOM.
+    const chartNodes = await page
+      .locator(".dataset-view .recharts-bar-rectangle path")
+      .elementHandles();
+    assert(chartNodes.length > 0);
+    await page.evaluate(() => Reflect.set(window, "dateFormats", 0));
+    // Subsequent activations reuse the same values and IDs.
     await toggle.click();
-    assert.equal(await page.locator(".cards .value").first().innerText(), "$13.00");
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "$13.00",
+    );
     assert.equal(await toggle.getAttribute("aria-pressed"), "false");
     assert((await page.locator("body").innerText()).includes("first@company.invalid"));
     await page.evaluate(() => {
       Math.random = () => 0.99;
     });
     await toggle.click();
-    assert.equal(await page.locator(".cards .value").first().innerText(), "$11.70");
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "$11.70",
+    );
     assert((await page.locator("body").innerText()).includes(id));
     assert.equal(await calls(page), 2);
     assert.equal(requests.filter((url) => url.endsWith(lazyAsset)).length, 1);
+    assert(
+      (
+        await Promise.all(chartNodes.map((node) => node.evaluate((element) => element.isConnected)))
+      ).every(Boolean),
+      "cached mode switches must retain chart DOM",
+    );
+    for (const node of chartNodes) await node.dispose();
+    assert.equal(
+      await page.evaluate(() => Reflect.get(window, "dateFormats")),
+      0,
+      "cached views must not render event timestamps again",
+    );
+    assert.equal(
+      await page.getByRole("button", { name: "first@company.invalid", exact: true }).count(),
+      0,
+      "the inactive view must not expose original User controls",
+    );
+    await toggle.focus();
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press("Tab");
+      assert.equal(
+        await page.evaluate(() => document.activeElement?.closest("[inert]") !== null),
+        false,
+      );
+    }
+    await toggle.focus();
+
+    // A tooltip must disappear with its dataset, even if the pointer stays put.
+    await page
+      .locator('.dataset-view[data-active="true"] .cloud-agent-chart .recharts-bar-rectangle')
+      .first()
+      .hover();
+    await page.locator('.dataset-view[data-active="true"] .cloud-agent-tooltip').waitFor();
+    await toggle.evaluate((button) => (button as HTMLButtonElement).click());
+    assert(!(await page.locator("body").innerText()).includes("sato@example.jp"));
+    await toggle.click();
 
     // Spend visibility and dummy display are independent.
     await page.getByRole("button", { name: hide, exact: true }).click();
     await toggle.click();
-    assert.equal(await page.locator(".cards .value").first().innerText(), "***");
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "***",
+    );
     await toggle.click();
-    assert.equal(await page.locator(".cards .value").first().innerText(), "***");
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "***",
+    );
     await page.getByRole("button", { name: show, exact: true }).click();
-    assert.equal(await page.locator(".cards .value").first().innerText(), "$11.70");
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "$11.70",
+    );
     await page.setViewportSize({ width: 375, height: 812 });
     const mobile = await toggle.boundingBox();
     assert(mobile && mobile.x >= 0 && mobile.x + mobile.width <= 375);
+    await toggle.click();
+    // ResizeObserver updates a retained chart after it becomes visible.
+    await page.waitForFunction(() => {
+      const chart = document.querySelector('.dataset-view[data-active="true"] .recharts-surface');
+      const width = chart?.getBoundingClientRect().width ?? 0;
+      return width > 0 && width <= window.innerWidth;
+    });
+    const resizedChart = await page
+      .locator('.dataset-view[data-active="true"] .recharts-surface')
+      .first()
+      .boundingBox();
+    assert(resizedChart && resizedChart.width > 0 && resizedChart.width <= 375);
+    await toggle.click();
     await page.screenshot({ path: join(output, `dummy-mobile-${locale}.png`), fullPage: true });
     await page.setViewportSize({ width: 1400, height: 1000 });
 
@@ -200,10 +343,13 @@ try {
     await page.locator(".grid").first().waitFor();
     assert.equal(await toggle.getAttribute("aria-pressed"), "false");
     assert.equal(await calls(page), 2);
-    assert.equal(await page.locator(".cards .value").first().innerText(), "$13.00");
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "$13.00",
+    );
     await page.evaluate(() => Reflect.set(window, "loadingFrames", 0));
     await toggle.click();
-    await page.getByText(badge, { exact: true }).waitFor();
+    await waitForDummy(page);
     assert.equal(await calls(page), 4);
     assert.equal(
       await page.evaluate(() => Reflect.get(window, "unpaintedConversions")),
@@ -227,11 +373,14 @@ try {
     await page.getByRole("alert").getByText(error, { exact: true }).waitFor();
     assert.equal(await toggle.getAttribute("aria-pressed"), "false");
     assert.equal(await toggle.getAttribute("aria-disabled"), "false");
-    assert.equal(await page.locator(".cards .value").first().innerText(), "$7.00");
+    assert.equal(
+      await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+      "$7.00",
+    );
     await page.getByRole("button", { name: reload, exact: true }).click();
     await choose(page, original);
     await toggle.click();
-    await page.getByText(badge, { exact: true }).waitFor();
+    await waitForDummy(page);
     assert.equal(await page.getByRole("alert").count(), 0);
     assert(requests.every((url) => url.startsWith(server.url)));
     await context.close();
@@ -254,7 +403,11 @@ try {
   const requested = page.waitForRequest((request) => request.url().endsWith(lazyAsset));
   await page.getByRole("button", { name: "Show dummy data", exact: true }).click();
   await requested;
-  await page.getByRole("button", { name: "Load another CSV", exact: true }).click();
+  // Programmatic replacement exercises stale-result protection; native user
+  // interaction with this background control is blocked by the modal.
+  await page
+    .getByRole("button", { name: "Load another CSV", exact: true })
+    .evaluate((button) => (button as HTMLButtonElement).click());
   await choose(page, "Drop a CSV here", false, csv.replace(",5,On-Demand", ",20,On-Demand"));
   const received = page.waitForResponse((response) => response.url().endsWith(lazyAsset));
   release();
@@ -266,11 +419,17 @@ try {
       .getAttribute("aria-pressed"),
     "false",
   );
-  assert.equal(await page.locator(".cards .value").first().innerText(), "$28.00");
+  assert.equal(
+    await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+    "$28.00",
+  );
   assert.equal(await calls(page), 0);
   await page.getByRole("button", { name: "Show dummy data", exact: true }).click();
-  await page.getByText("Dummy data", { exact: true }).waitFor();
-  assert.equal(await page.locator(".cards .value").first().innerText(), "$25.20");
+  await waitForDummy(page);
+  assert.equal(
+    await page.locator('.dataset-view[data-active="true"] .cards .value').first().innerText(),
+    "$25.20",
+  );
   await context.close();
 
   assert.deepEqual(errors, []);

@@ -34,10 +34,12 @@ Starts a local server and opens your browser. Drag & drop a CSV exported from Cu
 After loading a CSV, use the **Show dummy data** icon toggle beside **Hide Spend**
 to replace emails and agent/automation IDs and perturb Spend and Tokens for display.
 The first activation loads and runs the same core transformation as CLI `sanitize`;
-initial CSV import does no dummy-data preparation. **Dummy data** appears in the
-header while active. Switching off restores original values, and switching on again
-reuses the same converted values. Loading another CSV resets the toggle and cache.
-The original CSV and cached result stay in memory; no output CSV is created.
+initial CSV import does no dummy-data preparation. A centered loading dialog blocks
+background interaction until preparation and the initial chart rendering finish.
+The toggle indicates whether dummy data is active. Switching off restores original
+values, and switching on again reuses the same converted values and rendered charts.
+Loading another CSV resets the toggle and releases both views. The original CSV and
+cached result stay in memory; no output CSV is created.
 
 Use the globe icon in the upper right to choose **日本語** or **English**, even before loading a CSV. The first visit uses the first supported browser-preferred language, falling back to English. An explicit choice is saved for that browser origin and takes priority on subsequent visits; only the language preference is stored. Changing language preserves the loaded CSV, filters, and Spend visibility. The Analysis Time Zone, USD amounts, and CSV values are independent of the display language.
 

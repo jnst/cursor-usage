@@ -171,15 +171,6 @@ body {
   color: #f85149;
 }
 
-.dummy-data-label {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 12px;
-}
-
 @media (max-width: 700px) {
   .dropzone {
     padding: 28px 20px;
@@ -202,7 +193,6 @@ body {
   outline-offset: 3px;
 }
 
-.dummy-data-status,
 .dummy-data-error {
   margin: 0 0 16px;
   color: var(--text-dim);
@@ -210,6 +200,85 @@ body {
 
 .dummy-data-error {
   color: #f85149;
+}
+
+.dummy-data-loading {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  max-width: calc(100vw - 40px);
+  padding: 32px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 16px 64px #0008;
+}
+
+.dummy-data-loading[open] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.dummy-data-loading::backdrop {
+  background: #0009;
+}
+
+.dummy-data-loading p {
+  margin: 0;
+  text-align: center;
+}
+
+.loading-spinner {
+  appearance: none;
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--panel-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  background: transparent;
+  animation: loading-spin 0.8s linear infinite;
+}
+
+.loading-spinner::-webkit-progress-bar {
+  display: none;
+}
+
+.loading-spinner::-moz-progress-bar {
+  display: none;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation-duration: 6s;
+  }
+}
+
+/* Keep chart DOM and dimensions so mode switches do not rebuild the charts. */
+.dataset-views {
+  position: relative;
+}
+
+.dataset-view[data-active="false"] {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  content-visibility: hidden;
+  pointer-events: none;
+}
+
+@supports not (content-visibility: hidden) {
+  .dataset-view[data-active="false"] {
+    display: none;
+  }
 }
 
 /* Cards */

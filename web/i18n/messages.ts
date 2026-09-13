@@ -49,7 +49,6 @@ export const en = {
   "Show dummy data": "Show dummy data",
   "Preparing dummy data…": "Preparing dummy data…",
   "Reading CSV…": "Reading CSV…",
-  "Dummy data": "Dummy data",
   "Could not convert the CSV to dummy data.": "Could not convert the CSV to dummy data.",
   "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.":
     "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.",
@@ -183,7 +182,6 @@ const ja: Record<MessageKey, string> = {
   "Show dummy data": "ダミーデータを表示",
   "Preparing dummy data…": "ダミーデータを準備中…",
   "Reading CSV…": "CSVを読み込み中…",
-  "Dummy data": "ダミーデータ",
   "Could not convert the CSV to dummy data.": "CSVをダミーデータに変換できませんでした。",
   "Load a Usage Export from the Cursor dashboard. Data is processed in your browser and is never sent anywhere.":
     "Cursorダッシュボードから利用履歴エクスポートのCSVを読み込みます。データはブラウザ内で処理され、どこにも送信されません。",
