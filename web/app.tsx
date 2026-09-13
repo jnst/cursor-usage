@@ -160,8 +160,10 @@ function App() {
   );
   const events = useMemo(
     () =>
-      displayedEvents ? filterEvents(displayedEvents, { user: selectedUser ?? undefined }) : null,
-    [displayedEvents, selectedUser],
+      selectedUser && userEvents
+        ? userEvents.filter((event) => event.user === selectedUser)
+        : userEvents,
+    [userEvents, selectedUser],
   );
   const noChargeCount =
     displayedEvents && userEvents ? displayedEvents.length - userEvents.length : 0;

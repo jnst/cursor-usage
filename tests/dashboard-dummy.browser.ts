@@ -57,8 +57,20 @@ async function drop(page: Page, label: string) {
 function installCounters() {
   Math.random = () => 0;
   Reflect.set(window, "uuidCalls", 0);
+  Reflect.set(window, "loadingFrames", 0);
+  Reflect.set(window, "unpaintedConversions", 0);
+  const frame = () => {
+    if (document.querySelector(".dummy-data-status")) {
+      Reflect.set(window, "loadingFrames", Reflect.get(window, "loadingFrames") + 1);
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
   const randomUUID = crypto.randomUUID.bind(crypto);
   crypto.randomUUID = () => {
+    if (Reflect.get(window, "loadingFrames") === 0) {
+      Reflect.set(window, "unpaintedConversions", Reflect.get(window, "unpaintedConversions") + 1);
+    }
     Reflect.set(window, "uuidCalls", Reflect.get(window, "uuidCalls") + 1);
     return randomUUID();
   };
@@ -189,9 +201,15 @@ try {
     assert.equal(await toggle.getAttribute("aria-pressed"), "false");
     assert.equal(await calls(page), 2);
     assert.equal(await page.locator(".cards .value").first().innerText(), "$13.00");
+    await page.evaluate(() => Reflect.set(window, "loadingFrames", 0));
     await toggle.click();
     await page.getByText(badge, { exact: true }).waitFor();
     assert.equal(await calls(page), 4);
+    assert.equal(
+      await page.evaluate(() => Reflect.get(window, "unpaintedConversions")),
+      0,
+      "loading feedback must receive a frame before conversion, even with a cached module",
+    );
     assert(!(await page.locator("body").innerText()).includes(id));
 
     // A failed conversion leaves original data intact and shows a localized error.

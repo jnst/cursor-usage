@@ -7,6 +7,14 @@ import { parseUsageCsv } from "../src/core/parse.ts";
 type Source = { text: string; converted: UsageEvent[] | null; pending: boolean };
 const EMPTY = { events: null, preparing: false, failed: false };
 
+// Leave a frame for the progress message before synchronous CSV processing,
+// including when the transformation module is already in the browser cache.
+function afterPaint(): Promise<void> {
+  return new Promise((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
+}
+
 /** Convert only on demand, cache per loaded CSV, and ignore obsolete async results. */
 export function useDummyData(onModeChange: () => void) {
   const source = useRef<Source | null>(null);
@@ -40,7 +48,10 @@ export function useDummyData(onModeChange: () => void) {
     current.pending = true;
     setState({ events: null, preparing: true, failed: false });
     try {
-      const { sanitizeCsv } = await import("../src/core/sanitize.ts");
+      const [{ sanitizeCsv }] = await Promise.all([
+        import("../src/core/sanitize.ts"),
+        afterPaint(),
+      ]);
       if (source.current !== current) return;
       const converted = parseUsageCsv(sanitizeCsv(current.text));
       current.converted = converted;

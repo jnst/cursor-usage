@@ -291,6 +291,8 @@ Defer loading and running the dummy-data transformation until the user first ena
 - Import CSV normally and provide a dummy-data icon toggle beside the Spend visibility toggle after loading.
 - Load the shared transformation code and generate dummy data only on the first request, keeping this work out of initial import and rendering.
 - Keep the original data and cache the converted result in memory for the loaded CSV, so switching modes restores the original values or reuses the same dummy values without another conversion.
+- Reuse calendar calculations across charts and mode switches, retaining them only while the corresponding data remains in memory.
+- Display loading feedback before the first conversion starts, including when the transformation code is already cached by the browser.
 - Discard the cached result when another CSV is loaded; ignore pending results for a previously loaded CSV.
 
 ### Rationale

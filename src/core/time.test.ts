@@ -1,6 +1,6 @@
 import type { UsageEvent } from "./types.ts";
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 
 import {
   dailyWindowKeyOf,
@@ -165,6 +165,34 @@ describe("dailyWindowKeysInRange", () => {
 });
 
 describe("dailyWindowKeyOf", () => {
+  it("reuses calendar conversion across repeated daily and hourly aggregation", () => {
+    const date = new Date("2026-06-05T19:30:00Z");
+    const format = spyOn(Intl.DateTimeFormat.prototype, "formatToParts");
+    try {
+      for (let i = 0; i < 10; i++) {
+        expect(dailyWindowKeyOf(date, { timeZone: "Asia/Tokyo" })).toBe("2026-06-06");
+        expect(dailyWindowKeyOf(date, { timeZone: "Asia/Tokyo", startHour: 5 })).toBe("2026-06-05");
+        expect(hourOf(date, { timeZone: "Asia/Tokyo" })).toBe("04");
+      }
+      expect(format).toHaveBeenCalledTimes(1);
+    } finally {
+      format.mockRestore();
+    }
+  });
+
+  it("refreshes calendar values after a time zone change or Date mutation", () => {
+    const date = new Date("2026-01-01T00:30:00Z");
+    const utc = { timeZone: "UTC", startHour: 5 };
+    expect(dailyWindowKeyOf(date, utc)).toBe("2025-12-31");
+    expect(dailyWindowKeyOf(date, { timeZone: "Asia/Tokyo", startHour: 5 })).toBe("2026-01-01");
+    expect(dailyWindowKeyOf(date, utc)).toBe("2025-12-31");
+    date.setTime(new Date("2024-03-01T00:30:00Z").getTime());
+    expect(dailyWindowKeyOf(date, utc)).toBe("2024-02-29");
+    date.setUTCHours(8);
+    expect(dailyWindowKeyOf(date, utc)).toBe("2024-03-01");
+    expect(hourOf(date, utc)).toBe("08");
+  });
+
   it("throws on an invalid start hour", () => {
     expect(() => dailyWindowKeyOf(new Date("2026-06-05T10:00:00Z"), { startHour: 24 })).toThrow(
       /Invalid Daily Window start hour: 24/,
