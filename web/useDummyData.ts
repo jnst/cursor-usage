@@ -55,6 +55,8 @@ export function useDummyData(onModeChange: () => void) {
       if (source.current !== current) return;
       const converted = parseUsageCsv(sanitizeCsv(current.text));
       current.converted = converted;
+      // Future toggles use the parsed datasets, so release the source CSV text.
+      current.text = "";
       onChange.current();
       setState({ events: converted, preparing: true, failed: false });
       // Keep the modal in place through the first chart layout and paint.
